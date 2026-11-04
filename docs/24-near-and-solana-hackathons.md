@@ -169,6 +169,27 @@ worker; README, 2–4 min video, disclosure of the EVM origin.
 6. **Numbers.** Tests, live-chain checks, gas, and an audit summary — the depth
    most entries do not have.
 
+---
+
+## 4. Spike results — facts checked before building (2026-11-05)
+
+Each line was checked against the live service, not taken from memory.
+
+| Fact | Result | How checked |
+|---|---|---|
+| Testnet RPC | `rpc.testnet.near.org` and `test.rpc.fastnear.com` both answer `chain_id: testnet`, protocol 88 | JSON-RPC `status` |
+| Sputnik DAO v2 factory on testnet | **`sputnikv2.testnet`** — 5,403 DAOs, `get_daos` works. (`sputnik-v2.testnet` exists but is not a factory: `MethodNotFound`) | RPC `call_function` |
+| Block source for the indexer | **neardata** `testnet.neardata.xyz/v0/last_block/final` returns the full final block: `block` + `shards[]` with `receipt_execution_outcomes` (where NEP-297 logs live) and `state_changes` | HTTP GET |
+| 1Click (NEAR Intents) | `POST https://1click.chaindefuser.com/v0/quote`; `dry: true` "simulate[s] the quote request **without generating a deposit address**"; auth is `X-API-Key` or JWT (per HACKATHON.md Q-006 optional, 0.2% fee without) | OpenAPI spec `/docs/v0/openapi.yaml` |
+| NEAR USDC asset id (mainnet) | `nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1`, 6 decimals (215 tokens listed) | `GET /v0/tokens` |
+| NEAR AI Cloud signatures | `GET /v1/signature/<id>`; signed text = `sha256(request bytes):sha256(response bytes)` (model-prefixed on direct endpoints); `signing_algo` `ecdsa` (EIP-191) or `ed25519`; the signer comes from the verified attestation report | docs.near.ai response-signature-verification |
+| Crate versions | near-sdk **5.30.0**, near-contract-standards 5.30.0, near-workspaces **0.24.0**, near-sandbox 0.4.0 (all 2026-10-26/27) | crates.io API |
+| npm versions | near-api-js 7.4.0, @near-js/* 2.5.1, @near-wallet-selector/* 10.1.4 | npm registry |
+| Toolchain | cargo-near 0.22 needs **rustc ≥ 1.93**; near-sandbox has no Windows build → contracts are built and sandbox-tested in WSL Ubuntu | `cargo install` |
+
+Still to confirm when the owner's key is in `.env`: the NEAR AI Cloud base URL
+and model list, and the attestation-report field that names the signing key.
+
 ## Sources
 
 - https://nearhackathon.com/ · https://nearhackathon.com/HACKATHON.md
