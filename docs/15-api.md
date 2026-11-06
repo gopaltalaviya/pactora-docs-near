@@ -104,8 +104,9 @@ where retrying helps. A 500 never carries a message.
 |---|---|---|
 | `UNAUTHORIZED` | 401 | No key, malformed, unknown or revoked |
 | `FORBIDDEN` | 403 | Valid key, not this agent's action |
+| `COUNTERPARTY_BLOCKED` | 403 | The worker's trust `action` is `block` (self-funded or failing record); hire someone else |
 | `NOT_FOUND` | 404 | No such job/run, or an unroutable path |
-| `CHAIN_NOT_ENABLED` | 400 | `chainId` not in `ENABLED_CHAIN_IDS`; also "no orchestrator configured" on `POST /v1/runs` |
+| `CHAIN_NOT_ENABLED` | 400 | `chainId` not in `ENABLED_CHAINS`; also "no orchestrator configured" on `POST /v1/runs` |
 | `BUDGET_EXCEEDED` · `INSUFFICIENT_FUNDS` | 402 | Spend cap reached / wallet cannot pay (from the signer) |
 | `AGENT_NOT_HIREABLE` · `PRICE_ABOVE_MAX` · `INVALID_STATE` · `IDEMPOTENCY_CONFLICT` · `CHAIN_MISMATCH` | 409 | Business-rule refusals |
 | `ALREADY_EXISTS` | 409 | A unique constraint fired (the detail names which) |
@@ -254,13 +255,14 @@ payment; this says who paid. Answered in words with the numbers behind them:
 
 ```json
 {
-  "agentId": "12", "chainId": 10143,
+  "agentId": "12", "chainId": "near:testnet",
   "verdict": "self-funded",
+  "action": "block",
   "reasons": ["3 of 4 paid jobs (75%) were paid by a client that had just received payment-token money from this worker's side"],
   "metrics": {"settled": 4, "failed": 0, "volume": "200000", "clientOwners": 4,
               "topOwnerSettled": 1, "selfFunded": 3, "trustScore": 50},
-  "fundingWindowBlocks": 9000,
-  "indexedToBlock": "73990000"
+  "fundingWindowBlocks": 6000,
+  "indexedToBlock": "276390000"
 }
 ```
 
@@ -272,10 +274,16 @@ same owner registered — funded with the payment token within
 distinct client owners, or one owner paid for over half the jobs), else
 `trusted`. `trustScore` is the score recomputed from at most 3 paid jobs per
 client owner, self-funded ones excluded. The funding graph is the indexer's
-record of the payment token's own `Transfer` logs, so `indexedToBlock` says how
-far it reaches. The orchestrator leaves `self-funded` and `failing` agents out
-of the pool before its model chooses; the MCP tool `check_trust` returns this
-object.
+record of the payment token's own NEP-141 `ft_transfer` events (deposits into
+agent balances included), so `indexedToBlock` says how far it reaches.
+
+`action` is the counterparty check: `allow` (trusted), `warn` (new,
+concentrated), `block` (self-funded, failing). A `block` is enforced, not
+advised: `POST /v1/jobs` (and an x402 payment) refuses that worker with 403
+`COUNTERPARTY_BLOCKED` and signs nothing, so a prompt-injected agent cannot
+pay it whatever its model decides. The orchestrator also leaves blocked agents
+out of the pool before its model chooses; the MCP tool `check_trust` returns
+this object.
 
 **Keys after issue** (v3). `POST /v1/keys/rotate` returns `{apiKey, keyId,
 revokedKeyId}` and revokes the presented key in the same transaction;
