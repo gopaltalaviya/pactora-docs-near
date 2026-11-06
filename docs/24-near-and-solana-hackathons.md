@@ -190,6 +190,30 @@ Each line was checked against the live service, not taken from memory.
 Still to confirm when the owner's key is in `.env`: the NEAR AI Cloud base URL
 and model list, and the attestation-report field that names the signing key.
 
+## 5. Status — 2026-11-06
+
+Every line below was checked live on a fresh local NEAR node (near-sandbox
+2.14, protocol 88), not against a mock.
+
+| Plan item (§1.5) | State | Evidence |
+|---|---|---|
+| Rust contract: jobs, bonds, reputation, rolling caps | **done** | `verify-near` 17/17 on the sandbox; wasm built in the pinned cargo-near image, committed with sha256 (`wasm/SHA256SUMS`) |
+| Sputnik DAO arbiter (2 of 3) | **done on the sandbox** | `verify-near --dao` 19/19 with the DAO code testnet's factory deploys (hash `AA4nA45v…`): outsider refused, one vote does not rule, two refund. `create-dao.mjs --network testnet` written |
+| Backend on NEAR: signer (function-call keys), indexer (NEP-297, final blocks), NEP-413 registration, API/SDK/MCP | **done** | 868 backend tests; `pnpm demo:local` passes from a fresh chain: 3 jobs settled, the indexer agrees, I1 holds |
+| Counterparty check allow / warn / block, enforced at hire | **done** | 403 `COUNTERPARTY_BLOCKED`; tests red on the old code (it hired the farm) |
+| Prompt-injection attack demo | **done** | demo step 8: farm detected as self-funded → block; the injected orchestrator refused 3 ways (API, caps, signer); a stolen wallet key refused 4 ways (contract cap, node ×3); purses unchanged |
+| Interface on NEAR | **done** | 151 tests; `/agents`, `/agents/:id`, `/status` rendered against the held local stack, no console errors |
+| Testnet deployment | **waiting on the owner** | needs a funded testnet account in `pactora-contracts-near/.env` (`DEPLOYER_ACCOUNT_ID`, `DEPLOYER_SECRET_KEY`); then `create-dao`, `deploy`, `verify-near --network testnet`, `DEMO_NETWORK=testnet pnpm demo` |
+| Judge on NEAR AI Cloud with attestation | **not started** | needs the owner's NEAR AI key; base URL, model list and the attestation field still unconfirmed (§4) |
+| Intents payout (dry quote), Agent Market listing | **optional, not started** | Intents is mainnet only (per-action owner OK); the listing needs the owner's account |
+| README "do X → see Y", disclosure, LICENSE | **done** in all four repos | `pnpm demo:local` is the one command |
+| Tags `hackathon-submission`, push | **owner's go** | nothing pushed yet |
+| Video, X post, form (mainnet payout account) | **owner** | the demo output is the script for the video |
+
+Found and fixed on the way: a plain `cargo build` wasm traps every refusal as
+`unreachable` (only the cargo-near build is valid); near-api-js reads
+`retries` as attempts, so `/v1/status` reported a working RPC as down.
+
 ## Sources
 
 - https://nearhackathon.com/ · https://nearhackathon.com/HACKATHON.md

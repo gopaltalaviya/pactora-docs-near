@@ -1,39 +1,36 @@
-# agentx-docs
+# pactora-docs-near
 
-The specification, submission deck and demo video for **Pactora (formerly
-AGENTX)**:
-proof-of-payment reputation and escrow for
-[ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) agents on Monad. Built for
-Monad Metropolis, Track 4.
+Specification and submission material for **Pactora on NEAR** — AI agents
+that hire each other, paid through an on-chain escrow with spend caps the
+contract enforces, a 2-of-3 Sputnik DAO ruling disputes, and reputation only a
+settled payment can write. Built for the NEAR Hackathon (Nov 2026), tracks
+Agent Economy and AI Security & Defense.
 
-ERC-8004 gives agents an identity and a place to record reputation, but
-`giveFeedback()` is open to anyone, so that reputation costs nothing to forge.
-Pactora is the settlement layer that makes it cost something: **only a settled
-on-chain payment can write a review.**
-
-*Pactora — where AI agents make deals they can't break.* It was built and
-submitted to Monad Metropolis under the name **AGENTX**, so the deck, the
-videos, the portal answers and the repo names still say AGENTX; the rename and
-what it does and does not touch are in
-[`docs/23-launch-and-rebrand-plan.md`](docs/23-launch-and-rebrand-plan.md).
-Planned domain: pactoragents.com (not live yet).
-
-**Live on Monad testnet (10143).** `TaskEscrow` v2 is
-[`0x4feED0338761817417Fd1dDdFC8331D16AEB370D`](https://testnet.monadexplorer.com/address/0x4feED0338761817417Fd1dDdFC8331D16AEB370D).
-The site is live at **https://agentx-interface-iota.vercel.app** (Vercel); its
-API at `https://api.64-177-41-175.sslip.io` runs on a VPS. 862 automated tests
-(184 contracts, 591 backend, 87 interface) plus 72 browser tests run on 5
-engines (360 runs).
+> **What existed before.** Pactora started as AgentX on Monad (EVM). The tag
+> `pre-hackathon` is that work, imported unchanged; the documents below it
+> (00–23) describe the EVM build and are kept as the baseline. Written in the
+> hackathon window: [docs/24](docs/24-near-and-solana-hackathons.md) (rules,
+> fit, plan and status), and the NEAR changes to
+> [15 — API](docs/15-api.md). The wire contract between the NEAR services and
+> the chain is
+> [`pactora-backend-near/docs/NEAR-PORT.md`](https://github.com/gopaltalaviya/pactora-backend-near/blob/master/docs/NEAR-PORT.md).
+> Diff: [`pre-hackathon...hackathon-submission`](https://github.com/gopaltalaviya/pactora-docs-near/compare/pre-hackathon...hackathon-submission).
 
 ## The code
 
 | Repo | What |
 |---|---|
-| [`agentx-contracts`](https://github.com/gopaltalaviya/agentx-contracts) | Foundry: `TaskEscrow`, `StakeVault`, `AgentAccount` and the deployments |
-| [`agentx-backend`](https://github.com/gopaltalaviya/agentx-backend) | API, signer, indexer, MCP server and the four agents; the build log [`PROGRESS.md`](https://github.com/gopaltalaviya/agentx-backend/blob/master/PROGRESS.md) and plan [`PLAN.md`](https://github.com/gopaltalaviya/agentx-backend/blob/master/PLAN.md) |
-| [`agentx-interface`](https://github.com/gopaltalaviya/agentx-interface) | The Next.js site: live demo, marketplace, run records, docs pages |
-| `agentx-docs` (this repo) | What is below |
-| [Live site](https://agentx-interface-iota.vercel.app) | The hosted demo, marketplace and run records |
+| [`pactora-contracts-near`](https://github.com/gopaltalaviya/pactora-contracts-near) | Rust (near-sdk 5.30): the Pactora contract (registry, escrow, bonds, caps, reputation), mock USDC, the Sputnik DAO arbiter scripts, `verify-near` (19 live checks) |
+| [`pactora-backend-near`](https://github.com/gopaltalaviya/pactora-backend-near) | API, signer (function-call keys), indexer, MCP server, agents; **`pnpm demo:local`** runs everything on a local NEAR node with no keys |
+| [`pactora-interface-near`](https://github.com/gopaltalaviya/pactora-interface-near) | The Next.js site: marketplace, agent profiles, runs, status, registration with NEAR Connect |
+| `pactora-docs-near` (this repo) | What is below |
+
+**To see it work:** follow "Run it" in the backend README — two clones,
+`pnpm install`, `pnpm demo:local`, and the last line is `Demo passed.`
+
+---
+
+# The EVM baseline (AgentX on Monad, before the hackathon)
 
 ## Start here
 
