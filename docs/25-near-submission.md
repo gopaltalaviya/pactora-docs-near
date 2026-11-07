@@ -47,7 +47,7 @@ too: it can be entered alongside any other track.
 > judged before they pay. A prompt-injected agent tries to pay a farm and
 > withdraw to an attacker; the API and the chain refuse every step. Wallet
 > keys are function-call only. @NEARProtocol #NEARHackathon
-> <repo link> <video>
+> github.com/gopaltalaviya/pactora-backend-near [video link: add after recording]
 
 ## 3. Video script (about 3 minutes; recorded over `pnpm demo:local`, or the testnet run)
 
