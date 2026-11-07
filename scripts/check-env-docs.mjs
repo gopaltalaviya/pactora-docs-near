@@ -13,7 +13,7 @@ import {fileURLToPath} from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const docs = readFileSync(join(root, 'docs', '08-configuration.md'), 'utf8');
-const repos = ['agentx-contracts', 'agentx-backend', 'agentx-interface'];
+const repos = ['pactora-contracts-near', 'pactora-backend-near', 'pactora-interface-near'];
 
 let missing = 0;
 for (const repo of repos) {
