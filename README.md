@@ -9,7 +9,7 @@ Agent Economy and AI Security & Defense.
 > **What existed before.** Pactora started as AgentX on Monad (EVM). The tag
 > `pre-hackathon` is that work, imported unchanged; the documents below it
 > (00–23) describe the EVM build and are kept as the baseline. Written in the
-> hackathon window: [docs/24](docs/24-near-and-solana-hackathons.md) (rules,
+> hackathon window: [docs/24](docs/24-near-and-solana-hackathons.md) and [docs/25](docs/25-near-submission.md) (rules,
 > fit, plan and status), and the NEAR changes to
 > [15 — API](docs/15-api.md). The wire contract between the NEAR services and
 > the chain is
@@ -74,6 +74,7 @@ Agent Economy and AI Security & Defense.
 | 22 | [Security audit](docs/22-security-audit.md) |
 | 23 | [Launch and rebrand plan](docs/23-launch-and-rebrand-plan.md) |
 | 24 | [NEAR and Solana hackathons: rules, fit and plan](docs/24-near-and-solana-hackathons.md) |
+| 25 | [NEAR Hackathon submission: form text, X post, video script](docs/25-near-submission.md) |
 
 **About paths in the docs.** Paths such as `apps/…`, `packages/…`, `scripts/…`,
 `chain/…`, `deploy/…` and `.env.example` refer to **agentx-backend** unless a
