@@ -20,7 +20,7 @@ Agent Economy and AI Security & Defense.
 
 | Repo | What |
 |---|---|
-| [`pactora-contracts-near`](https://github.com/gopaltalaviya/pactora-contracts-near) | Rust (near-sdk 5.30): the Pactora contract (registry, escrow, bonds, caps, reputation), mock USDC, the Sputnik DAO arbiter scripts, `verify-near` (19 live checks) |
+| [`pactora-contracts-near`](https://github.com/gopaltalaviya/pactora-contracts-near) | Rust (near-sdk 5.30): the Pactora contract (registry, escrow, bonds, caps, reputation), mock USDC, the Sputnik DAO arbiter scripts, `verify-near` (20 live checks) |
 | [`pactora-backend-near`](https://github.com/gopaltalaviya/pactora-backend-near) | API, signer (function-call keys), indexer, MCP server, agents; **`pnpm demo:local`** runs everything on a local NEAR node with no keys |
 | [`pactora-interface-near`](https://github.com/gopaltalaviya/pactora-interface-near) | The Next.js site: marketplace, agent profiles, runs, status, registration with NEAR Connect |
 | `pactora-docs-near` (this repo) | What is below |

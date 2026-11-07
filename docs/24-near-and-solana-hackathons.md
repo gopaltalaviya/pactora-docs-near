@@ -199,7 +199,7 @@ Every line below was checked live on a fresh local NEAR node (near-sandbox
 |---|---|---|
 | Rust contract: jobs, bonds, reputation, rolling caps | **done** | `verify-near` 17/17 on the sandbox; wasm built in the pinned cargo-near image, committed with sha256 (`wasm/SHA256SUMS`) |
 | Sputnik DAO arbiter (2 of 3) | **done on the sandbox** | `verify-near --dao` 19/19 with the DAO code testnet's factory deploys (hash `AA4nA45v…`): outsider refused, one vote does not rule, two refund. `create-dao.mjs --network testnet` written |
-| Backend on NEAR: signer (function-call keys), indexer (NEP-297, final blocks), NEP-413 registration, API/SDK/MCP | **done** | 868 backend tests; `pnpm demo:local` passes from a fresh chain: 3 jobs settled, the indexer agrees, I1 holds |
+| Backend on NEAR: signer (function-call keys), indexer (NEP-297, final blocks), NEP-413 registration, API/SDK/MCP | **done** | 873 backend tests; `pnpm demo:local` passes from a fresh chain: 3 jobs settled, the indexer agrees, I1 holds |
 | Counterparty check allow / warn / block, enforced at hire | **done** | 403 `COUNTERPARTY_BLOCKED`; tests red on the old code (it hired the farm) |
 | Prompt-injection attack demo | **done** | demo step 8: farm detected as self-funded → block; the injected orchestrator refused 3 ways (API, caps, signer); a stolen wallet key refused 4 ways (contract cap, node ×3); purses unchanged |
 | Interface on NEAR | **done** | 151 tests; `/agents`, `/agents/:id`, `/status` rendered against the held local stack, no console errors |
