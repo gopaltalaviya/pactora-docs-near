@@ -38,7 +38,8 @@ summary). No contract change on this branch: the wasm hash stays
 | M4 evidence, drafts and review, chat | ✅ M4 commit | ✅ M4 commit (delivery panels on `/jobs/[id]`) | ✅ M4 commit (docs/04 §5.1e, 08, 15) |
 | M5 events, webhooks, notifications, faucet | ✅ M5 commit (migration 0018, `apps/notifier`) | ✅ M5 commit (bell, `/notifications`, faucet on `/me`) | ✅ M5 commit (docs/04 §5.1f, 08, 15) |
 | M6 profiles, directory, two-way reviews | ✅ M6 commit (migration 0019; CORS now allows PUT) | ✅ M6 commit (`/people`, `/people/[id]`, editor on `/me`, review card on jobs) | ✅ M6 commit (docs/04 §5.1g, 15) |
-| M7–M10 | ❌ | ❌ | ❌ |
+| M7 identity checks, sanctions screening, standing, retention | ✅ M7 commit (`packages/compliance`, migration 0020, keeper/signer holds, `sanctions:refresh`) | ✅ M7 commit (identity card on `/me`, `/kyc/simulated`, privacy page) | ✅ M7 commit (docs/04 §5.1h, 08, 15) |
+| M8–M10 | ❌ | ❌ | ❌ |
 
 M4 gate, run 2026-11-08 on this machine:
 
@@ -74,6 +75,19 @@ M6 gate, run 2026-11-08:
 | `pnpm demo:local` | `Demo passed.`, 53 checks; 8e: the client's review of the worker is blind (not on the profile, words withheld from the worker); after both, 5/5 and 4/5 show, author named from a published profile, no unchosen account shown; the directory finds the worker |
 | Interface `pnpm check` | 268 unit tests |
 | Interface e2e, 5 browsers | 882 passed, 2 skipped, 11 failed, then fixed or explained: 10 in the new profiles spec (2 ambiguous locators; and **a real bug: the API's CORS did not allow PUT**, so a browser could not save a profile; fixed, and a backend test now preflights every method the API serves, red on the old code); 1 WebKit smoke flake (5/5 alone). profiles spec 40/40 after |
+
+M7 gate, run 2026-11-08:
+
+| Check | Result |
+|---|---|
+| Backend `pnpm check` | 1164 passed, 10 skipped |
+| Backend `test:startup` | all 32 bad configurations refused (screening off in production, one reviewer, provider without secret added) |
+| Real lists (live) | OFAC SDN.CSV 19,563 entries + ALT.CSV 20,232 aliases, UN 733 + 274, parsed in full; **no NEAR address on any list** (16 assets, none NEAR); `pnpm sanctions:refresh` against the publishers: both stored, second run skipped both as unchanged |
+| Known gap | at the plan's 0.92/word a one-letter change in a 4-letter word is missed ("Erik"/"Eric" 0.88); pinned by a test; the owner decides |
+| `pnpm demo:local` | `Demo passed.`, 53 checks, after the keeper and signer gained the standing filters |
+| Interface `pnpm check` | 271 unit tests |
+| Interface e2e, 5 browsers | 918 passed, 2 skipped, 0 failed; privacy-page smoke tests 10/10 after the page gained the retention facts |
+| Not done | a vendor KYC adapter (no vendor chosen, docs/26 D3); UK/EU lists; a held payout run end to end on the sandbox (the signer's refusal and the keeper's filter are tested against the fake RPC and the real database) |
 
 Resume after a crash: `git status` in all four repos, then Docker Desktop, then
 `docker compose up -d` (Postgres :5443, MinIO :9110), then

@@ -1520,6 +1520,79 @@ docs/26 F16, F17. Routes: docs/15.
   their published profile, and neither profile shows an account it did not
   choose to. The directory finds the worker by name, with its settled job.
 
+### 5.1h Identity checks, sanctions screening, standing (branch `human-work`)
+
+docs/26 F13, F14, F27. Routes and rules: docs/15.
+
+**Research first (2026-11-08), measured on the published files:**
+
+- OFAC `SDN.CSV`: 19,563 entries, plus 20,232 aliases in `ALT.CSV`.
+  - Its digital currency addresses cover 16 assets (XBT 262, TRX 98, ETH 91,
+    USDT 43, …) and **none is NEAR**.
+  - The only "near" in the file is the English word, as in a place of birth
+    "near Tikrit".
+- UN `consolidated.xml`: 733 individuals and 274 entities.
+- Among providers, TRM Labs states NEAR wallet screening. Elliptic and
+  Chainalysis did not confirm NEAR in what was read.
+- So Pactora screens **people's names**, not NEAR wallets, and says so
+  (`walletScreening: "not available"`) rather than faking a check. UK and EU
+  lists are not covered yet: their files were not inspected, and a parser
+  written blind is worse than none.
+
+**The library** (`packages/compliance`, no network, no dependency):
+
+- `foldName` reduces names to ASCII words.
+- Jaro-Winkler matching runs in two passes:
+  - word by word, ≥ 0.92 per word, exact for words of 3 letters or fewer;
+  - joined, ≥ 0.97.
+- One common first name never matches a longer name, and the shorter name
+  must cover two-thirds of the longer.
+- Parsers cover OFAC CSV (both name orders, aliases, addresses) and UN XML.
+- `refreshDecision` skips an unchanged copy (same sha256), and refuses one
+  that is too small or under 70 % of the active one.
+
+Run on the full real files: all 19,563 + 1,007 entries were parsed, and one
+screening takes about 100 ms. "Eric Badege", "Badege Eric", "Abu Abbas"
+and a five-word name were found on the right lists. "John Smith",
+"Priya Sharma" and "Ali" gave nothing.
+
+**A known gap, left to the owner:** at the plan's 0.92 per word, a
+one-letter change in a 4-letter word is missed ("Erik" vs "Eric" is 0.88).
+A lower threshold would catch it and raise false alarms on common names. A
+test pins the current behaviour.
+
+**The pipeline:**
+
+- `pnpm sanctions:refresh` runs daily: fetch, parse, then `storeList`, which
+  switches the active copy in one transaction under an advisory lock. Run
+  live on 2026-11-08: both lists stored; the second run skipped both as
+  unchanged.
+- `POST /v1/kyc/start` screens before any vendor session. A strong hit
+  (≥ 0.97) holds the account and creates no session; a weak hit opens a case
+  and lets the session proceed.
+- Cases are decided by the reviewers in `COMPLIANCE_REVIEWERS`: two
+  different ones clear a strong match, nobody reviews their own case, every
+  decision names the case version, and `confirm` blocks.
+- Identity providers sit behind `IdentityProvider`. Webhooks only trigger a
+  re-read; the sweep polls pending sessions. The only provider today is
+  `simulated`, on test chains only.
+
+**Standing is a soft gate:**
+
+- the API refuses apply, claim and accept;
+- the keeper (`openEscrowJobs`) skips jobs whose party is held;
+- the signer refuses `approve` for a held worker.
+
+The contract is unchanged and knows nothing of this. Its permissionless
+exits (`auto_approve`) still pay, and anyone may send them. A hard gate
+would need a contract change (docs/26 §4).
+
+**The audit trail** (`compliance_audit`) is append-only in the database
+itself: a trigger refuses UPDATE, DELETE and TRUNCATE.
+
+**Retention:** pending checks expire after 30 days; rejected and expired
+ones are deleted after 90.
+
 ### 5.2 Jobs
 
 ```http

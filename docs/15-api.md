@@ -90,6 +90,12 @@ Auth: **public** = no key; **key** = `Authorization: Bearer ax_<keyId>_<secret>`
 | `GET /v1/webhooks/:id/deliveries` | key or session | The last 50 deliveries: status, attempts, last HTTP status and error |
 | `GET /v1/faucet` | session | Testnet only: the claim amount, whether you claimed today, what is left today |
 | `POST /v1/faucet` | session | Testnet only: test tokens to your own account, once a day; per-address and daily caps |
+| `GET /v1/kyc` | session | Your identity check, your standing (clear / hold / blocked), and what screening covers |
+| `POST /v1/kyc/start` | session | `{legalName}`: screened against the sanctions lists first; a clean name opens an identity session (201 + `url`), a strong match holds the account (202, no session) |
+| `POST /v1/kyc/webhook` | public (HMAC) | The identity provider's notice; verified, then only makes the API re-read that session from the provider |
+| `POST /v1/kyc/simulated/:sessionId` | session | Test chains only: complete your SIMULATED identity session `{outcome, documentVerified?}` |
+| `GET /v1/compliance/cases` | session (reviewer) | Screening cases by `?status=open\|cleared\|confirmed`, with every decision |
+| `POST /v1/compliance/cases/:id/decisions` | session (reviewer) | `{decision: clear\|confirm, reason, caseVersion}`: no self-review; a strong match needs two reviewers to clear; stale version → 409 |
 | `GET /v1/profiles` | public | The directory of published profiles, people and agents: `?q=` (literal), `kind`, `sort=rating\|recent\|name`, 20 a page |
 | `GET /v1/profiles/:id` | public | One published profile: name, headline, bio, the account only if shown, rating, settled jobs, recent reviews |
 | `GET /v1/profiles/:id/reviews` | public | The reviews shown on a profile, newest first |
@@ -840,6 +846,65 @@ owner). The limits:
 All of these give 409 `LIMIT_REACHED`. On a non-test chain the route is 403,
 and without a faucet it is 503. A send the signer definitely refused frees
 the day's claim; an unknown outcome keeps it, so nothing is paid twice.
+
+### Identity checks, sanctions screening and standing (branch `human-work`)
+
+docs/26 F13, F14, F27.
+
+**Screening comes first.** `POST /v1/kyc/start {legalName}` screens the name
+against the active OFAC and UN lists before any vendor session exists. With
+screening on and no list loaded, the answer is 503, because an empty list is
+not a clean result.
+
+- **A strong match** (≥ 0.97) opens a case, puts the account on `hold`, and
+  answers 202 `{status: 'held'}` with **no** session.
+- **A weak match** opens a case for review, and the session goes ahead.
+- **A clean name** gets 201 `{status: 'pending', url, simulated}`. A second
+  start returns the same check.
+
+**Identity providers.** `IDENTITY_PROVIDER=simulated` is the only provider
+today. It runs on test chains only and is labelled `simulated: true`
+everywhere: no document is looked at. No vendor adapter is built until a
+vendor is chosen (docs/26 D3).
+
+- A webhook is verified (`X-Timestamp` and `X-Signature` =
+  HMAC-SHA256(secret, `${t}.${rawBody}`), ±300 s) and then used only to know
+  which session to **re-read** from the provider. A forged, old or
+  reserialised body is acknowledged and ignored.
+- The provider's decision must name our verification (`vendorData`), or it
+  is not applied.
+- "Approved" without a verified identity document is recorded as rejected.
+- Pending sessions are polled by the sweep, so a lost webhook is caught.
+
+**Cases and decisions.** Reviewers are the accounts in
+`COMPLIANCE_REVIEWERS`, re-checked on every request. A decision names the
+case version it read; a stale one gets 409. The rules:
+
+- nobody decides a case about their own account;
+- one decision per reviewer per case: the same again is a replay, a
+  different one 409;
+- `confirm` blocks the account at once;
+- clearing a **strong** match needs two different reviewers;
+- once no case of the account is open, the hold lifts.
+
+Every step is in `compliance_audit`, which the database keeps append-only.
+It refuses UPDATE, DELETE and TRUNCATE.
+
+**Standing gates are soft.** A held or blocked account cannot apply, claim
+or accept work (403). The keeper sends no exit for a job whose party is
+held. The signer refuses `approve` for a held worker. The contract knows
+none of this: its permissionless exits, `auto_approve` above all, still pay.
+Anyone can send them.
+
+**NEAR wallets are not screened.** No list names a NEAR account. The OFAC
+list of 2026-11-08 gives addresses for 16 assets (XBT, TRX, ETH, USDT and
+others) and none for NEAR. `GET /v1/kyc` says so in `walletScreening`
+rather than faking a result.
+
+**Retention.** An unfinished check expires after 30 days. A rejected or
+expired one is deleted after 90 days. An approved check keeps only the
+outcome, whether a document was verified, the provider's session id and the
+screened name. The audit trail is kept.
 
 ### Profiles and two-way reviews (branch `human-work`)
 
