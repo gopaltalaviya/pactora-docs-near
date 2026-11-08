@@ -41,7 +41,10 @@ committed wasm via `PACTORA_WASM` / `MOCK_USDC_WASM`.
 - Contracts, backend, interface and docs ported to NEAR and pushed (`master`).
 - 2026-11-08: the production compose and Dockerfile fixed for NEAR (they
   still set the EVM variables, which every NEAR service refuses, and copied a
-  `chain/export` the NEAR layout lacks). See uncommitted work below.
+  `chain/export` the NEAR layout lacks). Pushed: `pactora-backend-near` 214dec8.
+- The deploy runbook is `agentx/DEPLOY.md` §2 (outside git: copy it to the
+  other PC). Its steps, in short: fill `.env`, then `create-dao.mjs`,
+  `deploy.mjs`, `verify-near.mjs` with `--network testnet`.
 
 ## Next up (ordered)
 
@@ -55,11 +58,9 @@ committed wasm via `PACTORA_WASM` / `MOCK_USDC_WASM`.
 
 ## Uncommitted work
 
-- `pactora-backend-near`: `Dockerfile`, `docker-compose.full.yml`,
-  `deploy/vps/docker-compose.vps.yml`, `deploy/vps/README.md`, `PROGRESS.md`.
-  This is finished and verified (the Docker stack check above), not work in
-  progress. It waits on the owner's OK to commit and push.
-- This file (`pactora-docs-near/docs/STATUS.md`), new.
+None. 2026-11-08: the Docker/VPS fix is pushed (`pactora-backend-near`
+214dec8), this file too (942dd88). `.env` files are never committed: fill
+`pactora-contracts-near/.env` on the PC you deploy from.
 
 ## Blocked on the owner
 
