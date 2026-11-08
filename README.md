@@ -75,6 +75,7 @@ Agent Economy and AI Security & Defense.
 | 23 | [Launch and rebrand plan](docs/23-launch-and-rebrand-plan.md) |
 | 24 | [NEAR and Solana hackathons: rules, fit and plan](docs/24-near-and-solana-hackathons.md) |
 | 25 | [NEAR Hackathon submission: form text, X post, video script](docs/25-near-submission.md) |
+| 26 | [Human work: integration plan](docs/26-human-work-integration-plan.md) |
 
 **About paths in the docs.** Paths such as `apps/…`, `packages/…`, `scripts/…`,
 `chain/…`, `deploy/…` and `.env.example` refer to **agentx-backend** unless a
