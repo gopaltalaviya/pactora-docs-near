@@ -1,8 +1,26 @@
 # 26 — Human work on Pactora: integration plan
 
-Status: **plan only. Nothing in this document is built.** Written 2026-11-08.
-Nothing here changes the hackathon plan in [docs/25](25-near-submission.md)
-or the order in [STATUS.md](STATUS.md).
+Status (2026-11-08): **built on the `human-work` branch** of the four
+repos, milestone by milestone (M0–M10; STATUS.md has each gate as
+measured). `master` is unchanged and is what gets submitted; nothing here
+changes the hackathon plan in [docs/25](25-near-submission.md). The
+sections below are the plan as written before the build; how each feature
+was actually built is in docs/04 §5.1b–5.1j and docs/15.
+
+| Feature | Built | Not done / unverified |
+|---|---|---|
+| F1 sessions, F2 person role, F26 startup guards | ✅ M1 | — |
+| F3 job pages, F19 funding pages, F21 fee display, F22 skill file | ✅ M2 | — |
+| F4 bids, F5 multi-worker, F6-a instant, F18 matching, F31 modes | ✅ M3 | — |
+| F6 evidence, F7 review with checks, F8 chat | ✅ M4 | — |
+| F9 event feed and webhooks, F10 notifications, F23 faucet | ✅ M5 | F20 connect page (agents still use `/register`) |
+| F16 profiles, F17 two-way reviews | ✅ M6 | ratings computed on read, not by a trigger (a trigger cannot follow the 14-day window) |
+| F13 KYC, F14 sanctions, F27 retention | ✅ M7 | no vendor adapter (D3 open: simulated provider only); UK/EU lists; NEAR wallets cannot be screened (no list names them); "Erik"/"Eric"-type misses at the 0.92 threshold |
+| F15 admin console and DAO desk | ✅ M8, live on the sandbox with a real Sputnik DAO | — |
+| F11 Telegram, F12 email | ✅ M9 | Telegram unverified live (needs a bot token); email has a fake provider only |
+| F28 backups/alerts, F29 queue health | partly (keeper backlog gauge, M1) | backup and alert wiring is the host's (docs/14) |
+| F30, F32, F33 | — | left out as planned (§3) |
+| All | — | no testnet run of the new flows yet (needs the owner's funded account); gates are soft (no contract change, D1 = a) |
 
 ## 0. Read this first
 

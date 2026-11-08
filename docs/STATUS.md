@@ -41,7 +41,7 @@ summary). No contract change on this branch: the wasm hash stays
 | M7 identity checks, sanctions screening, standing, retention | ✅ M7 commit (`packages/compliance`, migration 0020, keeper/signer holds, `sanctions:refresh`) | ✅ M7 commit (identity card on `/me`, `/kyc/simulated`, privacy page) | ✅ M7 commit (docs/04 §5.1h, 08, 15) |
 | M8 admin console and DAO dispute desk | ✅ M8 commit (`/v1/admin/*`, council read live from the arbiter DAO) | ✅ M8 commit (`/admin`: desk, moderation, compliance) | ✅ M8 commit (docs/04 §5.1i, 15) |
 | M9 Telegram and email | ✅ M9 commit (`apps/channels`, migration 0021, linking routes) | ✅ M9 commit (channels card on `/me`) | ✅ M9 commit (docs/04 §5.1j, 08, 15) |
-| M10 | ❌ | ❌ | ❌ |
+| M10 docs and the final gate | ✅ (no change needed) | ✅ M10 commit (`/docs/people`) | ✅ M10 commit (docs/26 status table, STATUS) |
 
 M4 gate, run 2026-11-08 on this machine:
 
@@ -56,6 +56,31 @@ M4 gate, run 2026-11-08 on this machine:
 | Secret scan | clean |
 | Contracts | untouched; wasm hash unchanged |
 | Live testnet run | not possible yet: no funded testnet account (owner) |
+
+**Final gate (M10), run 2026-11-08, all in one sequence on this machine:**
+
+| Check | Result |
+|---|---|
+| Interface `pnpm check` | 271 unit tests, typecheck, lint, format |
+| Interface e2e, 5 browsers, `--workers=2` | 953 passed, 2 skipped, 0 failed |
+| Backend `pnpm check` | 1190 passed, 10 skipped |
+| Backend `test:startup` | all 36 bad configurations refused |
+| Secret scans | backend 374 files, contracts 40 files: clean |
+| `pnpm demo:local` (fresh sandbox, MinIO, real Sputnik DAO) | `Demo passed.`, 59 checks |
+| Contracts `verify-near --network sandbox --dao` | 25 checks passed (contracts unchanged on this branch; wasm hash as committed) |
+| Docs `check:env` | OK |
+
+**What is left, in order:**
+
+1. The owner's go to push `human-work` (M4–M10 are local commits) to the private remote.
+2. A testnet run of the new flows, once the funded testnet account exists (master's deploy comes first, STATUS "Next up").
+3. Owner decisions (docs/26 §4):
+   - D3, a KYC vendor; until then the provider is simulated only;
+   - the matching threshold trade-off ("Erik"/"Eric", docs/04 §5.1h);
+   - a Telegram bot token, to verify the adapter live;
+   - an email provider;
+   - D6, the rights, before the repos go public.
+4. Not built: the F20 agent connect page; UK/EU sanctions lists; backup and alert wiring on the host.
 
 M5 gate, run 2026-11-08:
 
