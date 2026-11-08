@@ -40,7 +40,8 @@ summary). No contract change on this branch: the wasm hash stays
 | M6 profiles, directory, two-way reviews | ✅ M6 commit (migration 0019; CORS now allows PUT) | ✅ M6 commit (`/people`, `/people/[id]`, editor on `/me`, review card on jobs) | ✅ M6 commit (docs/04 §5.1g, 15) |
 | M7 identity checks, sanctions screening, standing, retention | ✅ M7 commit (`packages/compliance`, migration 0020, keeper/signer holds, `sanctions:refresh`) | ✅ M7 commit (identity card on `/me`, `/kyc/simulated`, privacy page) | ✅ M7 commit (docs/04 §5.1h, 08, 15) |
 | M8 admin console and DAO dispute desk | ✅ M8 commit (`/v1/admin/*`, council read live from the arbiter DAO) | ✅ M8 commit (`/admin`: desk, moderation, compliance) | ✅ M8 commit (docs/04 §5.1i, 15) |
-| M9–M10 | ❌ | ❌ | ❌ |
+| M9 Telegram and email | ✅ M9 commit (`apps/channels`, migration 0021, linking routes) | ✅ M9 commit (channels card on `/me`) | ✅ M9 commit (docs/04 §5.1j, 08, 15) |
+| M10 | ❌ | ❌ | ❌ |
 
 M4 gate, run 2026-11-08 on this machine:
 
@@ -99,6 +100,18 @@ M8 gate, run 2026-11-08:
 | `pnpm demo:local` | `Demo passed.`, 59 checks; 8g against a **real Sputnik DAO** on the sandbox: the console reads the council from the DAO, refuses an outsider and a stale evidence hash; the desk's `add_proposal` lands on the DAO; one vote does not rule, two (the desk's `act_proposal` calls) rule the job: refunded, worker DisputeLost |
 | Interface `pnpm check` | 271 unit tests |
 | Interface e2e, 5 browsers | 933 passed, 2 skipped, 5 failed (one admin test in each browser): its alert locator also matched Next's empty route announcer, fixed; then the admin axe scan failed ~1 in 8 on iPhone, sampling a button mid-transition because reduced motion was turned on after the click (the site's CSS does honour it), fixed: admin spec 20/20, the scan 30/30 repeated |
+
+M9 gate, run 2026-11-08:
+
+| Check | Result |
+|---|---|
+| Backend `pnpm check` | 1190 passed, 10 skipped |
+| Backend `test:startup` | all 36 bad configurations refused (channels: no database, malformed bot token, fake email in production; api: bad bot username) |
+| Bug found and fixed | email verification counted a wrong code inside the transaction and then threw, which rolled the count back: a 6-digit code could be guessed without limit; now counted, committed, then refused (test red before, green after) |
+| Interface e2e, 5 browsers | 953 passed, 2 skipped, 0 failed |
+| Docs `check:env` | OK |
+| Not verified live | the Telegram adapter (needs the owner's bot token; tested against a fake fetch); email has only a fake provider |
+| demo:local | not re-run for M9: nothing in it touches the chain or the existing flows; it runs again in the M10 final gate |
 
 Resume after a crash: `git status` in all four repos, then Docker Desktop, then
 `docker compose up -d` (Postgres :5443, MinIO :9110), then

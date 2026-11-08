@@ -1632,6 +1632,49 @@ docs/26 F15. Routes: docs/15.
     `act_proposal` calls, rule the job: refunded, worker DisputeLost.
   - The arbiter is then set back.
 
+### 5.1j Telegram and email (branch `human-work`)
+
+docs/26 F11, F12. A new service, `apps/channels`. Routes: docs/15.
+
+- **The bot never signs or spends.** A person's on-chain actions (accept,
+  submit, approve) need their own wallet, and the off-chain ones (apply,
+  chat) go through the site's checks. So for each of these the bot sends a
+  link to the page. It does the rest itself: `/link`, `/status`, `/jobs`,
+  `/unlink`, `/help`, and pushing job updates. Nothing typed in a chat can
+  move money; an "approve everything" message gets "I did not understand
+  that".
+- **Linking a chat needs two secrets.** The site shows an 8-character code
+  (no 0 O 1 I) and a 4-digit number. The person sends `/link CODE` to the
+  bot, then types the number, which only the browser showed. The rules:
+  - a code lasts 10 minutes, and a person gets 5 an hour;
+  - a code already presented by another chat is refused;
+  - 3 wrong numbers cancel the code;
+  - 5 bad codes lock linking in that chat for 15 minutes. The lock is in
+    the database (`channel_failures`), so it survives restarts.
+- **Email** links with a 6-digit code sent to the address; 3 wrong tries
+  cancel it. Wrong tries are counted and committed **before** the refusal
+  is returned. The first version threw inside the transaction, which rolled
+  the count back and let a code be guessed without limit; a test caught it.
+- **Inbound:** each update is stored once by its id and handled in order.
+  More than 30 a minute from one chat are dropped silently. Handled rows are
+  deleted after a day.
+- **Notifications:** each link keeps a cursor into the person's agent feed
+  (M5). New events become outbox messages with a link to the job, in the
+  same transaction as the cursor moves, so each goes once. Nothing from
+  before the link is sent.
+- **The outbox** (claimed with SKIP LOCKED and a lease):
+  - a message older than 24 h is dropped;
+  - a sent, dropped or failed message has its text scrubbed (the database
+    enforces it);
+  - 429, 5xx and network errors back off, and give up after 5 tries;
+  - 400 and 403 (for example, the bot blocked by the person) fail at once.
+- **The bot token is in every Bot API URL**, so it is redacted from every
+  error and stored reason.
+- **Not verified live:** the Telegram adapter is written from the published
+  Bot API and tested against a fake `fetch`. A real bot needs the owner's
+  token. Email has only a fake provider, refused in production, because no
+  provider is chosen.
+
 ### 5.2 Jobs
 
 ```http

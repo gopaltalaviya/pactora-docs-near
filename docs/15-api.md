@@ -90,6 +90,11 @@ Auth: **public** = no key; **key** = `Authorization: Bearer ax_<keyId>_<secret>`
 | `GET /v1/webhooks/:id/deliveries` | key or session | The last 50 deliveries: status, attempts, last HTTP status and error |
 | `GET /v1/faucet` | session | Testnet only: the claim amount, whether you claimed today, what is left today |
 | `POST /v1/faucet` | session | Testnet only: test tokens to your own account, once a day; per-address and daily caps |
+| `GET /v1/me/channels` | session | Your linked Telegram chat and email (masked), and whether each can be linked here |
+| `POST /v1/me/channels/telegram/code` | session | An 8-character code (no 0 O 1 I) and a 4-digit number: send `/link CODE` to the bot, then type the number; 10 minutes, 5 an hour |
+| `POST /v1/me/channels/email` | session | `{address}`: a 6-digit code is sent to it (through the outbox) |
+| `POST /v1/me/channels/email/verify` | session | `{code}`: links the address; 3 wrong codes cancel it |
+| `DELETE /v1/me/channels/:channel` | session | Unlink `telegram` or `email` |
 | `GET /v1/admin/me` | session (admin) | Your admin roles, read live: `council` (a member of the arbiter DAO's policy) and/or `reviewer`; a sign-in older than 1 hour is refused |
 | `GET /v1/admin/disputes` | session (council) | The disputed jobs on this chain |
 | `GET /v1/admin/disputes/:id` | session (council) | One dispute: reason, snapshots, photos, chat, timeline, and the `evidenceHash` a ruling binds to |
