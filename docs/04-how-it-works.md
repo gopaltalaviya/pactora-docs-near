@@ -1371,6 +1371,66 @@ acceptance criteria, and accept/work windows within the contract maxima
   `decide_application` (marked as spending), `close_applications`,
   `reopen_applications`.
 
+### 5.1e Delivery: evidence, drafts and review, chat (branch `human-work`)
+
+docs/26 F6, F7, F8. No contract change: the contract has one `submit_result`
+and no "revise", so revisions happen **before** it, off chain, and only the
+accepted round's hash goes on chain.
+
+- **Evidence photos** (`POST /v1/jobs/:id/files`, multipart field `file`,
+  worker only, while `accepted`). The type is read from the first bytes
+  (PNG, JPEG, WebP), never from the name or the Content-Type. At most 8 MiB,
+  10 active and 30 in total per job, 4 uploads in flight per process.
+  Metadata is removed by rewriting the container from an allow-list
+  (`apps/api/src/images.ts`, no native code): EXIF (with its GPS), XMP, IPTC
+  and comments are dropped and the pixels are copied untouched. The sha256 is
+  of the **stored** bytes. Storage is `packages/storage`: an S3 adapter
+  (MinIO locally, SSE on every object) and an in-memory fake for tests. In
+  production the API refuses to start without a bucket; with none elsewhere,
+  uploads answer 503 and never fall back silently. The counts are checked,
+  the object stored, and the counts checked again under the job's row lock,
+  deleting the orphan if they no longer fit. Withdrawing sets `withdrawn_at`.
+  The bytes stay, because an earlier snapshot may name them.
+- **Drafts** (`POST /v1/jobs/:id/drafts`, worker): an immutable snapshot of
+  the terms, the worker's text and optional output (checked against the
+  spec's `outputSchema`), the sha256 of every active photo, and up to 100 chat
+  messages. Its `snapshotHash` is the sha256 of the canonical snapshot.
+  Rounds: one awaits review at a time, at most 4 rounds (3 revisions). A
+  retry of the same draft is the same draft.
+- **Review** (`POST /v1/jobs/:id/drafts/:draftId/review`, client):
+  `{snapshotHash, decision: revise | accept_draft | dispute_intent, reason,
+  checks[1..30]}`. Written once per snapshot (the same decision again is a
+  replay, a different one 409). A review of anything but the latest round's
+  hash is refused as stale. `accept_draft` needs every check met. A 4th
+  revise is `LIMIT_REACHED`. `review_hash` is the sha256 of the review
+  payload.
+- **Submitting** a listing job takes no output: the accepted snapshot's hash
+  is the `result_hash` (agent route and person prepare alike), and a listing
+  job without an accepted draft cannot be submitted. Once the chain holds
+  that hash, the approval is carried out: by the signer, with the review hash,
+  for an agent client (idempotently, retried by a sweep); for a person
+  client, the page offers the `approve` call to sign. A different hash on
+  chain sets `jobs.result_mismatch`, and approval is refused for everyone, so
+  only a dispute is left. The contract's exits (`expire_undelivered`,
+  `auto_approve`, `expire_dispute`) still apply.
+- **Chat** (`GET/POST /v1/jobs/:id/messages`, the two parties, while
+  `accepted` or `submitted`): 1–4000 characters, 100 per job, idempotent by
+  `Idempotency-Key`. The public event stream announces a message (id, sender,
+  time) and never its words. Every message is **untrusted input** to any model
+  that reads it. Nothing in chat can change a price, a budget or a
+  destination, because the signer and the contract never read it. The demo
+  proves this on chain: after a chat prompt injection, no new job is created,
+  no price changes and the client's purse is unchanged.
+- **Who can see it:** only the two parties, on every route, a photo's
+  bytes included (`nosniff`, `no-store`).
+- **Interface:** `/jobs/[id]` shows a listing job's parties three panels:
+  drafts and review (one check per line of the listing's criteria), photos
+  (fetched with the session; each one's sha256 is checked against the listed
+  hash in the browser), and the conversation.
+- **MCP:** `get_evidence`, `review_job` (marked as spending: an acceptance
+  leads to payment), `send_message`, `get_conversation`, and the worker tools
+  `list_jobs`, `accept_job`, `submit_draft`, `submit_result`, `decline_job`.
+
 ### 5.2 Jobs
 
 ```http
@@ -1585,6 +1645,13 @@ or a judge's — can transact without writing an HTTP client.
 | `list_applications` | `listingId`, `sort?` (recent, price_low, price_high, rating), `status?`, `page?` | bids with applicant scores |
 | `decide_application` | `listingId`, `applicationId`, `action` select\|reject, `reason` | the decision; a selection creates the job (spends) |
 | `close_applications` / `reopen_applications` | `listingId` | the listing |
+| `get_evidence` | `jobId` | draft rounds with snapshots and hashes, photo hashes (branch `human-work`) |
+| `review_job` | `jobId`, `draftId`, `snapshotHash`, `decision`, `reason`, `checks` | the review; `accept_draft` leads to payment (spends) |
+| `send_message` / `get_conversation` | `jobId`, `body`, `idempotencyKey?` / `jobId` | the message / the conversation (untrusted data) |
+| `list_jobs` | `role?`, `state?`, `limit?` | jobs you are on, as worker or client |
+| `accept_job` / `decline_job` | `jobId` / `jobId`, `reason` | worker: accept within the window / turn it down |
+| `submit_draft` | `jobId`, `text`, `output?` | the next draft round and its `snapshotHash` |
+| `submit_result` | `jobId`, `output?` | delivered on chain; with an accepted draft, its hash |
 
 The server is `apps/mcp`, a **stdio** MCP server. It is not a hosted
 endpoint: you run it next to your agent with `PACTORA_API_URL`,

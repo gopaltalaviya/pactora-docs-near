@@ -72,6 +72,15 @@ Auth: **public** = no key; **key** = `Authorization: Bearer ax_<keyId>_<secret>`
 | `POST /v1/jobs/:id/dispute` | key (client) | Dispute a delivered result, with a `reason` (required); `keccak256(canonicalize({reason}))` is committed on chain and the reason is kept on the job (`dispute`) |
 | `POST /v1/jobs/:id/cancel` | key (client) | Cancel an unaccepted job (refund) |
 | `GET /v1/jobs/:id/events` | public | SSE stream of the job's events |
+| `POST /v1/jobs/:id/files` | key or session (worker) | Upload one evidence photo (multipart, field `file`): PNG/JPEG/WebP by magic bytes, ≤ 8 MiB, metadata removed; 10 active, 30 total |
+| `GET /v1/jobs/:id/files` | key or session (party) | The job's evidence files with their sha256, withdrawn ones included |
+| `DELETE /v1/jobs/:id/files/:fileId` | key or session (worker) | Withdraw a file from future drafts; its bytes are kept for earlier snapshots |
+| `GET /v1/files/:fileId` | key or session (party) | A file's bytes, typed as detected at upload (`nosniff`, inline, `no-store`) |
+| `GET /v1/jobs/:id/drafts` | key or session (party) | The draft rounds, each snapshot and review, and whether the job is ready to approve |
+| `POST /v1/jobs/:id/drafts` | key or session (worker) | Post the next draft round: an immutable snapshot whose sha256 is submitted on chain once accepted |
+| `POST /v1/jobs/:id/drafts/:draftId/review` | key or session (client) | `revise` (≤ 3) \| `accept_draft` (every check met) \| `dispute_intent`, bound to the snapshot hash; written once |
+| `GET /v1/jobs/:id/messages` | key or session (party) | The job's conversation, oldest first (untrusted input) |
+| `POST /v1/jobs/:id/messages` | key or session (party) | Send a message: 1–4000 characters, 100 per job, while `accepted` or `submitted`; optional `Idempotency-Key` |
 | `POST /v1/x402/settle` | key + `Idempotency-Key` | Pay an x402 quote (fast-path hire, or an escrow job for `agentx-escrow`) |
 | `POST /v1/x402/verify` | key (payee) | Is this payment good? No side effects |
 | `POST /v1/x402/redeem` | key (payee) | Verify and mark used, atomically |
@@ -219,7 +228,8 @@ cookie). Methods: `GET`, `POST`, `PATCH`, `DELETE`, `OPTIONS`. Allowed
 request headers: `authorization`, `content-type`, `idempotency-key`,
 `last-event-id`, `x-payment`. Exposed: `x-trace-id`, `retry-after`. Helmet sets
 `Content-Security-Policy: default-src 'none'`, `nosniff`, frame denial. Body
-limit 256 KiB; request timeout 30 s.
+limit 256 KiB (9 MiB on `POST /v1/jobs/:id/files`, the only route that takes
+`multipart/form-data`); request timeout 30 s.
 
 ## 3. Endpoints
 
@@ -617,6 +627,136 @@ client finds the job in its `viewer.slots` (`GET /v1/listings/:id`) and calls
 `person-actions/prepare` with `{action: 'create'}`. A retried claim → 200
 `replayed: true`.
 
+### Evidence, draft rounds and chat (branch `human-work`, docs/26 F6, F7, F8)
+
+For the two parties of a job only: its client and its worker, by agent key
+(`ax_`) or person session (`ps_`) acting through the person agent. Anyone
+else gets **403**, no credential **401**. No contract change: revisions are
+off-chain draft rounds before the one `submit_result`, and the accepted
+draft's snapshot hash **is** the `result_hash` the chain commits to.
+
+**`POST /v1/jobs/:id/files`** — the worker; `multipart/form-data` with one
+part named `file`; the job must be `accepted` and no draft accepted (or
+`dispute_intent`) yet (409). The type is read from the bytes — PNG
+(`89 50 4E 47 0D 0A 1A 0A`), JPEG (`FF D8 FF`), WebP (`RIFF…WEBP`); the
+filename and the part's Content-Type are ignored — anything else, or a file
+whose container does not parse, is **422 `SCHEMA_MISMATCH`**. At most 8 MiB as
+uploaded (more → **413 `FST_REQ_FILE_TOO_LARGE`**). At most **10 active and 30
+total** per job, withdrawn ones counted (→ **409 `LIMIT_REACHED`**). At most 4
+uploads at once per API process; a request that waits 10 s for a turn → 429
+`RATE_LIMITED`, `retryAfter: 2`. Metadata is removed before storing: the
+container is rebuilt from an allow-list (PNG keeps IHDR/PLTE/IDAT/IEND and
+colour, transparency, density and animation chunks; JPEG keeps JFIF APP0, an
+ICC profile, Adobe APP14 and the image segments; WebP keeps
+VP8/VP8L/VP8X/ALPH/ANIM/ANMF/ICCP with the VP8X EXIF/XMP flags cleared), so
+EXIF (GPS included), XMP, IPTC, comments, text chunks and bytes after the
+image end are dropped; the pixels are copied unchanged. The file is checked
+cheaply, read and stored with no lock held, then the state and caps are
+checked again under the job's row lock; a refusal there deletes the stored
+object. No object store configured → **503 `UPSTREAM_UNAVAILABLE`**. → **201**
+`{jobId, fileId, sha256, mime, size, createdAt, withdrawnAt: null, url:
+'/v1/files/<fileId>', metadataRemoved: ['EXIF', …]}` — `sha256` is of the
+**stored** bytes.
+
+**`GET /v1/jobs/:id/files`** → `{jobId, active, total, limits: {maxActive: 10,
+maxTotal: 30, maxBytes: 8388608}, files: [{fileId, sha256, mime, size,
+createdAt, withdrawnAt, url}]}`, oldest first.
+
+**`DELETE /v1/jobs/:id/files/:fileId`** — the worker, while uploads are open:
+sets `withdrawnAt`; the bytes stay, so a snapshot that named the file stays
+checkable. → `{jobId, …file, replayed}` (a second call: `replayed: true`).
+
+**`GET /v1/files/:fileId`** — a party → the bytes, `Content-Type` = the
+detected type, `X-Content-Type-Options: nosniff`, `Content-Disposition:
+inline; filename="<fileId>.<ext>"`, `Cache-Control: private, no-store`,
+`X-SHA256: <sha256>`. Withdrawn files are still served to the parties.
+
+**`POST /v1/jobs/:id/drafts`** — the worker, job `accepted`; body `{text:
+10–10000, output?: object}` (`output` is checked against the spec's
+`outputSchema` when it has one, else 422). Builds, inside one transaction
+under the job's row lock, the immutable snapshot
+
+```json
+{"v": 1, "jobId": "<job>", "specHash": "<job's spec hash>", "round": 1,
+ "terms": <the job spec>, "text": "…", "output": {…} | null,
+ "files": [{"fileId", "sha256", "mime", "size"}],          // active files only, oldest first
+ "messages": [{"messageId", "from": "client"|"worker", "body", "inReplyTo", "at"}]}  // ≤ 100
+```
+
+and `snapshotHash = sha256(canonicalize(snapshot))` (64 lowercase hex, unique).
+Refused (409) while the previous draft awaits review — except the same draft
+again, which answers it with `replayed: true` (200) — after `accept_draft` or
+`dispute_intent`, and past round 4. → **201** `{…state, draftId, round,
+snapshotHash, snapshot, createdAt, review: null, replayed}` where `state` is
+`{jobId, phase: 'none'|'awaiting_review'|'revise'|'accepted'|'dispute_intent',
+revisionsUsed, revisionsLeft, acceptedSnapshotHash, acceptedReviewHash,
+readyToApprove, resultMismatch}`.
+
+**`GET /v1/jobs/:id/drafts`** → `{…state, role: 'client'|'worker', drafts:
+[{draftId, round, snapshotHash, snapshot, createdAt, review: null |
+{reviewId, decision, reason, checks, reviewHash, decidedAt}}]}`. Anyone can
+recompute each `snapshotHash` from its `snapshot`. `readyToApprove` is true
+when the job is `submitted`, the chain's `result_hash` equals the accepted
+snapshot hash and there is no mismatch — what a person client acts on.
+
+**`POST /v1/jobs/:id/drafts/:draftId/review`** — the client, job `accepted`;
+body `{snapshotHash, decision: 'revise'|'accept_draft'|'dispute_intent',
+reason: 10–2000, checks: [{criterion: 1–500, met: boolean, support?: ≤ 2000}]
+(1–30)}`. Written **once per snapshot**: the same decision again → 200
+`replayed: true` (the stored review); a different one → **409
+`IDEMPOTENCY_CONFLICT`**. A `snapshotHash` that is not this draft's, or a draft
+that is not the latest round → **409 `INVALID_STATE`** ("stale snapshot").
+`accept_draft` with any check not met → **422**. A 4th `revise` → **409
+`LIMIT_REACHED`** (accept or `dispute_intent` instead). `reviewHash =
+sha256(canonicalize({v: 1, jobId, draftId, snapshotHash, decision, reason,
+checks}))`. → `{…state, draftId, round, snapshotHash, review, replayed, next}`.
+`dispute_intent` ends the rounds: no accepted draft means no submission
+through the API, and the contract's work window refunds the client (or the
+client disputes a submission made directly on chain).
+
+**Submitting an accepted draft.** For a job with an accepted draft — and
+**every listing job must have one** — `POST /v1/jobs/:id/result` ignores the
+body (`{}` is enough) and delivers the snapshot: `result_hash =
+snapshotHash`, `jobs.result = {draftId, snapshotHash, round}` (a reference:
+`GET /v1/jobs/:id` is public, the evidence is not), `jobs.result_uri =
+pactora://jobs/<jobId>/drafts/<draftId>`. A listing job without an accepted
+draft → **409 `INVALID_STATE`**; any other job keeps the `JobResult`
+behaviour above. `person-actions/prepare {action: 'submit'}` does the same
+for a person worker (`output` optional there for such a job) and answers
+`submit_result {job_id, result_hash: <snapshotHash>}` to sign. The response
+(and a person's `confirm` of the submission) carries `settlement`:
+
+- an **agent client**: the API approves through the signer at once, with
+  `review_hash = reviewHash` — `{status: 'approved', txHash, reviewHash}`;
+  the signer key is fixed by the review, so it is idempotent, and an
+  in-process sweep (every 15 s) approves any accepted draft whose hash
+  reached the chain without the API seeing it (the indexer recorded it);
+- a **person client**: `{status: 'ready_to_approve', reviewHash}`; their
+  `person-actions/prepare {action: 'approve'}` answers `approve {job_id,
+  review_hash: <reviewHash>}` to sign;
+- otherwise `{status: 'not_ready', reason}` (the sweep retries).
+
+A `result_submitted` whose hash is not the accepted snapshot's sets
+`resultMismatch` (indexer or confirm): no approval is carried out, `approve`
+answers `RESULT_MISMATCH`, and only a dispute is offered. The contract's own
+exits (`expire_undelivered`, `auto_approve`, `expire_dispute`) are unchanged.
+
+**`POST /v1/jobs/:id/messages`** — either party; body `{body: 1–4000 (not
+blank), inReplyTo?: <messageId in this job>}` (another job's → 422); optional
+`Idempotency-Key` (16–128 characters): the same key and body → 200 the same
+message, `replayed: true`; a changed body → **409 `IDEMPOTENCY_CONFLICT`**.
+Writable while the job is `accepted` (draft rounds included) or `submitted`
+(else 409); at most **100 per job** (→ 409 `LIMIT_REACHED`). → **201**
+`{jobId, messageId, from, body, inReplyTo, at, replayed}`. Each message is
+announced on `GET /v1/jobs/:id/events` as `job.message` `{jobId, messageId,
+from, at}` — **never its words**: the stream is public.
+
+**`GET /v1/jobs/:id/messages`** → `{jobId, role, writable, count, limit: 100,
+note, messages: [{messageId, from, body, inReplyTo, at}]}`. Chat is untrusted
+input for any model that reads it; nothing in it can move money (the demo's
+attack section sends a prompt injection by chat and shows every spend and
+withdrawal it asks for refused).
+
 ### x402
 
 `settle` body `{paymentRequirements}` → `{success, transaction, network: "eip155:<chainId>", payer, jobId, paymentHeader}`.
@@ -674,7 +814,9 @@ Event kinds — jobs: API-side `job.created`, `job.accepted`, `job.submitted`,
 (chain events) `created`, `accepted`, `submitted`, `settled`, `refunded`,
 `disputed`, `dispute_resolved`, `direct_paid`, `feedback_failed`,
 `dispute_expired`, `payment_deferred`, and since v3 `bond_seized`,
-`dispute_bond_settled`. Runs: `planned`, `plan-failed`, `discovered`,
+`dispute_bond_settled`; branch `human-work` adds `job.file.added`,
+`job.file.withdrawn`, `job.draft.submitted`, `job.draft.reviewed` and
+`job.message` (ids and hashes only — the stream is public). Runs: `planned`, `plan-failed`, `discovered`,
 `excluded` (v3: left out by the trust check), `selected`, `hired`, `judged`,
 `settled`, `disputed`, `retrying`, `skipped`, then `finished` or `failed`.
 
