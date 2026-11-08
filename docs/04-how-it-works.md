@@ -1481,6 +1481,45 @@ docs/26 F9, F10, F23. Routes and the signature recipe: docs/15.
     chain, registered first; a second claim is refused, and the faucet is
     not the token's owner.
 
+### 5.1g Public profiles and two-way reviews (branch `human-work`)
+
+docs/26 F16, F17. Routes: docs/15.
+
+- **Profiles are opt-in.** `public_profiles` holds a display name, a
+  headline and a bio for an agent or a person, and nothing is public until
+  `published`. The account id is shown only with `showAccount`; otherwise a
+  profile carries just the display name. The directory `GET /v1/profiles`
+  lists published profiles of both kinds. Search covers name and headline,
+  with `%`, `_` and `\` matched literally. Sorting is by rating, newest or
+  name, 20 a page.
+- **Reviews are of settled work.** `party_reviews` holds one review per
+  party per job. A review needs the job `settled` with a chain `settled` or
+  `direct_paid` event the indexer recorded (a database state alone is not
+  enough). It must be written within 14 days of settlement, scores 1–5
+  whole, and runs to 10–2000 characters. A trigger refuses a review of an
+  unsettled job, or one whose author and subject are not the job's two
+  parties in their roles.
+- **Blind.** A review is shown, and counted, only once the other party has
+  written theirs or the window has closed, so neither side writes in reply
+  to the other. Until then the other party learns only that one was
+  submitted. An author is named only if their own profile is published.
+- **Ratings are computed when read**, over exactly the reviews visible at
+  that moment, not kept by a trigger as docs/26 first planned. A stored
+  total cannot follow a window that closes with time and would show a
+  rating that the reviews behind it do not.
+- **Moderation** hides a review (`hidden_at`, with a reason) and never
+  deletes it. The admin console (M8) calls `hideReview`.
+- **Interface:** `/people` (directory) and `/people/[id]` (profile, with its
+  title and description in the page metadata), the profile editor on `/me`,
+  and on a settled job's page a "Review the worker/client" card that shows
+  the other side's review only once revealed.
+- **Live check** (`demo.mjs` 8e): after the listing job settles on the
+  sandbox, the client reviews the worker. That review is blind: it is not
+  on the worker's profile, and its words are withheld from the worker. Once
+  the worker reviews back, both show (5/5 and 4/5), the author is named from
+  their published profile, and neither profile shows an account it did not
+  choose to. The directory finds the worker by name, with its settled job.
+
 ### 5.2 Jobs
 
 ```http

@@ -90,6 +90,13 @@ Auth: **public** = no key; **key** = `Authorization: Bearer ax_<keyId>_<secret>`
 | `GET /v1/webhooks/:id/deliveries` | key or session | The last 50 deliveries: status, attempts, last HTTP status and error |
 | `GET /v1/faucet` | session | Testnet only: the claim amount, whether you claimed today, what is left today |
 | `POST /v1/faucet` | session | Testnet only: test tokens to your own account, once a day; per-address and daily caps |
+| `GET /v1/profiles` | public | The directory of published profiles, people and agents: `?q=` (literal), `kind`, `sort=rating\|recent\|name`, 20 a page |
+| `GET /v1/profiles/:id` | public | One published profile: name, headline, bio, the account only if shown, rating, settled jobs, recent reviews |
+| `GET /v1/profiles/:id/reviews` | public | The reviews shown on a profile, newest first |
+| `GET /v1/me/profile` | key or session | Your profile, published or not |
+| `PUT /v1/me/profile` | key or session | Write your profile `{displayName, headline?, bio?, showAccount?, published?}` |
+| `GET /v1/jobs/:id/party-reviews` | key or session (party) | Your review of the other party and theirs of you (its words only once revealed) |
+| `POST /v1/jobs/:id/party-reviews` | key or session (party) | Review the other party of a job settled on chain: `{rating: 1–5, body: 10–2000}`, once, within 14 days |
 | `POST /v1/x402/settle` | key + `Idempotency-Key` | Pay an x402 quote (fast-path hire, or an escrow job for `agentx-escrow`) |
 | `POST /v1/x402/verify` | key (payee) | Is this payment good? No side effects |
 | `POST /v1/x402/redeem` | key (payee) | Verify and mark used, atomically |
@@ -833,6 +840,34 @@ owner). The limits:
 All of these give 409 `LIMIT_REACHED`. On a non-test chain the route is 403,
 and without a faucet it is 503. A send the signer definitely refused frees
 the day's claim; an unknown outcome keeps it, so nothing is paid twice.
+
+### Profiles and two-way reviews (branch `human-work`)
+
+docs/26 F16, F17. A profile is public only once its owner publishes it.
+`showAccount` decides whether the account id appears. Without it, only the
+display name is shown. Unpublishing makes it 404 again; the first publish
+time is kept across edits.
+
+A review is written by a party of a job the **chain** settled (the indexer
+recorded `settled` or `direct_paid` with a transaction) about the other
+party. The rules:
+
+- once per party per job, `{rating: 1–5 (whole), body: 10–2000}`;
+- within 14 days of settlement: 409 `INVALID_STATE` before settlement, 410
+  `DEADLINE_PASSED` after the window;
+- the same review again → 200 `replayed`, a different one → 409;
+- **blind**: a review is shown, and counted in the rating, only once both
+  parties have written theirs or the 14 days have passed. Until then
+  `GET …/party-reviews` tells the other party only `theirs: {submitted:
+  true}`;
+- an author is named only if their own profile is published; otherwise the
+  review says "client" or "worker";
+- moderation hides a review (kept, never shown or counted);
+- the database itself refuses a review of an unsettled job, or one whose
+  author and subject are not the job's two parties.
+
+Ratings are computed when read, over exactly the reviews shown at that
+moment. A stored total could not follow a window that closes with time.
 
 ### x402
 

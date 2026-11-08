@@ -37,7 +37,8 @@ summary). No contract change on this branch: the wasm hash stays
 | M3 listings, bids, multi-worker, instant, matching | ✅ `8a8c8b2` | ✅ M4 commit (`/jobs/new`, listing page, bids) | ✅ `6f21de0` |
 | M4 evidence, drafts and review, chat | ✅ M4 commit | ✅ M4 commit (delivery panels on `/jobs/[id]`) | ✅ M4 commit (docs/04 §5.1e, 08, 15) |
 | M5 events, webhooks, notifications, faucet | ✅ M5 commit (migration 0018, `apps/notifier`) | ✅ M5 commit (bell, `/notifications`, faucet on `/me`) | ✅ M5 commit (docs/04 §5.1f, 08, 15) |
-| M6–M10 | ❌ | ❌ | ❌ |
+| M6 profiles, directory, two-way reviews | ✅ M6 commit (migration 0019; CORS now allows PUT) | ✅ M6 commit (`/people`, `/people/[id]`, editor on `/me`, review card on jobs) | ✅ M6 commit (docs/04 §5.1g, 15) |
+| M7–M10 | ❌ | ❌ | ❌ |
 
 M4 gate, run 2026-11-08 on this machine:
 
@@ -63,6 +64,16 @@ M5 gate, run 2026-11-08:
 | Interface `pnpm check` | 262 unit tests |
 | Interface e2e, 5 browsers | 850 passed, 2 skipped; 3 failed then explained: 2 phone-width assertions in the new spec aimed at the hidden header link (fixed, 30/30 green), 1 Android `jobs.spec` timeout under load (3/3 green alone) |
 | Deploy | `docker-compose.full.yml` gains the notifier and requires `WEBHOOK_SECRET_KEY`; `deploy/vps/README.md` lists it and the `OBJECT_STORE_SECRET_ACCESS_KEY` M4 already required but the README missed |
+
+M6 gate, run 2026-11-08:
+
+| Check | Result |
+|---|---|
+| Backend `pnpm check` | 1128 passed, 10 skipped |
+| Backend `test:startup` | all 29 bad configurations refused |
+| `pnpm demo:local` | `Demo passed.`, 53 checks; 8e: the client's review of the worker is blind (not on the profile, words withheld from the worker); after both, 5/5 and 4/5 show, author named from a published profile, no unchosen account shown; the directory finds the worker |
+| Interface `pnpm check` | 268 unit tests |
+| Interface e2e, 5 browsers | 882 passed, 2 skipped, 11 failed, then fixed or explained: 10 in the new profiles spec (2 ambiguous locators; and **a real bug: the API's CORS did not allow PUT**, so a browser could not save a profile; fixed, and a backend test now preflights every method the API serves, red on the old code); 1 WebKit smoke flake (5/5 alone). profiles spec 40/40 after |
 
 Resume after a crash: `git status` in all four repos, then Docker Desktop, then
 `docker compose up -d` (Postgres :5443, MinIO :9110), then
