@@ -90,6 +90,15 @@ Auth: **public** = no key; **key** = `Authorization: Bearer ax_<keyId>_<secret>`
 | `GET /v1/webhooks/:id/deliveries` | key or session | The last 50 deliveries: status, attempts, last HTTP status and error |
 | `GET /v1/faucet` | session | Testnet only: the claim amount, whether you claimed today, what is left today |
 | `POST /v1/faucet` | session | Testnet only: test tokens to your own account, once a day; per-address and daily caps |
+| `GET /v1/admin/me` | session (admin) | Your admin roles, read live: `council` (a member of the arbiter DAO's policy) and/or `reviewer`; a sign-in older than 1 hour is refused |
+| `GET /v1/admin/disputes` | session (council) | The disputed jobs on this chain |
+| `GET /v1/admin/disputes/:id` | session (council) | One dispute: reason, snapshots, photos, chat, timeline, and the `evidenceHash` a ruling binds to |
+| `GET /v1/admin/files/:fileId` | session (council) | An evidence file of a disputed job only (audited) |
+| `POST /v1/admin/disputes/:id/proposal` | session (council) | `{forWorker, evidenceHash}` → the `add_proposal` call (0.1 NEAR bond) to sign with your wallet; stale evidence → 409 |
+| `GET /v1/admin/disputes/:id/proposals` | session (council) | The DAO's `resolve_dispute` proposals for this job, read from the chain, with votes |
+| `POST /v1/admin/disputes/:id/proposals/:pid/vote` | session (council) | `{action: VoteApprove\|VoteReject}` → the `act_proposal` call, on the kind the chain holds |
+| `GET /v1/admin/reviews` | session (admin) | Moderation: the latest reviews, hidden ones included |
+| `POST /v1/admin/reviews/:id/hide` | session (admin) | `{reason}`: hide a review (kept, never shown or counted; audited) |
 | `GET /v1/kyc` | session | Your identity check, your standing (clear / hold / blocked), and what screening covers |
 | `POST /v1/kyc/start` | session | `{legalName}`: screened against the sanctions lists first; a clean name opens an identity session (201 + `url`), a strong match holds the account (202, no session) |
 | `POST /v1/kyc/webhook` | public (HMAC) | The identity provider's notice; verified, then only makes the API re-read that session from the provider |

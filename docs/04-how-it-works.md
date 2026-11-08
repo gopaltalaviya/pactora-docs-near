@@ -1593,6 +1593,45 @@ itself: a trigger refuses UPDATE, DELETE and TRUNCATE.
 **Retention:** pending checks expire after 30 days; rejected and expired
 ones are deleted after 90.
 
+### 5.1i The admin console and the DAO dispute desk (branch `human-work`)
+
+docs/26 F15. Routes: docs/15.
+
+- **Who is admin is read from the chain**, on every request (cached 30 s).
+  The council is whoever Pactora's arbiter (`get_roles`) names in its
+  Sputnik policy (`get_policy`, a Group role that may `VoteApprove`).
+  Reviewers are `COMPLIANCE_REVIEWERS`. Nothing in the database grants
+  either role. An arbiter that is a plain account has no council, so nobody
+  rules through the desk. An admin sign-in must be under an hour old.
+- **The desk never signs a ruling.** For a disputed job it shows the
+  client's reason, the result, the draft snapshots, the photos (council
+  only, audited), the chat and the timeline, plus an **evidence hash** over
+  all of them.
+  - `POST …/proposal` returns the exact `add_proposal` call: the
+    `resolve_dispute(job_id, for_worker)` kind and the 0.1 NEAR bond, with
+    the job and the evidence hash in its description. A proposal for a
+    hash that no longer matches is refused.
+  - `GET …/proposals` reads the DAO's ruling proposals for this job from
+    the chain.
+  - `POST …/vote` returns `act_proposal` with the kind **as the chain holds
+    it**.
+  - The member's own wallet signs each call. The DAO's 2-of-3 vote is what
+    calls Pactora.
+- **Moderation** hides a party review (kept, audited). **Compliance** is
+  the M7 queue.
+- **Interface:** `/admin` shows tabs by role (dispute desk, moderation,
+  compliance). Every call goes through the member's wallet.
+- **Live check** (`demo.mjs` 8g on the sandbox): a real Sputnik DAO
+  (`dao.wasm`, the factory's code hash) is set as Pactora's arbiter.
+  - A job is hired, accepted, submitted and disputed on chain.
+  - The console reads the council from the DAO and refuses an outsider.
+  - A stale evidence hash is refused.
+  - The proposal the desk built lands on the DAO and is read back for this
+    job only.
+  - One council vote does not rule. Two votes, cast with the desk's
+    `act_proposal` calls, rule the job: refunded, worker DisputeLost.
+  - The arbiter is then set back.
+
 ### 5.2 Jobs
 
 ```http

@@ -39,7 +39,8 @@ summary). No contract change on this branch: the wasm hash stays
 | M5 events, webhooks, notifications, faucet | ✅ M5 commit (migration 0018, `apps/notifier`) | ✅ M5 commit (bell, `/notifications`, faucet on `/me`) | ✅ M5 commit (docs/04 §5.1f, 08, 15) |
 | M6 profiles, directory, two-way reviews | ✅ M6 commit (migration 0019; CORS now allows PUT) | ✅ M6 commit (`/people`, `/people/[id]`, editor on `/me`, review card on jobs) | ✅ M6 commit (docs/04 §5.1g, 15) |
 | M7 identity checks, sanctions screening, standing, retention | ✅ M7 commit (`packages/compliance`, migration 0020, keeper/signer holds, `sanctions:refresh`) | ✅ M7 commit (identity card on `/me`, `/kyc/simulated`, privacy page) | ✅ M7 commit (docs/04 §5.1h, 08, 15) |
-| M8–M10 | ❌ | ❌ | ❌ |
+| M8 admin console and DAO dispute desk | ✅ M8 commit (`/v1/admin/*`, council read live from the arbiter DAO) | ✅ M8 commit (`/admin`: desk, moderation, compliance) | ✅ M8 commit (docs/04 §5.1i, 15) |
+| M9–M10 | ❌ | ❌ | ❌ |
 
 M4 gate, run 2026-11-08 on this machine:
 
@@ -88,6 +89,16 @@ M7 gate, run 2026-11-08:
 | Interface `pnpm check` | 271 unit tests |
 | Interface e2e, 5 browsers | 918 passed, 2 skipped, 0 failed; privacy-page smoke tests 10/10 after the page gained the retention facts |
 | Not done | a vendor KYC adapter (no vendor chosen, docs/26 D3); UK/EU lists; a held payout run end to end on the sandbox (the signer's refusal and the keeper's filter are tested against the fake RPC and the real database) |
+
+M8 gate, run 2026-11-08:
+
+| Check | Result |
+|---|---|
+| Backend `pnpm check` | 1173 passed, 10 skipped |
+| Backend `test:startup` | all 32 bad configurations refused |
+| `pnpm demo:local` | `Demo passed.`, 59 checks; 8g against a **real Sputnik DAO** on the sandbox: the console reads the council from the DAO, refuses an outsider and a stale evidence hash; the desk's `add_proposal` lands on the DAO; one vote does not rule, two (the desk's `act_proposal` calls) rule the job: refunded, worker DisputeLost |
+| Interface `pnpm check` | 271 unit tests |
+| Interface e2e, 5 browsers | 933 passed, 2 skipped, 5 failed (one admin test in each browser): its alert locator also matched Next's empty route announcer, fixed; then the admin axe scan failed ~1 in 8 on iPhone, sampling a button mid-transition because reduced motion was turned on after the click (the site's CSS does honour it), fixed: admin spec 20/20, the scan 30/30 repeated |
 
 Resume after a crash: `git status` in all four repos, then Docker Desktop, then
 `docker compose up -d` (Postgres :5443, MinIO :9110), then
