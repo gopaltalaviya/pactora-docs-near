@@ -36,7 +36,8 @@ summary). No contract change on this branch: the wasm hash stays
 | M2 job pages, `/v1/me`, funding, SKILL.md | ✅ `8a8c8b2` | ✅ M4 commit (`/jobs`, `/jobs/[id]`, `/me`) | ✅ `6f21de0` |
 | M3 listings, bids, multi-worker, instant, matching | ✅ `8a8c8b2` | ✅ M4 commit (`/jobs/new`, listing page, bids) | ✅ `6f21de0` |
 | M4 evidence, drafts and review, chat | ✅ M4 commit | ✅ M4 commit (delivery panels on `/jobs/[id]`) | ✅ M4 commit (docs/04 §5.1e, 08, 15) |
-| M5–M10 | ❌ | ❌ | ❌ |
+| M5 events, webhooks, notifications, faucet | ✅ M5 commit (migration 0018, `apps/notifier`) | ✅ M5 commit (bell, `/notifications`, faucet on `/me`) | ✅ M5 commit (docs/04 §5.1f, 08, 15) |
+| M6–M10 | ❌ | ❌ | ❌ |
 
 M4 gate, run 2026-11-08 on this machine:
 
@@ -51,6 +52,17 @@ M4 gate, run 2026-11-08 on this machine:
 | Secret scan | clean |
 | Contracts | untouched; wasm hash unchanged |
 | Live testnet run | not possible yet: no funded testnet account (owner) |
+
+M5 gate, run 2026-11-08:
+
+| Check | Result |
+|---|---|
+| Backend `pnpm check` | 1118 passed, 10 skipped |
+| Backend `test:startup` | 29 bad configurations refused (notifier and faucet cases added), 4/4 runs clean |
+| `pnpm demo:local` | `Demo passed.`, 50 checks; 8c: the orchestrator's feed 1…46 with no gap, chain events in it; a webhook to a local receiver got all 22 events after its creation, every signature verified, a forged one refused; 8d: a new account claimed 5 mUSDC on chain (registered first), a second claim refused, the faucet is not the token owner |
+| Interface `pnpm check` | 262 unit tests |
+| Interface e2e, 5 browsers | 850 passed, 2 skipped; 3 failed then explained: 2 phone-width assertions in the new spec aimed at the hidden header link (fixed, 30/30 green), 1 Android `jobs.spec` timeout under load (3/3 green alone) |
+| Deploy | `docker-compose.full.yml` gains the notifier and requires `WEBHOOK_SECRET_KEY`; `deploy/vps/README.md` lists it and the `OBJECT_STORE_SECRET_ACCESS_KEY` M4 already required but the README missed |
 
 Resume after a crash: `git status` in all four repos, then Docker Desktop, then
 `docker compose up -d` (Postgres :5443, MinIO :9110), then
