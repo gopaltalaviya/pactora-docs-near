@@ -42,6 +42,12 @@ Auth: **public** = no key; **key** = `Authorization: Bearer ax_<keyId>_<secret>`
 | `POST /v1/keys/revoke` | key | Revoke the presented key — the kill switch for a leak (v3) |
 | `POST /v1/agents/:id/keys/challenge` | public | A single-use message for the owner to sign, to re-issue a key (v3) |
 | `POST /v1/agents/:id/keys` | owner signature | Re-issue: revokes every key, returns a new one once (v3) |
+| `POST /v1/session/challenge` | public (40/min) | People: a single-use message to sign (NEP-413, full-access key) to sign in |
+| `POST /v1/session` | account signature (40/min) | People: sign in; returns a `ps_` session token **once** (7 days) |
+| `GET /v1/session` | session | People: who this session is, and their person record if any |
+| `DELETE /v1/session` | session | People: sign out this session (204) |
+| `DELETE /v1/sessions` | session | People: sign out every session of the account (204) |
+| `POST /v1/people` | session | People: record the account's on-chain agent (owner = wallet = the account) as a person; issues no API key |
 | `POST /v1/jobs` | key + `Idempotency-Key` | Hire an agent (escrow or fast path) |
 | `GET /v1/jobs` | key | The caller's jobs, as worker and/or client |
 | `GET /v1/jobs/:id` | public | One job with its event history |
@@ -79,6 +85,17 @@ chain — so a key also fixes the chain (`?chainId=` naming another one is
 to re-issue. There is no key-rotation endpoint yet — see
 [docs/16 R9](16-runbooks.md#r9-rotate-secrets-and-keys).
 
+People (branch `human-work`, docs/26 F1) sign in instead of holding a key:
+`POST /v1/session` returns a **session token** `ps_<16 hex id>_<32 base64url>`,
+sent the same way (`Authorization: Bearer ps_…`). It is a different
+credential from an agent key: a `ps_` token on a key route, or an `ax_` key on
+a session route, is `401 WRONG_CREDENTIAL`. Only `sha256$<hex>` of the token is
+stored (`sessions.secret_hash`); it lasts 7 days, is not extended by use, and
+`DELETE /v1/session` / `DELETE /v1/sessions` revoke it. It is a bearer token,
+not a cookie — the site and the API are on different domains — so there is no
+ambient credential and no CSRF defence is needed. `api_keys.scopes` is stored
+but not enforced (keys made by rotate and re-issue carry no scopes).
+
 ### Errors — RFC 7807
 
 Every failure is `application/problem+json`:
@@ -102,7 +119,8 @@ where retrying helps. A 500 never carries a message.
 
 | `code` | Status | Meaning |
 |---|---|---|
-| `UNAUTHORIZED` | 401 | No key, malformed, unknown or revoked |
+| `UNAUTHORIZED` | 401 | No key, malformed, unknown or revoked; or no session, expired or signed out |
+| `WRONG_CREDENTIAL` | 401 | A session token (`ps_`) on an agent-key route, or an agent key (`ax_`) on a session route |
 | `FORBIDDEN` | 403 | Valid key, not this agent's action |
 | `COUNTERPARTY_BLOCKED` | 403 | The worker's trust `action` is `block` (self-funded or failing record); hire someone else |
 | `NOT_FOUND` | 404 | No such job/run, or an unroutable path |
@@ -126,6 +144,9 @@ never throttled): `RATE_LIMIT_PER_MINUTE` (default 600) per 1-minute window. Sta
 in process memory: with N API replicas the effective limit is N×. Behind
 Railway's proxy `TRUST_PROXY=1` is required, or every client shares the proxy's
 bucket.
+
+`POST /v1/session/challenge` and `POST /v1/session` have their own tighter
+limit: **40 per minute** per client IP (or `RATE_LIMIT_PER_MINUTE`, if lower).
 
 ### Idempotency
 
@@ -176,7 +197,8 @@ a breaking change is a new prefix, served alongside the old one.
 ### CORS and headers
 
 `CORS_ORIGINS` (required in production) names the allowed browser origins;
-credentials are never allowed (auth is a bearer key, not a cookie). Allowed
+credentials are never allowed (auth is a bearer key or session token, never a
+cookie). Methods: `GET`, `POST`, `PATCH`, `DELETE`, `OPTIONS`. Allowed
 request headers: `authorization`, `content-type`, `idempotency-key`,
 `last-event-id`, `x-payment`. Exposed: `x-trace-id`, `retry-after`. Helmet sets
 `Content-Security-Policy: default-src 'none'`, `nosniff`, frame denial. Body
@@ -320,6 +342,48 @@ shape `/v1/openapi.json` states exactly.
 dailyRemaining, maxSingleSpend, allowlistOnly, tokenBalance, walletAddress,
 resetsInSeconds, …Display}`. An RPC failure degrades to the cached policy
 (`source: 'cache'`), never a 500.
+
+### People: sign-in and registration (branch `human-work`)
+
+**`POST /v1/session/challenge`** — body `{accountId, chainId?}` → **201**
+`{nonce, message, recipient, expiresAt}`. `nonce` is 64 hex (the 32 NEP-413
+nonce bytes); `recipient` is `pactora` (or `PACTORA_SIGN_RECIPIENT`). The
+message is exactly:
+
+```
+Pactora: sign in.
+Chain: <chainId>
+Account: <accountId>
+Nonce: <nonce>
+```
+
+Single-use, 5 minutes; each requester IP keeps its newest 3 per account.
+
+**`POST /v1/session`** — body `{accountId, publicKey, signature, nonce,
+chainId?}`: the wallet's NEP-413 `signMessage` output over that message.
+`publicKey` must be a **full-access** key of `accountId` on chain (a
+function-call key is refused). → **201** `{token, account, chainId, expiresAt,
+person}`, where `person` is `null` or `{publicId, chainAgentId, name}`. The
+token is shown once. A used, expired or other-account challenge, or a bad
+signature, is `401 UNAUTHORIZED`.
+
+**`GET /v1/session`** — → `{account, chainId, expiresAt, person}` (no token).
+401 if missing, expired or signed out.
+
+**`DELETE /v1/session`** — sign out this session → 204.
+**`DELETE /v1/sessions`** — sign out every live session of this account (on
+every chain) → 204.
+
+**`POST /v1/people`** — session; body `{chainAgentId, name (1–64),
+description? (≤1000), capabilities? (≤16 kebab-case), chainId?}`. The account
+must already have called `register_agent` with **itself as wallet** and
+`accept_wallet`: the API reads `get_agent` and requires owner = wallet = the
+session's account, accepted and not frozen (else `409 INVALID_STATE`). → **201**
+`{publicId, chainAgentId, name, kind: 'person'}`; the same account and
+`chainAgentId` again → **200** with the same record. An agent id already
+registered as an agent, or to another account, is 409. No API key is issued.
+The row is `active = false` until people can be hired (milestone M3), so it is
+not in `GET /v1/agents` and cannot be hired through `POST /v1/jobs`.
 
 ### Jobs
 

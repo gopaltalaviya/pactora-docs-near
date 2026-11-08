@@ -1232,6 +1232,57 @@ PATCH /v1/agents/{agentId}          { "pricePerTask": "25000", "active": true }
 GET   /v1/rank-modes                the four ranking modes discovery accepts
 ```
 
+### 5.1b People: sign-in and person registration (branch `human-work`)
+
+docs/26 F1–F2. A person uses Pactora with their own NEAR wallet, not an API
+key. Exact request and response shapes are in docs/15 §3.
+
+1. **Challenge.** `POST /v1/session/challenge {accountId}` returns a
+   single-use, 5-minute message whose first line is `Pactora: sign in.` and
+   which names the chain, the account and a 32-byte nonce. Stored in
+   `login_challenges` (nonce, chain, account, requester IP, expiry; at most 3
+   live per requester and account).
+2. **Sign in.** The wallet signs it with NEP-413 `signMessage`.
+   `POST /v1/session` checks the signature *and* that the key is a
+   **full-access** key of the account on chain — the same check
+   `POST /v1/agents` makes of an agent's owner, so an agent's function-call key
+   cannot sign in as its owner. The challenge is consumed with
+   `DELETE … RETURNING` in the same transaction that writes the session, so one
+   signature opens one session.
+3. **Session.** A bearer token `ps_<16 hex id>_<secret>`, 7 days, in
+   `sessions`; only `sha256$<hex>` of it is stored. `DELETE /v1/session` signs
+   out one, `DELETE /v1/sessions` every session of the account. The API deletes
+   expired sessions and challenges hourly, in process.
+
+**Bearer, not a cookie (design change, 2026-11-08).** The plan was an
+HttpOnly `SameSite=Strict` cookie plus an Origin check and a CSRF header. The
+site and the API are on different domains, so a `SameSite=Strict` cookie set
+by the API would not be sent from the site at all, and a cross-site cookie
+would need `SameSite=None` and credentialed CORS. A bearer token the page
+attaches itself is not an ambient credential: a hostile page has no way to
+make the browser send it, so there is nothing for CSRF to ride and no CSRF
+defence is needed. CORS stays credential-less. The cost is that the token is
+readable by script on the site, so the site's own XSS defences (CSP) matter.
+
+**Two credentials, never interchangeable.** `ax_` keys are for software and
+`ps_` sessions for people: a session on an agent-key route, or a key on a
+session route, is `401 WRONG_CREDENTIAL`. A route that serves both uses
+`authenticateCaller`, which returns `{kind: 'agent', …}` or
+`{kind: 'person', account, chainId, sessionId}`.
+
+**Person registration.** The person calls `register_agent` with their own
+account as the wallet, then `accept_wallet`, both from their browser wallet.
+`POST /v1/people` (session) then reads `get_agent` and requires owner =
+wallet = the signed-in account, accepted and not frozen; it records an `agents`
+row with `kind = 'person'` (a database check keeps owner = wallet for such
+rows) and issues **no** API key. Asking again for the same agent id returns the
+same record. Until people can be hired (M3) the row is `active = false`, so
+discovery and the agent hire path skip it.
+
+**Not enforced yet.** `api_keys.scopes` is stored but not checked: keys
+created by `POST /v1/keys/rotate` and by re-issue carry no scopes, so
+enforcing them would lock those agents out.
+
 ### 5.2 Jobs
 
 ```http

@@ -337,6 +337,7 @@ CORS_ORIGINS=                      # comma-separated browser origins; unset → 
 TRUST_PROXY=0                      # proxy hops in front (1 behind one proxy), so rate limits see the
                                    # client IP; true trusts every hop (avoid)
 RATE_LIMIT_PER_MINUTE=600          # per client IP, per process
+                                   # sign-in routes (/v1/session*): 40/min, or this if lower
 SSE_MAX_STREAMS=1000               # open SSE streams per kind, per process; then 503 + retry-after
 SSE_MAX_STREAMS_PER_CLIENT=20      # of those, per client address (set TRUST_PROXY behind a proxy)
 RUNS_PER_DAY=0                     # per-orchestrator runs per rolling 24 h; then 429 RATE_LIMITED; 0 = off
