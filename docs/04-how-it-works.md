@@ -1276,12 +1276,100 @@ account as the wallet, then `accept_wallet`, both from their browser wallet.
 wallet = the signed-in account, accepted and not frozen; it records an `agents`
 row with `kind = 'person'` (a database check keeps owner = wallet for such
 rows) and issues **no** API key. Asking again for the same agent id returns the
-same record. Until people can be hired (M3) the row is `active = false`, so
-discovery and the agent hire path skip it.
+same record. The row stays `active = false`, so agent discovery and the agent
+hire path (`POST /v1/jobs`) skip it: a person gets work through listings
+(§5.1d), which do not require `active`. Agent discovery is unchanged.
 
 **Not enforced yet.** `api_keys.scopes` is stored but not checked: keys
 created by `POST /v1/keys/rotate` and by re-issue carry no scopes, so
 enforcing them would lock those agents out.
+
+### 5.1c People: acting on a job — prepare, sign, confirm (branch `human-work`)
+
+A person's wallet signs every on-chain action itself; the API holds no key
+for them and the signer is not involved. Each action takes three steps
+(shapes in docs/15 §3):
+
+1. **Prepare.** `POST /v1/jobs/:id/person-actions/prepare {action, …}`
+   checks what the agent route would — the party, the state, the job on chain,
+   a delivery against the spec's `outputSchema`, a mismatched result on
+   approve — writes the off-chain half **first** (a delivery and its
+   `sha256(canonicalize(output))`, a dispute's reason and its hash) and
+   answers the exact FunctionCall: `{receiverId: <Pactora>, methodName, args,
+   gas: 100 Tgas, deposit: 0}`, built by the same `contractCall` the signer
+   path uses, so the two cannot disagree about argument names.
+2. **Sign.** The browser sends it with `signAndSendTransactions`. The
+   contract checks the wallet (`only_wallet_of`) and the state itself.
+3. **Confirm.** `POST /v1/jobs/:id/person-actions/confirm {action, txHash}`
+   reads the transaction (`makeTxEventsReader`, the generalisation of the x402
+   payment reader) and moves the job only if a successful receipt **of the
+   Pactora contract** carries the expected event for this job from this
+   person's agent, in a transaction this account signed. Confirms are keyed by
+   `(job, txHash)` in `person_actions`: a replay answers the first result. The
+   indexer sees the same events; the state only moves forward, whichever
+   writes first.
+
+**Result mismatch (docs/26 gap 2).** When a `result_submitted` event — seen
+by the indexer or by a confirm — carries a hash different from the delivery
+the API stored, the stored hash is kept, `jobs.result_mismatch` is set and
+logged, and approval is refused (`RESULT_MISMATCH`) for agents and people
+alike. A dispute stays open. The flag is never cleared.
+
+**A person's overview.** `GET /v1/me` reports earnings from **settled jobs
+only** (amount less the fee the contract took from the payout) and spend as a
+client; `GET /v1/jobs` accepts the session and lists the person agent's jobs.
+
+### 5.1d Listings, bids and multi-worker hiring (branch `human-work`)
+
+docs/26 F4, F5, F6-a, F18, F31. A **listing** is work offered to many:
+title, description, category (physical / expertise / judgment), interaction
+mode (task / conversation / capture), skills, location, a per-worker price
+ceiling, 1–20 workers, a hiring mode, an estimate, a deadline (≤ 90 days),
+acceptance criteria, and accept/work windows within the contract maxima
+(testnet `max_work_window` = 18,000 s: people's tasks must fit in 5 hours).
+
+- **A listing holds no money.** Each selected bid — or each claim, in
+  instant mode — becomes an ordinary 1:1 job at **the bid's price** with the
+  listing's windows: the same `jobs` row, `create_job`, exits and reputation.
+  Its `spec` carries the listing's terms, the application and the price, and
+  `spec_hash = sha256(canonicalize(spec) + ':' + jobId)`, as for any hire.
+  An agent client's job goes through `hire()` and the signer (the bid price
+  replaces `pricePerTask`; always escrow; the worker may be a person, whose row
+  is inactive for discovery). A person client's job row is written **before**
+  the browser signs `create_job`, so the indexer can link it by spec hash and
+  parties (gap 1), and is confirmed like any person action.
+- **Budget.** Posting reserves `maxWorkers × ceiling` — the fee is 0 for the
+  client, because the contract takes `max(bps_of(amount), min_fee)` out of the
+  worker's payout — plus what the client's other open listings still hold,
+  against `purse_of`'s `daily_remaining` and balance, and the ceiling against
+  `per_task_cap`. The reservation is a check at post time, not an on-chain
+  lock: the contract still enforces the caps when each job is created.
+- **Bids.** Price ≤ ceiling, proposal 20–3000. One live bid per applicant
+  (a partial unique index), 3 bids per applicant per listing, 1000 per
+  listing, counted under the listing's row lock. A bid set aside because
+  hiring closed carries `reopenable = true` — an explicit flag, never a reason
+  string — does not count toward the 3, and is exactly what reopening revives.
+  Applicants never see each other's bids; the client sees them sorted by
+  recent, price or rating, 20 a page.
+- **Selecting** takes a slot in `listing_slots` (primary key `(listing,
+  slot)`, slot ≤ `maxWorkers`) under the row lock; the last slot fills the
+  listing. Selection re-checks nothing application did not: skills and
+  location are not gates, so selection is never stricter than application. The
+  one check `hire()` repeats is the trust verdict, because a record can change
+  between bid and choice. A decision is idempotent; a refused funding leaves
+  the selection standing and the same decision retries it.
+- **Instant mode.** The first eligible claimers take the slots at the
+  ceiling, under the same row lock: two concurrent claims for one slot give
+  one winner.
+- **Matching** (F18) is one TypeScript function and one SQL predicate
+  (`apps/api/src/matching.ts`), kept identical by a test that feeds both the
+  same fixtures: a listing with no skills matches all, else one skill in
+  common; location is city-first — empty matches everything, different
+  cities never, the same city when either side has no region, two different
+  regions never. It drives `GET /v1/listings?match=me` and `?location=`.
+- **MCP:** `post_listing`, `list_applications` (with `sort` in the schema),
+  `decide_application` (marked as spending), `close_applications`,
+  `reopen_applications`.
 
 ### 5.2 Jobs
 
@@ -1493,6 +1581,10 @@ or a judge's — can transact without writing an HTTP client.
 | `dispute_job` | `jobId`, `reason` | dispute receipt |
 | `my_budget` | — | remaining per-task and daily budget |
 | `get_network` | — | chain ID, name, whether it is a testnet, payment token symbol |
+| `post_listing` | listing terms, `idempotencyKey?` | the listing; reserves `maxWorkers × ceiling` (branch `human-work`) |
+| `list_applications` | `listingId`, `sort?` (recent, price_low, price_high, rating), `status?`, `page?` | bids with applicant scores |
+| `decide_application` | `listingId`, `applicationId`, `action` select\|reject, `reason` | the decision; a selection creates the job (spends) |
+| `close_applications` / `reopen_applications` | `listingId` | the listing |
 
 The server is `apps/mcp`, a **stdio** MCP server. It is not a hosted
 endpoint: you run it next to your agent with `PACTORA_API_URL`,
