@@ -120,6 +120,108 @@ Gate, run 2026-11-08 after the follow-up, all in one sequence:
 | Contracts `verify-near --network sandbox --dao` | 25 checks passed |
 | Docs `check:env` | OK |
 
+**Deep testing, 2026-11-08 (after the follow-up).** Four test runs, each
+with its own database, ports or containers. Every defect below was first
+reproduced, then fixed with a test that failed on the old code.
+
+- **Production stack** (`docker-compose.full.yml` + the VPS overlay, behind
+  Caddy): only 80/443 published; `/metrics` and its variants 404 at the
+  edge; security headers and CORS as configured. The backup, restore-test
+  and alert scripts were run at their server defaults. A full rehearsal
+  (back up, `down -v`, restore by the README, start again) matched all 51
+  tables, the table digests and every evidence object's hash. The restored
+  signer keys still decrypt.
+- **Authorization matrix** (`apps/api/test/roles.test.ts`): every served
+  route against 19 user types (visitor, bad credentials, agents, people as
+  client and worker, non-party, held, blocked, reviewer, council, stale
+  admin sign-ins, signed in with no person agent), plus cross-tenant checks.
+  Kept in the suite, and it fails when a new route has no row. Fourteen
+  guard mutations were each caught.
+- **Every browser**:
+  - all 5 Playwright projects;
+  - a new every-page check (`e2e/user-agents.spec.ts`): console errors,
+    failed requests, overflow, one h1, a title, axe;
+  - repeated runs of the people and roles specs: 1257/1260. The 3 failures
+    are two Firefox clicks under full load that did not reproduce alone,
+    and one machine crash;
+  - migrations on an empty Postgres: all 35 apply, the schema is identical
+    to dev;
+  - mutation tests on `parseUk`: every mutant is killed except one that the
+    real data cannot tell apart.
+- **Localhost against the real backend** (`e2e-live/`, outside
+  `pnpm test:e2e`): the real API, signer, indexer and notifier on the
+  sandbox (`scripts/live-ui-stack.mjs`). Sign-ins are real NEP-413
+  signatures, and every transaction is signed with the account's own key
+  and awaited on chain. Covered in all 5 browsers:
+  - an agent operator;
+  - a worker and a client end to end, paid on chain;
+  - held and blocked accounts;
+  - two reviewers clearing a real screening hit;
+  - a non-party;
+  - a visitor.
+  The council's 2-of-3 DAO ruling runs in Chromium only, because it changes
+  the global arbiter. Result: 61 passed, 4 skipped by design, 0 failed.
+
+Defects found and fixed:
+
+1. The production api did not start: compose never passed
+   `COMPLIANCE_REVIEWERS`. Thirteen more settings could not be set on a
+   server for the same reason: metrics tokens, Telegram linking, the
+   identity provider and its secret, the gas floor, the rate-limit store.
+   All are passed now, and `packages/shared/test/compose-env.test.ts` fails
+   on any setting a service reads that compose does not pass.
+2. `alerts.sh` posted the same fault every run (the numbers in the message
+   changed), and lost an alert whose post failed. `backup.sh` failed on an
+   empty bucket. Two backups in the same minute overwrote each other. The
+   restore test did not count `signer_keys`. The overlay's Caddyfile path
+   broke when run from the repo. The README restore steps raced Postgres,
+   could not run as written (there is no `mc` on the host), and restored
+   evidence unencrypted.
+3. Authorization:
+   - the council could read the chat, drafts and photos of jobs nobody had
+     disputed;
+   - compliance reviewers skipped the 1-hour sign-in rule;
+   - a person with no person agent could not open any listing;
+   - agent keys got 403 instead of 401 on people-only routes;
+   - held and blocked accounts could still post listings, hire, fund jobs
+     and select workers (the plan says standing gates posting);
+   - a council member who was a party could draft a ruling on their own
+     dispute. They now recuse; the DAO itself cannot tell who is a party.
+4. A person's Accept never confirmed when the indexer recorded it first
+   (an empty update threw a 500).
+5. Interface:
+   - `/register` reported a first funding that failed on chain as done;
+   - a job action's error disappeared when the job reloaded;
+   - after a confirm that failed with a 5xx or no answer, nothing offered
+     "Check again", only a re-sign that the chain refuses;
+   - the notifications bell asked for a feed admins without a person
+     record cannot have, on every page;
+   - the accessibility scan's job id was one the mock does not serve.
+
+Gate after the deep testing, 2026-11-08:
+
+| Check | Result |
+|---|---|
+| Interface `pnpm check` | 271 unit tests (person-action now 10), typecheck, lint, format |
+| Interface e2e, 5 browsers | 1192 passed, 2 skipped. One WebKit worker crashed (0xC0000005, the machine); that test passed 5/5 alone |
+| Backend `pnpm check` | 1211 passed, 10 skipped. Two notifier timing tests failed under load; 5/5 runs alone pass (11/11), and the notifier is unchanged |
+| Backend `test:startup` | all 36 bad configurations refused |
+| `pnpm demo:local` | `Demo passed.`, 59 checks |
+| `verify-near --network sandbox --dao` | 25 checks |
+| Live browser suite (`e2e-live/`, real backend) | 61 passed, 4 skipped by design, 0 failed |
+| Secret scans, docs `check:env` | clean, OK |
+
+Known, not fixed:
+
+- The faucet has no standing check (test tokens only).
+- A non-party on a job in the wrong state gets 409 before 403 (the state
+  is public anyway).
+- The indexer loops on a start block the node has garbage-collected. A
+  fresh sandbox needs `INDEXER_START_AT_HEAD=1`, and testnet needs a check
+  on a non-archival RPC.
+- Anyone can create wallet keys for accounts that do not exist on chain,
+  which turns `/v1/status` degraded (the gas reading).
+
 M5 gate, run 2026-11-08:
 
 | Check | Result |

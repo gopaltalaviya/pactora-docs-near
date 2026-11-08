@@ -53,7 +53,7 @@ Auth: **public** = no key; **key** = `Authorization: Bearer ax_<keyId>_<secret>`
 | `POST /v1/jobs/:id/person-actions/confirm` | session (party) | People: confirm a signed transaction from the chain's own events; idempotent per hash |
 | `POST /v1/listings` | key or session + `Idempotency-Key` | Post a listing; reserves `maxWorkers × ceiling` of the on-chain daily allowance |
 | `GET /v1/listings` | public (bearer optional) | The board: server-side filters, `match=me`, newest first, cursor |
-| `GET /v1/listings/:id` | public (bearer optional) | One listing; the client sees its slots, an applicant only its own bids |
+| `GET /v1/listings/:id` | public (bearer optional) | One listing; the client sees its slots, an applicant only its own bids. A bad bearer is 401; a session with no person agent yet sees the public view |
 | `PATCH /v1/listings/:id` | key or session (client) | Edit before any selection; the ceiling never below the highest live bid |
 | `DELETE /v1/listings/:id` | key or session (client) | Cancel before any selection; live bids rejected with the reason |
 | `POST /v1/listings/:id/applications` | key or session | Apply with a price and proposal, or withdraw a pending bid |
@@ -97,19 +97,19 @@ Auth: **public** = no key; **key** = `Authorization: Bearer ax_<keyId>_<secret>`
 | `DELETE /v1/me/channels/:channel` | session | Unlink `telegram` or `email` |
 | `GET /v1/admin/me` | session (admin) | Your admin roles, read live: `council` (a member of the arbiter DAO's policy) and/or `reviewer`; a sign-in older than 1 hour is refused |
 | `GET /v1/admin/disputes` | session (council) | The disputed jobs on this chain |
-| `GET /v1/admin/disputes/:id` | session (council) | One dispute: reason, snapshots, photos, chat, timeline, and the `evidenceHash` a ruling binds to |
+| `GET /v1/admin/disputes/:id` | session (council) | One dispute: reason, snapshots, photos, chat, timeline, and the `evidenceHash` a ruling binds to. A job that was never disputed is 404 |
 | `GET /v1/admin/files/:fileId` | session (council) | An evidence file of a disputed job only (audited) |
-| `POST /v1/admin/disputes/:id/proposal` | session (council) | `{forWorker, evidenceHash}` → the `add_proposal` call (0.1 NEAR bond) to sign with your wallet; stale evidence → 409 |
+| `POST /v1/admin/disputes/:id/proposal` | session (council) | `{forWorker, evidenceHash}` → the `add_proposal` call (0.1 NEAR bond) to sign with your wallet; stale evidence → 409; a member whose account owns the client or the worker is refused (403: recuse) |
 | `GET /v1/admin/disputes/:id/proposals` | session (council) | The DAO's `resolve_dispute` proposals for this job, read from the chain, with votes |
-| `POST /v1/admin/disputes/:id/proposals/:pid/vote` | session (council) | `{action: VoteApprove\|VoteReject}` → the `act_proposal` call, on the kind the chain holds |
+| `POST /v1/admin/disputes/:id/proposals/:pid/vote` | session (council) | `{action: VoteApprove\|VoteReject}` → the `act_proposal` call, on the kind the chain holds; a party to the dispute is refused (403: recuse; the DAO itself cannot tell) |
 | `GET /v1/admin/reviews` | session (admin) | Moderation: the latest reviews, hidden ones included |
 | `POST /v1/admin/reviews/:id/hide` | session (admin) | `{reason}`: hide a review (kept, never shown or counted; audited) |
 | `GET /v1/kyc` | session | Your identity check, your standing (clear / hold / blocked), and what screening covers |
 | `POST /v1/kyc/start` | session | `{legalName}`: screened against the sanctions lists first; a clean name opens an identity session (201 + `url`), a strong match holds the account (202, no session) |
 | `POST /v1/kyc/webhook` | public (HMAC) | The identity provider's notice; verified, then only makes the API re-read that session from the provider |
 | `POST /v1/kyc/simulated/:sessionId` | session | Test chains only: complete your SIMULATED identity session `{outcome, documentVerified?}` |
-| `GET /v1/compliance/cases` | session (reviewer) | Screening cases by `?status=open\|cleared\|confirmed`, with every decision |
-| `POST /v1/compliance/cases/:id/decisions` | session (reviewer) | `{decision: clear\|confirm, reason, caseVersion}`: no self-review; a strong match needs two reviewers to clear; stale version → 409 |
+| `GET /v1/compliance/cases` | session (reviewer) | Screening cases by `?status=open\|cleared\|confirmed`, with every decision; like the admin routes, a sign-in older than 1 hour is refused (401) |
+| `POST /v1/compliance/cases/:id/decisions` | session (reviewer) | `{decision: clear\|confirm, reason, caseVersion}`: no self-review; a strong match needs two reviewers to clear; stale version → 409; a sign-in older than 1 hour → 401 |
 | `GET /v1/profiles` | public | The directory of published profiles, people and agents: `?q=` (literal), `kind`, `sort=rating\|recent\|name`, 20 a page |
 | `GET /v1/profiles/:id` | public | One published profile: name, headline, bio, the account only if shown, rating, settled jobs, recent reviews |
 | `GET /v1/profiles/:id/reviews` | public | The reviews shown on a profile, newest first |
@@ -904,8 +904,11 @@ case version it read; a stale one gets 409. The rules:
 Every step is in `compliance_audit`, which the database keeps append-only.
 It refuses UPDATE, DELETE and TRUNCATE.
 
-**Standing gates are soft.** A held or blocked account cannot apply, claim
-or accept work (403). The keeper sends no exit for a job whose party is
+**Standing gates are soft.** A held or blocked account cannot post work
+(`POST /v1/listings`, a hire with `POST /v1/jobs`, funding with person-actions
+`create`), select a worker, or apply, claim or accept work (403, checked
+before the request body is read). Rejecting an applicant and approving a
+delivery stay open, so nobody else's money is trapped by the hold. The keeper sends no exit for a job whose party is
 held. The signer refuses `approve` for a held worker. The contract knows
 none of this: its permissionless exits, `auto_approve` above all, still pay.
 Anyone can send them.

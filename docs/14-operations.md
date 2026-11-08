@@ -185,8 +185,12 @@ cron every 5 minutes and posts to a Slack or Discord webhook
 `/v1/status`, the signer gas floor, indexer lag (cursor age), the keeper
 backlog (open escrow jobs past a deadline, held accounts excluded), failed
 webhook deliveries, sanctions-list age, backup age. `--dry-run` prints the
-checks. Caddy answers 404 to `/metrics` at the edge. Checked locally against
-the dev stack; not yet run on a server.
+checks. "Changes" ignores the numbers in a message (a lag growing from 900 s
+to 1200 s is the same fault), and a post the webhook did not take is tried
+again next run rather than lost. Caddy answers 404 to `/metrics` at the edge.
+Checked locally against the dev stack and the production images behind
+Caddy, with a full backup → wipe → restore rehearsal (row counts, table
+digests and every evidence object's hash matched); not yet run on a server.
 
 ### What to wire up, smallest first
 
