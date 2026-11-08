@@ -424,7 +424,7 @@ The tables above are the Monad/EVM baseline. On NEAR the same rule holds
 | | `KYC_WEBHOOK_SECRET` | 32+ characters; verifies the identity provider's webhooks (HMAC over timestamp and raw body). Required with a provider |
 | | `KYC_PAGE_BASE` | where the simulated provider's page lives (the interface's URL); default `http://localhost:3000` |
 | | `COMPLIANCE_REVIEWERS` | NEAR accounts allowed to decide screening cases, comma-separated, re-read on every request. Production with screening on **refuses to start** with fewer than two: a strong match is cleared only by two different reviewers |
-| | `OFAC_SDN_URL` · `OFAC_ALT_URL` · `UN_LIST_URL` | `scripts/sanctions-refresh.mjs` only: override where the lists are fetched (unset: the publishers' own URLs) |
+| | `OFAC_SDN_URL` · `OFAC_ALT_URL` · `UN_LIST_URL` · `UK_LIST_URL` | `scripts/sanctions-refresh.mjs` only: override where the lists are fetched (unset: the publishers' own URLs) |
 | | `TELEGRAM_BOT_TOKEN` | branch `human-work` (docs/26 F11): `apps/channels` only, the bot's token from @BotFather. It is part of every Bot API URL, so it is redacted from every error and log. Unset: no Telegram. The adapter is written from the published Bot API and is **unverified** until run with a real token |
 | | `TELEGRAM_BOT_USERNAME` | api: the bot's @username (ends in `bot`), shown to a person linking a chat; unset → Telegram linking answers 503 |
 | | `EMAIL_PROVIDER` · `EMAIL_CHANNEL` | channels: `none` (default) or `fake` (kept in memory; **refused in production**); no real email provider is chosen yet. api: `EMAIL_CHANNEL=1` lets people link an email |

@@ -1535,9 +1535,14 @@ docs/26 F13, F14, F27. Routes and rules: docs/15.
 - Among providers, TRM Labs states NEAR wallet screening. Elliptic and
   Chainalysis did not confirm NEAR in what was read.
 - So Pactora screens **people's names**, not NEAR wallets, and says so
-  (`walletScreening: "not available"`) rather than faking a check. UK and EU
-  lists are not covered yet: their files were not inspected, and a parser
-  written blind is worse than none.
+  (`walletScreening: "not available"`) rather than faking a check.
+- The UK Sanctions List (FCDO XML, as published 2026-11-03) was added on
+  2026-11-08 after its file was inspected: 6,420 designations, 4,070
+  individuals, 1,667 entities, 683 ships (stored as `other`). Names are
+  Name1 … Name6 joined; aliases marked "Low quality a.k.a" (bare titles such
+  as "Mudir") are dropped. The EU list is not covered: its file needs a
+  token and was not inspected, and a parser written blind is worse than
+  none.
 
 **The library** (`packages/compliance`, no network, no dependency):
 
@@ -1547,7 +1552,8 @@ docs/26 F13, F14, F27. Routes and rules: docs/15.
   - joined, ≥ 0.97.
 - One common first name never matches a longer name, and the shorter name
   must cover two-thirds of the longer.
-- Parsers cover OFAC CSV (both name orders, aliases, addresses) and UN XML.
+- Parsers cover OFAC CSV (both name orders, aliases, addresses), UN XML and
+  UK XML (migration 0022 lets `sanctions_list_versions.source` be `uk`).
 - `refreshDecision` skips an unchanged copy (same sha256), and refuses one
   that is too small or under 70 % of the active one.
 
@@ -1566,7 +1572,10 @@ test pins the current behaviour.
 - `pnpm sanctions:refresh` runs daily: fetch, parse, then `storeList`, which
   switches the active copy in one transaction under an advisory lock. Run
   live on 2026-11-08: both lists stored; the second run skipped both as
-  unchanged.
+  unchanged. With the UK list (same day): all three stored (19,563 + 1,007
+  + 6,420), a rerun skipped the UK copy, a 403 from a bad URL changed
+  nothing, and a UK designation (BEL0001) was found by the API's screen.
+  `node scripts/sanctions-refresh.mjs uk` refreshes one list.
 - `POST /v1/kyc/start` screens before any vendor session. A strong hit
   (≥ 0.97) holds the account and creates no session; a weak hit opens a case
   and lets the session proceed.

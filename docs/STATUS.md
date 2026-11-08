@@ -42,6 +42,7 @@ summary). No contract change on this branch: the wasm hash stays
 | M8 admin console and DAO dispute desk | ✅ M8 commit (`/v1/admin/*`, council read live from the arbiter DAO) | ✅ M8 commit (`/admin`: desk, moderation, compliance) | ✅ M8 commit (docs/04 §5.1i, 15) |
 | M9 Telegram and email | ✅ M9 commit (`apps/channels`, migration 0021, linking routes) | ✅ M9 commit (channels card on `/me`) | ✅ M9 commit (docs/04 §5.1j, 08, 15) |
 | M10 docs and the final gate | ✅ (no change needed) | ✅ M10 commit (`/docs/people`) | ✅ M10 commit (docs/26 status table, STATUS) |
+| Follow-up: F20, F28, F29, UK list | ✅ follow-up commit (ops scripts, migration 0022, `parseUk`, keeper recovery test) | ✅ follow-up commit (first funding on `/register`, list text) | ✅ follow-up commit (docs/04, 14, 26, STATUS) |
 
 M4 gate, run 2026-11-08 on this machine:
 
@@ -80,7 +81,44 @@ M4 gate, run 2026-11-08 on this machine:
    - a Telegram bot token, to verify the adapter live;
    - an email provider;
    - D6, the rights, before the repos go public.
-4. Not built: the F20 agent connect page; UK/EU sanctions lists; backup and alert wiring on the host.
+4. Not built: the EU sanctions list (its file needs a token). Built but only
+   checked locally: the backup, restore-test and alert scripts (no server
+   yet); their off-host target (`BACKUP_REMOTE`) and alert webhook
+   (`ALERT_WEBHOOK_URL`) are the owner's to choose.
+
+**Follow-up after M10, 2026-11-08:**
+
+- F20: `/register` offers a first funding. After `register_agent`, the wallet
+  signs a Fund (`ft_transfer_call`, `{"Fund":{"agent_id":<id>}}`) for the id
+  the chain returned. A bad amount is refused before the wallet is asked
+  (`e2e/connect.spec.ts`).
+- F29: a keeper test where the first send expires and the backlog stays
+  aged, and the next sweep clears it to 0. Mutation-checked: it fails when
+  the reset to 0 is broken.
+- F28: `deploy/vps/backup.sh`, `restore-test.sh` and `alerts.sh`, plus a
+  404 for `/metrics` in the Caddyfile. Each was run against the dev
+  Postgres and MinIO, a real API and indexer, a real Caddy (`caddy:2-alpine`)
+  and a local webhook receiver. Every failure path was run and failed the
+  run (deploy/vps/README.md lists them). Two script bugs were found that way
+  and fixed: a failed run left a `.part` file, and a wrong passphrase read as
+  "0 objects" instead of failing.
+- UK Sanctions List: the real FCDO XML was inspected first, then parsed. All
+  6,420 designations parse in 85 ms. Migration 0022 allows `source = 'uk'`
+  (its test was red on the old schema). A live refresh stored all three
+  lists, and a UK designation was found by the API's screen.
+
+Gate, run 2026-11-08 after the follow-up, all in one sequence:
+
+| Check | Result |
+|---|---|
+| Interface `pnpm check` | 271 unit tests, typecheck, lint, format |
+| Interface e2e, 5 browsers, `--workers=2` | 963 passed, 2 skipped, 0 failed |
+| Backend `pnpm check` | 1194 passed, 10 skipped |
+| Backend `test:startup` | all 36 bad configurations refused |
+| Secret scans | backend 377 files (new scripts included), contracts 40 files: clean |
+| `pnpm demo:local` | `Demo passed.`, 59 checks |
+| Contracts `verify-near --network sandbox --dao` | 25 checks passed |
+| Docs `check:env` | OK |
 
 M5 gate, run 2026-11-08:
 

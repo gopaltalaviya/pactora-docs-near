@@ -178,9 +178,15 @@ schema on 2026-09-30 and brought up to date (it was missing 17 names).
 
 ### What is missing
 
-No alerting, no error tracking (Sentry or similar), no dashboards, no metrics
-scraper. Nothing on the VPS scrapes Prometheus endpoints; `/metrics` is only
-useful once something collects it.
+No error tracking (Sentry or similar), no dashboards, no metrics scraper.
+Since 2026-11-08 (branch `human-work`), `deploy/vps/alerts.sh` runs from
+cron every 5 minutes and posts to a Slack or Discord webhook
+(`ALERT_WEBHOOK_URL`) when the set of problems changes: `/ready`,
+`/v1/status`, the signer gas floor, indexer lag (cursor age), the keeper
+backlog (open escrow jobs past a deadline, held accounts excluded), failed
+webhook deliveries, sanctions-list age, backup age. `--dry-run` prints the
+checks. Caddy answers 404 to `/metrics` at the edge. Checked locally against
+the dev stack; not yet run on a server.
 
 ### What to wire up, smallest first
 
@@ -306,6 +312,15 @@ Backfill, reindex and repair procedures: [16 R3–R4](16-runbooks.md#r3-indexer-
   the indexer keeps its cursor and catches up.
 - **Backups live on the same server.** A copy off the server is not
   automated; losing the VPS loses its backups too.
+- **Since 2026-11-08 (branch `human-work`, not yet on a server):**
+  `backup.sh` encrypts the dump and an archive of the evidence bucket
+  (AES-256, `openssl enc -pbkdf2`, a passphrase file kept off the server
+  too), decrypts each back to check it, and copies both to `BACKUP_REMOTE`
+  over scp, warning when that is unset. `restore-test.sh` (monthly) restores
+  the newest dump into a scratch database, compares the table count with
+  the live one and drops it. Each failure path — wrong passphrase,
+  truncated dump or archive, no backup, schema drift — was run locally and
+  failed the run. Steps: `deploy/vps/README.md`.
 - **What can be rebuilt without a backup:** everything the indexer projects
   (job states, `payments`, `agent_stats`) can be re-derived from the chain for
   jobs whose rows exist. **What cannot:** agents' off-chain registrations
