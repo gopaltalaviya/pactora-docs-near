@@ -8,8 +8,9 @@ reputation only a settled payment can write. Built for the NEAR Hackathon
 the **`human-work`** branch of all four repos (owner, 2026-11-09).
 
 > **Disclosure (Q-002, Q-003).** The escrow-and-reputation design was
-> prototyped before the hackathon; everything in this repository was written
-> for NEAR during the hackathon window. Diff:
+> prototyped before the hackathon, and some of these documents began before
+> it (their history is in git, before the `pre-hackathon` tag). The NEAR
+> implementation they describe was built during the hackathon window. Diff:
 > [`pre-hackathon...hackathon-submission`](https://github.com/gopaltalaviya/pactora-docs-near/compare/pre-hackathon...hackathon-submission)
 > (the tag is added on `human-work` after the testnet run; until then compare
 > against `human-work`).

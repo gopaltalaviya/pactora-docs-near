@@ -92,9 +92,9 @@ The AI screen (Q-017) runs the README literally, so each of the four READMEs
 must carry:
 
 - **Disclosure (Q-002) and diff (Q-003):** one sentence — "The
-  escrow-and-reputation design was prototyped before the hackathon;
-  everything in this repository was written for NEAR during the hackathon
-  window." — and a `compare/pre-hackathon...hackathon-submission` link
+  escrow-and-reputation design was prototyped before the hackathon; the NEAR
+  implementation in this repository was built during the hackathon window."
+  Where a repository's git history starts before the window, say so. — and a `compare/pre-hackathon...hackathon-submission` link
   (`...human-work` until the tag exists); the `hackathon-submission` tag is added after the testnet run.
 - **Libraries (Q-005):** a list with versions — the contracts README's
   "Libraries used" (near-sdk 5.30.0, near-workspaces 0.24.0, cargo-near
