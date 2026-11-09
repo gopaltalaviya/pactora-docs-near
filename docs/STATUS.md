@@ -442,7 +442,7 @@ There is no backend `.env`; set `DATABASE_URL` inline.
 
 All code work that does not need the owner is done, tested and pushed on
 `human-work` in all four repos: contracts `87513cb`, backend `99f8ad1`,
-interface `bdec367`, docs (this file). Since then, the same night: every
+interface `574ab7c`, docs (this file). Since then, the same night: every
 README followed from a fresh GitHub clone, as the AI screen will (13 gaps
 fixed: clone branch, `DATABASE_URL` for migrate, `dao.wasm`, sandbox port,
 timings), and `scripts/preflight-testnet.mjs`, a read-only go/no-go before
@@ -455,7 +455,11 @@ held demo (2026-11-09 evening) found two defects, fixed in `bdec367`: a filled
 listing still asked visitors to sign in to bid, and a dev-mode hydration warning on
 the CSP nonce; the full five-browser mocked run also caught one stale header test and
 one Firefox test race. Re-run after: demo 71 checks, mocked e2e 1601 + the changed
-specs 375/375, live suite 61, unit 328. What remains is the owner's.
+specs 375/375, live suite 61, unit 328. Then (`574ab7c`) a modern visual refresh of
+the shared design layer and a copy pass that puts every new feature on the landing
+page and in the docs and fixes 11 stale claims (184 -> 88 contract tests, pinned to
+the source by a test); mocked e2e 1608 in five browsers, live suite in five browsers,
+unit 329, README screenshots re-taken. What remains is the owner's.
 
 **Plan to the deadline (2026-11-14 23:59 UTC):**
 
