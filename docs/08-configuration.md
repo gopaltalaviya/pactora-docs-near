@@ -359,7 +359,7 @@ LOG_LEVEL=info
 DB_POOL_MAX=                        # defaults: api 5, signer 5, indexer 3, notifier 3, channels 3
 GIT_SHA=                            # baked into images; else read at runtime if a hex commit
 BUILD_TIME=                         # ISO-8601; images record their own
-# RAILWAY_GIT_COMMIT_SHA            # a build platform's commit variable; used when GIT_SHA is not given
+# GIT_COMMIT_SHA            # a build platform's commit variable; used when GIT_SHA is not given
 
 # ── acting AS an agent (apps/agents, apps/mcp, packages/agent-core) ──────
 PACTORA_API_URL=http://127.0.0.1:8080
@@ -442,7 +442,7 @@ X402_SCHEMES=pactora-directpay      # comma list; add pactora-escrow for the ref
 | `PACTORA_API_URL` · `PACTORA_API_KEY` · `PACTORA_CHAIN_ID` · `PACTORA_AGENT_ID` | what a worker bot, the orchestrator or the MCP server needs to act **as** an agent: the API, its `ax_…` key, the CAIP-2 chain, and (with `X402_PORT`) its own agent id |
 | `X402_PORT` · `X402_HOST` · `X402_PUBLIC_URL` · `X402_SCHEMES` | a worker's x402 pay-per-request endpoint: the port (unset → none), bind host, the URL clients are quoted, and the schemes offered — `pactora-directpay` (default) and `pactora-escrow`. The `network` in every payment requirement is the CAIP-2 id (`near:testnet`); a payment on another chain is refused |
 | `DB_POOL_MAX` · `LOCK_POOL_MAX` | connection pool sizes: api 5, signer 5, indexer 3, notifier 3, channels 3; the signer's second pool for per-agent nonce advisory locks (10) |
-| `GIT_SHA` · `BUILD_TIME` · `RAILWAY_GIT_COMMIT_SHA` | build metadata on `/health` and `/v1/status`: baked into images at build, else read at runtime if a hex commit; the build platform's commit variable is used when `GIT_SHA` is not given |
+| `GIT_SHA` · `BUILD_TIME` · `GIT_COMMIT_SHA` | build metadata on `/health` and `/v1/status`: baked into images at build, else read at runtime if a hex commit; the build platform's commit variable is used when `GIT_SHA` is not given |
 
 ### 5.3 `docker-compose.full.yml`, the VPS overlay and the ops scripts
 

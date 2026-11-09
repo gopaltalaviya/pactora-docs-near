@@ -102,7 +102,7 @@ One scheme, one source per kind of version:
 | Packages | `package.json` `version` | `0.0.1` in every backend package; `0.1.0` interface and contracts | Private and unpublished, so they carry no meaning today. `build.version` reports them for completeness |
 
 How the commit gets into the image: the Dockerfile's runtime stage takes
-`ARG GIT_SHA` (falling back to a build platform's `RAILWAY_GIT_COMMIT_SHA`
+`ARG GIT_SHA` (falling back to a build platform's `GIT_COMMIT_SHA`
 build argument when given), and writes it with the build time. CI passes `github.sha` and asserts it. A local
 `docker build` without `--build-arg GIT_SHA=$(git rev-parse HEAD)` reports
 `"commit": "unknown"` — honest, not wrong. Outside an image, `GIT_SHA` in the
