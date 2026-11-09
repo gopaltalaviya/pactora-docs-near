@@ -6,8 +6,12 @@ claim against the code before relying on it. Deadline: **14 Nov 2026 23:59 UTC**
 ## How to resume
 
 Toolchain: `corepack pnpm` (9.12.0; the global shim is 8.15.6), Docker
-Desktop, WSL Ubuntu for the contract tests. Run commands per repo are in
-`agentx/README.md`; the deploy runbook is `agentx/DEPLOY.md` §2.
+Desktop, WSL Ubuntu for the contract tests. Run commands are in each repo's
+README ("Run it" in the backend, "Build and test" in the contracts, "Running
+it" in the interface); the testnet deploy procedure is the contracts README's
+**"Testnet"** section, and the hosting recipe is
+`pactora-backend-near/deploy/vps/README.md` (its server `.env` block is the
+authoritative list). Rules, submission and gaps: docs/24, docs/25, docs/28.
 
 ```bash
 # backend (dev Postgres :5443 + NEAR sandbox :3030)
@@ -22,9 +26,13 @@ committed wasm via `PACTORA_WASM` / `MOCK_USDC_WASM`.
 
 ## Branch `human-work` (people as workers and clients)
 
-`master` is what gets submitted on 14 Nov and is untouched by this branch.
-`human-work` exists in all four repos and is pushed (private remote). Feature
-list: [docs/26](26-human-work-integration-plan.md) (F1–F33). The milestone
+**Branch decision (owner, 2026-11-09): `human-work` is the submission.** It
+exists in all four repos and is pushed (private remote); the
+`hackathon-submission` tag goes on `human-work` after the testnet run; a
+merge to `master` is the owner's later choice, not a submission step. (Until
+2026-11-09 this file said `master` would be submitted.) Feature list:
+[docs/26](26-human-work-integration-plan.md) (F1–F33); the inventory of
+every promise against the code is [docs/28](28-feature-inventory-2026-11.md). The milestone
 plan M0–M10 is the owner's local plan file (the M-list below is its
 summary). The contract changed once on this branch, to 1.1.0 at `25df5c3`
 after the audit of 2026-11-09 ([docs/27](27-audit-2026-11.md)); the new
@@ -76,7 +84,11 @@ M4 gate, run 2026-11-08 on this machine:
 
 1. ~~The owner's go to push `human-work` to the private remote.~~ Pushed
    2026-11-09 on the owner's word, all four repos.
-2. A testnet run of the new flows, once the funded testnet account exists (master's deploy comes first, STATUS "Next up").
+2. **Owner:** the testnet deploy from `human-work` (contracts README
+   "Testnet": `create-dao`, `deploy`, `verify-near --network testnet --dao`),
+   then `sync-chain-facts` in the backend and `DEMO_NETWORK=testnet pnpm demo`.
+   Then the `hackathon-submission` tag on `human-work`, the video, the X post
+   and the form (docs/25 §5). Everything else below can finish without it.
 3. Owner decisions (docs/26 §4):
    - D3, a KYC vendor; until then the provider is simulated only;
    - the matching threshold trade-off ("Erik"/"Eric", docs/04 §5.1h);
@@ -91,6 +103,22 @@ M4 gate, run 2026-11-08 on this machine:
    checked locally: the backup, restore-test and alert scripts (no server
    yet); their off-host target (`BACKUP_REMOTE`) and alert webhook
    (`ALERT_WEBHOOK_URL`) are the owner's to choose.
+
+**Build round, 2026-11-09 (after the audit).** Four agents in parallel, one
+per repo; the owner's list and what has landed on `human-work` at the time
+this file was written (re-check `git log` in each repo; docs/28 §2 has the
+row-by-row evidence):
+
+| Item | State |
+|---|---|
+| Backend: text search `q` on listings and jobs, `status` filter on jobs (migration 0023, `search.test.ts`) | landed, `444cb74`; documented in docs/15 |
+| Backend: listing and application events in the per-agent feed, exactly once (migration 0024, `agent-events.ts`, `listing-events.test.ts`) | landed, `7e82c3f` |
+| Backend: person decline, per-owner agent cap, faucet standing check, session revoke on key change, profile skills/location/availability toggle, client dispute evidence, reports/block + admin queue, GDPR export `GET /v1/me/export` and scrub `DELETE /v1/me`, retention purge job, remote MCP over HTTP, x402 step in `demo:local`, NEAR AI judge attestation (signature verification) | in progress, this round; not in the tree yet. Each new route needs a row in docs/15 (the backend test enforces it) |
+| Interface: README pages table and positioning, `.env.example` names, bond-split and 25-tools copy, error codes | landed, `86b08fb` |
+| Interface: CSP nonce (`middleware.ts`, `lib/csp.mjs`), job templates, new browser specs (account, csp, home, join, layout, register, templates) | in progress (uncommitted in the tree) |
+| Interface: the UI for the backend items above, docs pages fixes | in progress, this round |
+| Contracts: README method table (56 methods + `ft_on_transfer`), build/CI facts, libraries (Q-005), Agent Market positioning; SECURITY counts | landed, `1e63215` |
+| Docs: this round's rebase (docs/06, 08, 13, 14, 15, 16, 18, 20, 21, 25, 26, 27, README, `check:env`), docs/28 the inventory | landed with this file |
 
 **Follow-up after M10, 2026-11-08:**
 
@@ -238,7 +266,7 @@ finding's red evidence and what held, is [docs/27](27-audit-2026-11.md).
 
 | Area | Found | Fixed | Documented |
 |---|---|---|---|
-| Contracts (now 1.1.0, `25df5c3`) | 1 medium, 5 low, 8 info | the medium, 4 low, 5 info | 1 low, 3 info |
+| Contracts (now 1.1.0, `25df5c3`) | 1 medium, 5 low, 11 info | the medium, 4 low, 5 info | 1 low, 6 info |
 | Backend (`aa8dfa3`) | 1 high, 2 medium, 5 low, 5 info | all but 2 info | 2 info |
 | Interface (`bfc522a`) | 3 high, 8 medium, 8 low, 4 info | all high and medium, 7 low | 1 low, 4 info |
 
@@ -252,7 +280,7 @@ escrowed money on the contract. The owner also chose a rule change: an
 unanswered dispute now splits the client's bond, half to the worker.
 
 New in the suites, so it stays found: the property suite
-(`contracts/pactora/src/fuzz.rs`, 100 cases in CI), 14 on-chain attack
+(`contracts/pactora/src/fuzz.rs`, 256 cases per run, CI included), 14 on-chain attack
 tests (`tests/adversarial.rs`, run in CI against the previous wasm too),
 `e2e/audit.spec.ts` (one test per interface finding, 25 red on the old
 build), and the signer's uncertain-fate tests.
@@ -261,7 +289,7 @@ Gate after the audit, run 2026-11-09:
 
 | Check | Result |
 |---|---|
-| Contracts (WSL / Docker) | unit 63, sandbox 6/6, adversarial 14/14, fuzz 100 cases, fmt and clippy clean; wasm rebuilt in the pinned image, `SHA256SUMS` updated |
+| Contracts (WSL / Docker) | unit 63, sandbox 6/6, adversarial 14/14, fuzz 256 cases, fmt and clippy clean; wasm rebuilt in the pinned image, `SHA256SUMS` updated |
 | Interface `pnpm check` | 290 unit tests |
 | Interface e2e, 5 browsers | 1309 passed, 0 failed, 16 skipped by design (the desktop header tests on the two phones) |
 | Backend `pnpm check` | 1272 passed, 10 skipped |
@@ -351,23 +379,34 @@ There is no backend `.env`; set `DATABASE_URL` inline.
 
 ## Done
 
-- Contracts, backend, interface and docs ported to NEAR and pushed (`master`).
+- Contracts, backend, interface and docs ported to NEAR and pushed (`master`,
+  then `human-work`: people as workers and clients, docs/26).
 - 2026-11-08: the production compose and Dockerfile fixed for NEAR (they
   still set the EVM variables, which every NEAR service refuses, and copied a
   `chain/export` the NEAR layout lacks). Pushed: `pactora-backend-near` 214dec8.
-- The deploy runbook is `agentx/DEPLOY.md` §2 (outside git: copy it to the
-  other PC). Its steps, in short: fill `.env`, then `create-dao.mjs`,
-  `deploy.mjs`, `verify-near.mjs` with `--network testnet`.
+- 2026-11-09: the audit and its fixes (docs/27; contract 1.1.0), the held
+  payout end to end, the NEAR AI judge adapter, the documentation rebase
+  (docs/08 on the NEAR code, docs/06 as the NEAR tree, Monad procedures
+  under banners in 04/13/14/16/18/20/21, docs/15 re-checked route by route,
+  docs/25 for the `human-work` submission, docs/28 the inventory).
+- The deploy procedure is the contracts README's **"Testnet"** section (in
+  git, in the repo a judge opens): fill `.env`, then `create-dao.mjs`,
+  `deploy.mjs`, `verify-near.mjs` with `--network testnet`. The owner's
+  local `agentx/DEPLOY.md` is a copy, not the source.
 
 ## Next up (ordered)
 
-1. Owner deploys the contracts to NEAR testnet (`agentx/DEPLOY.md` §2.1–2.2).
-2. `verify-near` against testnet; `sync-chain-facts` copies
-   `deployments/testnet.json` into the backend's `chain/`; commit that.
-3. Backend demo on testnet (§2.3).
-4. Host: backend on Vultr (`pactora-backend-near/deploy/vps/README.md`),
-   interface on Vercel with `NEXT_PUBLIC_API_URL=https://$API_HOST` (§2.4).
-5. Update the docs and READMEs with the deployed accounts; submit (docs/25).
+1. **Owner:** deploy the contracts to NEAR testnet from `human-work`
+   (contracts README "Testnet").
+2. `verify-near --network testnet --dao`; `node scripts/sync-chain-facts.mjs`
+   copies `deployments/testnet.json` into the backend's `chain/`; commit that.
+3. `DEMO_NETWORK=testnet pnpm demo` in the backend.
+4. Optional: host — backend on a VPS (`pactora-backend-near/deploy/vps/README.md`),
+   interface on Vercel with `NEXT_PUBLIC_API_URL=https://$API_HOST`. Local-only
+   is acceptable (Q-012) with the public repo, README and video.
+5. Put the deployed account ids in the READMEs and here; **owner:** tag
+   `hackathon-submission` on `human-work`, make the repos public, record the
+   video, post, submit (docs/25 §5).
 
 ## Uncommitted work
 
