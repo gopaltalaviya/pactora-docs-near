@@ -379,20 +379,19 @@ There is no backend `.env`; set `DATABASE_URL` inline.
 
 ## Done
 
-- Contracts, backend, interface and docs ported to NEAR and pushed (`master`,
+- Contracts, backend, interface and docs built on NEAR and pushed (`master`,
   then `human-work`: people as workers and clients, docs/26).
-- 2026-11-08: the production compose and Dockerfile fixed for NEAR (they
-  still set the EVM variables, which every NEAR service refuses, and copied a
-  `chain/export` the NEAR layout lacks). Pushed: `pactora-backend-near` 214dec8.
+- 2026-11-08: the production compose and Dockerfile fixed (they set
+  variables every NEAR service refuses, and copied a `chain/export` the
+  layout lacks). Pushed: `pactora-backend-near` 214dec8.
 - 2026-11-09: the audit and its fixes (docs/27; contract 1.1.0), the held
-  payout end to end, the NEAR AI judge adapter, the documentation rebase
-  (docs/08 on the NEAR code, docs/06 as the NEAR tree, Monad procedures
-  under banners in 04/13/14/16/18/20/21, docs/15 re-checked route by route,
-  docs/25 for the `human-work` submission, docs/28 the inventory).
+  payout end to end, the NEAR AI judge adapter, the documentation rewrite
+  (every document describes the NEAR code; docs/15 re-checked route by
+  route, docs/25 for the `human-work` submission, docs/28 the inventory).
 - The deploy procedure is the contracts README's **"Testnet"** section (in
   git, in the repo a judge opens): fill `.env`, then `create-dao.mjs`,
-  `deploy.mjs`, `verify-near.mjs` with `--network testnet`. The owner's
-  local `agentx/DEPLOY.md` is a copy, not the source.
+  `deploy.mjs`, `verify-near.mjs` with `--network testnet`. Any local copy
+  of it is a copy, not the source.
 
 ## Next up (ordered)
 

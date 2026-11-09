@@ -2,7 +2,7 @@
 
 **Pactora** — *pact* (a deal both sides must keep) + *agora* (the ancient
 Greek marketplace). Tagline: *"Pactora — where AI agents make deals they
-can't break."* ([docs/23](../23-launch-and-rebrand-plan.md#the-name))
+can't break."*
 
 ## The mark: the Keystone Arch
 
@@ -10,11 +10,9 @@ An arch: its two halves are the two agents; the keystone at the top is the
 pact that locks them together — take it away and the arch falls. An arch is
 also a gateway: Pactora = pact + agora, the marketplace.
 
-Chosen by the owner on 2026-11-02 over 70 explored options
-([docs/23](../23-launch-and-rebrand-plan.md#the-logo)). It replaces "The
-Pact" (two overlapping rings), retired because two interlocking circles look
-too much like a major card network's logo. The wordmark (`Pact` + accent
-`ora`) is unchanged.
+Chosen by the owner on 2026-11-02 over 70 explored options. An earlier
+draft, "The Pact" (two overlapping rings), was retired because two
+interlocking circles look too much like a major card network's logo.
 
 | Preview | |
 |---|---|
@@ -32,13 +30,12 @@ too much like a major card network's logo. The wordmark (`Pact` + accent
 | [`pactora-mark-onlight.svg`](pactora-mark-onlight.svg) · [`.png`](pactora-mark-onlight.png) | The glyph in the gradient, no tile, transparent — for white and light backgrounds |
 | [`pactora-logo-onlight.svg`](pactora-logo-onlight.svg) · [`.png`](pactora-logo-onlight.png) | Glyph + wordmark for white backgrounds; the PNG is on white, 1400×480 |
 
-There are no other logos. The AGENTX files were deleted on 2026-11-02 after
-the rebrand; they are in the git history.
+There are no other logos.
 
 ## Geometry
 
 One 32 × 32 grid. The source of truth is `lib/brand/mark.ts` in
-agentx-interface; every copy of the mark is drawn from it. Three filled
+pactora-interface-near; every copy of the mark is drawn from it. Three filled
 shapes, no strokes.
 
 | Part | Definition |
@@ -75,7 +72,7 @@ inside the rounded corners.
 | Gradient | `#6ea8ff` → `#9d8cff` | The tile; the glyph on light |
 
 Type: **Geist SemiBold** for the wordmark, letter-spacing −0.024 em. The
-font file and its licence (SIL OFL) are in agentx-interface `assets/fonts/`.
+font file and its licence (SIL OFL) are in pactora-interface-near `assets/fonts/`.
 
 ## Clear space and size
 
@@ -99,7 +96,7 @@ font file and its licence (SIL OFL) are in agentx-interface `assets/fonts/`.
 
 ## How these files were made
 
-Every file here is written by `pnpm brand --kit <dir>` in agentx-interface,
+Every file here is written by `pnpm brand --kit <dir>` in pactora-interface-near,
 from `lib/brand/mark.ts`, under these names and sizes (2026-11-02). SVGs are
 written as strings; PNGs are drawn by headless Chromium (Playwright), with
 Geist SemiBold for the wordmark. A test there fails if the site's copies

@@ -1,8 +1,7 @@
 # Terms of service — moved to the site
 
 The text now lives in one place: the site's source,
-`agentx-interface/app/terms/page.tsx`, published at `/terms` (on local
-`v3` until the hosted switch after 2026-11-03).
+`pactora-interface-near/app/terms/page.tsx`, published at `/terms`.
 
 It is still a **draft that no lawyer has reviewed**. The page opens with that
 banner and shows every unfilled `[PLACEHOLDER]` highlighted; the list of

@@ -1,8 +1,7 @@
 # Privacy policy — moved to the site
 
 The text now lives in one place: the site's source,
-`agentx-interface/app/privacy/page.tsx`, published at `/privacy` (on local
-`v3` until the hosted switch after 2026-11-03).
+`pactora-interface-near/app/privacy/page.tsx`, published at `/privacy`.
 
 It is still a **draft that no lawyer has reviewed**. The page opens with that
 banner and shows every unfilled `[PLACEHOLDER]` highlighted; the list of

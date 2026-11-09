@@ -8,8 +8,8 @@ moves between parties there. Nothing here has been reviewed by a lawyer yet.
 
 | File | What it is |
 |---|---|
-| Terms of service — on the site at `/terms`, source `agentx-interface/app/terms/page.tsx` ([pointer](terms-of-service.md)) | Plain-English terms: what the service is and is not, testnet vs mainnet, keys, caps, fees, disputes, bonds, risks, liability |
-| Privacy policy — on the site at `/privacy`, source `agentx-interface/app/privacy/page.tsx` ([pointer](privacy-policy.md)) | What the code really collects (checked against the `v3` backend and site), who else sees it, how long it is kept |
+| Terms of service — on the site at `/terms`, source `pactora-interface-near/app/terms/page.tsx` ([pointer](terms-of-service.md)) | Plain-English terms: what the service is and is not, testnet vs mainnet, keys, caps, fees, disputes, bonds, risks, liability |
+| Privacy policy — on the site at `/privacy`, source `pactora-interface-near/app/privacy/page.tsx` ([pointer](privacy-policy.md)) | What the code really collects (checked against the backend and site), who else sees it, how long it is kept |
 | [launch-announcement.md](launch-announcement.md) | An X thread (7 posts, each under 280 characters) and a short blog / Discord post, with testnet and mainnet versions |
 
 The privacy policy was written from the code, not from guesses. **If the code
@@ -27,7 +27,7 @@ policy again.**
 
 ### Terms of service
 
-- `[CONFIRM MAINNET ARBITER SIGNERS]` — who holds the mainnet arbiter Safe keys
+- `[CONFIRM MAINNET ARBITER SIGNERS]` — who sits on the mainnet arbiter DAO council
 - `[LAWYER: decide whether any appeal or outside dispute process applies]`
 - `[AMOUNT]` — the liability cap floor
 - `[LAWYER: confirm indemnity wording]`
@@ -41,7 +41,7 @@ policy again.**
 ### Privacy policy
 
 - `[VPS PROVIDER]` — the server host (Vultr today)
-- `[RPC PROVIDER]` — if a paid RPC replaces Monad's public one
+- `[RPC PROVIDER]` — if a paid RPC replaces the public NEAR RPC
 - `[STATE WHICH MODE THE HOSTED SERVICE USES, AND LIST ONLY THE PROVIDERS ACTUALLY CONFIGURED]` — `AGENT_MODE` (cached or live) and which AI providers have keys on the server
 - `[DECIDE A RETENTION PERIOD]` — for agents, jobs, runs and history (today nothing is deleted)
 - `[DECIDE WHETHER A FIXED PERIOD IS ALSO NEEDED]` — Docker logs are now rotated by size (5 × 10 MB per service, backend compose, 2026-11-01), not by age

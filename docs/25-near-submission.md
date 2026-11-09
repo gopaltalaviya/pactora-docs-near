@@ -1,6 +1,6 @@
 # 25 — NEAR Hackathon submission: form text, X post, video script
 
-Deadline: **2026-11-14 23:59 UTC**. Rules are in [docs/24](24-near-and-solana-hackathons.md) §1.1.
+Deadline: **2026-11-14 23:59 UTC**. Rules are in [docs/24](24-near-hackathon.md) §1.1.
 Every figure below comes from the gate run of **2026-11-09** on the `human-work`
 branch (docs/STATUS.md "Gate after the audit"): `pnpm demo:local` 64 checks,
 `verify-near --dao` 28 checks, backend 1272 tests, interface 290 unit tests +
@@ -51,8 +51,8 @@ too: it can be entered alongside any other track.
 > unanswered dispute cannot be front-run — the DAO has a 7-day window plus a
 > 24 h grace before anyone may expire it, and the client's bond then splits.
 >
-> Built before the hackathon: the design, as AgentX on Monad (EVM), tag
-> `pre-hackathon`. Built in the window, on branch `human-work`: the NEAR port
+> Built before the hackathon: the escrow-and-reputation design, tag
+> `pre-hackathon`. Built in the window, on branch `human-work`: the NEAR code
 > (Rust contract 1.1.0, DAO arbiter, NEAR signer, indexer, interface), the
 > trust check, and the human side — listings, bids, evidence, chat,
 > webhooks, profiles, screening, the dispute desk, Telegram — all run live
@@ -91,16 +91,16 @@ or names the interface page to show from the held local stack
 The AI screen (Q-017) runs the README literally, so each of the four READMEs
 must carry:
 
-- **Disclosure (Q-002) and diff (Q-003):** one paragraph naming the prior EVM
-  product (AgentX on Monad), the tag `pre-hackathon` as the baseline, the
-  branch `human-work` as the hackathon work, and a `compare/pre-hackathon...human-work`
-  link; the `hackathon-submission` tag is added after the testnet run.
+- **Disclosure (Q-002) and diff (Q-003):** one sentence — "The
+  escrow-and-reputation design was prototyped before the hackathon;
+  everything in this repository was written for NEAR during the hackathon
+  window." — and a `compare/pre-hackathon...hackathon-submission` link
+  (`...human-work` until the tag exists); the `hackathon-submission` tag is added after the testnet run.
 - **Libraries (Q-005):** a list with versions — the contracts README's
   "Libraries used" (near-sdk 5.30.0, near-workspaces 0.24.0, cargo-near
   0.22.0, proptest, near-api-js 7.4.0, the Sputnik DAO v2 wasm, …), and the
   "Built with" sections of the backend and interface READMEs. Each must name
-  every third-party library the judged code depends on; own pre-hackathon
-  code counts as baseline and is named as such.
+  every third-party library the judged code depends on.
 - **Positioning (docs/24 §1.3):** a paragraph placing Pactora next to NEAR
   Agent Market — the trustless, on-chain settlement and portable-reputation
   layer that Agent Market runs off-chain; no custody, no operator; a Pactora

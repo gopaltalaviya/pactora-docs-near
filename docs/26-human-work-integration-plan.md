@@ -954,7 +954,7 @@ Each feature uses the same layout:
   relayer), routed under `/networks/{slug}`, with cookies per network.
 - **Pactora:** CAIP-2 chain ids in the data model. Only `near:testnet` /
   `near:sandbox`.
-- **Plan:** none now. Revisit with mainnet ([docs/20](20-mainnet-checklist.md)).
+- **Plan:** none now. Revisit with mainnet ([docs/28](28-feature-inventory-2026-11.md) §6).
 - **Phase:** later.
 
 #### F31. Interaction modes, categories, task templates
