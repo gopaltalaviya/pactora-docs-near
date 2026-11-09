@@ -442,7 +442,7 @@ There is no backend `.env`; set `DATABASE_URL` inline.
 
 All code work that does not need the owner is done, tested and pushed on
 `human-work` in all four repos: contracts `87513cb`, backend `99f8ad1`,
-interface `7624af2`, docs (this file). Since then, the same night: every
+interface `bdec367`, docs (this file). Since then, the same night: every
 README followed from a fresh GitHub clone, as the AI screen will (13 gaps
 fixed: clone branch, `DATABASE_URL` for migrate, `dao.wasm`, sandbox port,
 timings), and `scripts/preflight-testnet.mjs`, a read-only go/no-go before
@@ -450,7 +450,12 @@ the testnet run (24 tests; GO on the sandbox). Last full gate: backend 1352 test
 interface 328 unit + 1600 e2e in five browsers, `demo:local` (71 checks),
 `swarm:local`, `verify-near --dao` (28), the live suite against the real
 backend in five browsers (61). Real screenshots for the X post are in
-`pactora-interface-near/docs/screenshots/`. What remains is the owner's.
+`pactora-interface-near/docs/screenshots/`. A walk through every page against the
+held demo (2026-11-09 evening) found two defects, fixed in `bdec367`: a filled
+listing still asked visitors to sign in to bid, and a dev-mode hydration warning on
+the CSP nonce; the full five-browser mocked run also caught one stale header test and
+one Firefox test race. Re-run after: demo 71 checks, mocked e2e 1601 + the changed
+specs 375/375, live suite 61, unit 328. What remains is the owner's.
 
 **Plan to the deadline (2026-11-14 23:59 UTC):**
 
