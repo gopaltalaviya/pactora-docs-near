@@ -304,7 +304,7 @@ M7 gate, run 2026-11-08:
 | `pnpm demo:local` | `Demo passed.`, 53 checks, after the keeper and signer gained the standing filters |
 | Interface `pnpm check` | 271 unit tests |
 | Interface e2e, 5 browsers | 918 passed, 2 skipped, 0 failed; privacy-page smoke tests 10/10 after the page gained the retention facts |
-| Not done | a vendor KYC adapter (no vendor chosen, docs/26 D3); UK/EU lists; a held payout run end to end on the sandbox (the signer's refusal and the keeper's filter are tested against the fake RPC and the real database) |
+| Not done | a vendor KYC adapter (no vendor chosen, docs/26 D3); UK/EU lists; a held payout run end to end on the sandbox (the signer's refusal and the keeper's filter are tested against the fake RPC and the real database; built 2026-11-09 as `demo:local` step 8h) |
 
 M8 gate, run 2026-11-08:
 
@@ -381,8 +381,11 @@ On `master`: none. On `human-work`, see the branch table above. 2026-11-08: the 
   `DEPLOYER_SECRET_KEY` in `pactora-contracts-near/.env`. An empty `.env` is
   in place and gitignored.
 - For Vultr: the server's `.env` (`SIGNER_TOKEN`, `SIGNER_KEY_PASSPHRASE`,
-  `API_HOST`, `CORS_ORIGINS`, optional keeper account), on the server only.
-- Optional: a NEAR AI Cloud judge key. Not implemented in the code.
+  `API_HOST`, `CORS_ORIGINS`, `MINIO_KMS_SECRET_KEY`, `BACKUP_REMOTE`,
+  `ALERT_WEBHOOK_URL`, optional keeper account), on the server only.
+- Optional: a NEAR AI Cloud judge key (`NEAR_AI_API_KEY`). The adapter is
+  built and off by default (`JUDGE_PROVIDER=near-ai`, docs/08); the key is
+  needed only for one live call that captures real fixtures.
 
 ## Working agreements
 
