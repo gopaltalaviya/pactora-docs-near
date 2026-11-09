@@ -6,27 +6,24 @@ Each runbook: **when**, **preconditions**, **steps**, **validation**,
 [13 — Deploy](13-deploy.md).
 
 **Status of these procedures.** Steps that were run for real are marked
-✅ *rehearsed*; everything else is derived from the code and Railway/Vercel
-documentation and has **not** been run against the hosted deployment. Treat an
-unrehearsed runbook as a checklist to verify the first time.
+✅ *rehearsed* (locally, on the sandbox or the production images; **no
+Pactora backend is hosted today**); everything else is derived from the
+code and the Vercel documentation and has **not** been run against a hosted
+deployment. Treat an unrehearsed runbook as a checklist to verify the first
+time.
 
 **The hosted layout is one VPS** running `docker-compose.full.yml` +
 `deploy/vps/docker-compose.vps.yml` behind Caddy, with the site on Vercel
-([13 §5](13-deploy.md#5-a-single-vps-the-live-deployment), source of truth
-`pactora-backend-near/deploy/vps/README.md`). **Status 2026-11-09:** the
-Monad server that ran this from 2026-10-07 was retired on 2026-11-06 and no
-Pactora-on-NEAR backend is hosted yet, so every "✅ rehearsed" below that is
-dated before 2026-11-08 was rehearsed on the Monad stack. Railway was never
-used past its trial; the Railway steps are kept from the original plan. On
-the VPS, `$COMPOSE` means
+([13 §1](13-deploy.md#1-the-server), source of truth
+`pactora-backend-near/deploy/vps/README.md`). On the VPS, `$COMPOSE` means
 `docker compose -f docker-compose.full.yml -f docker-compose.vps.yml --profile hosted`,
-run in `~/agentx` on the server (the compose project is still named
-`agentx-full`, so containers are `agentx-full-postgres-1`,
-`agentx-full-minio-1`, and the database user and name are `agentx`).
+run in the deploy directory on the server. `$PG_USER` and `$PG_DB` are the
+database user and name the compose file sets (`POSTGRES_USER`,
+`POSTGRES_DB` in `docker-compose.full.yml`).
 
 Conventions: `$API` is the API's public URL (`https://api.<ip-with-dashes>.sslip.io`
 on a VPS); `psql "$DATABASE_URL"` means a SQL session on the target database
-(on the VPS: `docker exec -it agentx-full-postgres-1 psql -U agentx agentx`;
+(on the VPS: `$COMPOSE exec postgres psql -U "$PG_USER" "$PG_DB"`;
 locally: `psql postgres://pactora:pactora@127.0.0.1:5443/pactora_near`).
 `chain_id` is the CAIP-2 text `near:testnet` (or `near:sandbox`), never a
 number. Testnet only — any mainnet action needs the owner's explicit
@@ -37,7 +34,7 @@ confirmation, per action.
 | R1 | [Deploy and verify](#r1-deploy-and-verify) |
 | R2 | [Database down](#r2-database-down) |
 | R3 | [Indexer stopped or behind · backfill · reindex](#r3-indexer-stopped-or-behind) |
-| R4 | [Indexer halted on a reorg, or showing wrong data](#r4-indexer-halted-on-a-reorg-or-showing-wrong-data) |
+| R4 | [Indexer halted, or showing wrong data](#r4-indexer-halted-or-showing-wrong-data) |
 | R5 | [RPC down or rate-limited · change the RPC](#r5-rpc-down-or-rate-limited) |
 | R6 | [Recover a failed service · restart](#r6-recover-a-failed-service) |
 | R7 | [Roll back a deploy (backend, frontend)](#r7-roll-back-a-deploy) |
@@ -46,7 +43,6 @@ confirmation, per action.
 | R10 | [Update dependencies](#r10-update-dependencies) |
 | R11 | [After a contracts redeploy](#r11-after-a-contracts-redeploy) |
 | R12 | [Stop new jobs in an incident (pause)](#r12-stop-new-jobs-in-an-incident-pause) |
-| R13 | [Switch the hosted stack from v2 to v3](#r13-switch-the-hosted-stack-from-v2-to-v3) — Monad history, not applicable on NEAR |
 
 ---
 
@@ -58,26 +54,18 @@ any new migration is additive ([14 §7](14-operations.md#7-database-and-migratio
 
 **Steps**
 
-1. Merge / push to the branch Railway and Vercel track.
-2. Railway builds each service from the same commit. Order matters only on
-   first deploy (signer before api: the api's health check is `/ready`, which
-   needs the signer). The api runs migrations as its `preDeployCommand`; a
-   failed migration stops the api deploy and leaves the previous version
-   serving.
-3. Vercel rebuilds the interface. If `NEXT_PUBLIC_API_URL` changed, this
-   rebuild is required — it is read at build time.
+1. Merge to `master` with CI green.
+2. Build the images locally, load them on the server,
+   `$COMPOSE up -d --no-build` ([13 §1](13-deploy.md#1-the-server)). The
+   one-shot `migrate` service runs first; the signer and indexer start only
+   after it succeeds, and the api after the signer is healthy. A failed
+   migration starts nothing.
+3. Vercel rebuilds the interface from its `master` on push. If
+   `NEXT_PUBLIC_API_URL` changed, this rebuild is required — it is read at
+   build time.
 
-**On the VPS** (the live deployment), steps 1–2 are instead: build the images
-locally, load them on the server, `$COMPOSE up -d --no-build`
-([13 §5](13-deploy.md#5-a-single-vps-the-live-deployment)). The one-shot
-`migrate` service runs first; the signer and indexer start only after it
-succeeds, and the api after the signer is healthy. Vercel still deploys the
-site from the interface's `master` on push.
-
-**Validation** (✅ *rehearsed against the Monad production images,
-2026-09-30, with `check-deployment.mjs`; **corrected 2026-11-09** — that
-script is Monad-only and has no NEAR equivalent, so the NEAR validation is
-the three reads below plus `probe-api.mjs`, not yet rehearsed on a server)
+**Validation** (the three reads below plus `probe-api.mjs`; not yet
+rehearsed on a server)
 
 ```bash
 curl -s "$API/health"          # chains[].contract = the Pactora account in chain/deployments/<slug>.json; build.commit = the merged commit
@@ -94,8 +82,7 @@ node scripts/probe-api.mjs "$API"   # hostile input, security headers, CORS; not
 `/ready` 503 `database.ok: false` on api, signer, indexer; API requests 503
 `UPSTREAM_UNAVAILABLE` with `retry-after: 5`.
 
-1. Railway → Postgres service: is it running, is the volume full, is there a
-   platform incident? The API logs `readiness check failed` with the real
+1. Is the Postgres container running, is the volume full? The API logs `readiness check failed` with the real
    driver error (the public response deliberately omits it).
 2. Restart the Postgres service if it crashed. The api, signer and indexer
    reconnect by themselves (pooled `postgres.js`); restart them only if
@@ -103,11 +90,9 @@ node scripts/probe-api.mjs "$API"   # hostile input, security headers, CORS; not
    On the VPS: `$COMPOSE ps` and `docker compose logs postgres`; check disk
    space with `df -h`.
 3. If the data is lost or corrupt: restore the latest daily backup
-   ([14 §8](14-operations.md#8-backup-and-disaster-recovery)). **Corrected
-   2026-11-09:** the plain `agentx-*.dump` restore that stood here was the
-   Monad script (✅ rehearsed 2026-10-08 on the Monad VPS). `backup.sh` now
+   ([14 §8](14-operations.md#8-backup-and-disaster-recovery)). `backup.sh`
    writes `pactora-db-<stamp>.dump.enc` + `.hmac` (AES-256, HMAC-SHA256) and
-   `pactora-evidence-<stamp>.tar.enc` + `.hmac` into `~/agentx/backups/` at
+   `pactora-evidence-<stamp>.tar.enc` + `.hmac` into the backups directory at
    03:00 UTC, 7 kept, copied to `BACKUP_REMOTE`. Restore = **verify the
    HMAC, decrypt, `pg_restore`**, then the evidence archive, before the
    services start (✅ *checked locally 2026-11-08*, backup → wipe → restore
@@ -119,7 +104,7 @@ node scripts/probe-api.mjs "$API"   # hostile input, security headers, CORS; not
    verify_hmac backups/pactora-db-YYYYMMDD-HHMMSS.dump.enc || echo "REFUSE: the backup does not match its HMAC"
    openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass file:$HOME/.pactora-backup-pass \
      < backups/pactora-db-YYYYMMDD-HHMMSS.dump.enc \
-     | docker exec -i agentx-full-postgres-1 pg_restore -U agentx -d agentx --no-owner --exit-on-error
+     | $COMPOSE exec -T postgres pg_restore -U "$PG_USER" -d "$PG_DB" --no-owner --exit-on-error
    # then the evidence bucket (minio, minio-setup, decrypt the .tar.enc, `mc cp --enc-s3`): deploy/vps/README.md
    $COMPOSE up -d --no-build                       # migrate runs first, then the services
    ```
@@ -138,15 +123,12 @@ node scripts/probe-api.mjs "$API"   # hostile input, security headers, CORS; not
 
 ## R3. Indexer stopped or behind
 
-**Symptom:** `/v1/status` `components.indexer: "degraded"` (lag > 150 +
-confirmations) or `"down"` (behind, and no progress for 120 s — stopped, not
+**Symptom:** `/v1/status` `components.indexer: "degraded"` (lag > 150
+blocks) or `"down"` (behind, and no progress for 120 s — stopped, not
 catching up), or `lastIndexedAt` old while `rpc: "up"`; indexer `/ready`
 503 ("no successful tick for N s"); jobs stuck in their API-written state.
 
-**Rewritten 2026-11-09 for the NEAR indexer** (`apps/indexer/src/`;
-the Monad version used `reindex.mjs`, `verify-indexer.mjs`, `cast block` and
-`chain_id = 10143 AND contract = 'TaskEscrow'`, none of which exist here).
-Not yet rehearsed against a hosted NEAR stack.
+From `apps/indexer/src/`. Not yet rehearsed against a hosted stack.
 
 **How it works, in short.** One worker per chain in `ENABLED_CHAINS`. Each
 tick reads the blocks after the cursor up to the newest **final** block —
@@ -202,7 +184,7 @@ height as empty). No script does this on NEAR; by hand:
    UPDATE indexer_cursor SET last_block = <N-1>, last_block_hash = '<hash of the block at or before N-1>', updated_at = now()
    WHERE chain_id = 'near:testnet' AND contract = 'Pactora';
    ```
-   Unlike Monad, a **wrong hash is not self-healing**: the next tick halts
+   A **wrong hash is not self-healing**: the next tick halts
    with `ChainLinkError` (block `N`'s `prev_hash` does not match). Copy it
    exactly. (The code treats an empty string `''` as "no hash yet" and skips
    the parent check for the first batch; use that only if the hash cannot be
@@ -223,79 +205,36 @@ two in `chain/deployments/<slug>.json`.
 (`FINAL_SLACK`); indexer `/ready` 200; cursor `age` under a minute.
 **Rollback:** set the cursor row back to what you noted in step 1.
 Replay idempotency has been verified in the indexer's tests and by
-`pnpm demo` on the sandbox; the live Monad re-verification of 2026-09-30
-(`verify-indexer.mjs`) does not carry over.
+`pnpm demo` on the sandbox.
 
-## R4. Indexer halted on a reorg, or showing wrong data
+## R4. Indexer halted, or showing wrong data
 
-> **Monad baseline, 2026-09; not the NEAR procedure (2026-11-09).** The NEAR
-> indexer reads final blocks only, so **there is no reorg and no
-> `reorg dropped … halting`**. Its one halt is `indexer halted: block does
-> not follow the cursor` (`ChainLinkError`, `apps/indexer/src/indexer.ts`):
-> block `N`'s `prev_hash` is not the hash the cursor holds, or the source
-> returned a block at the wrong height. That means a **wrong source** —
-> `RPC_URL_TESTNET` or neardata pointing at another network (the indexer
-> checks `status.chain_id` and compares one final block between neardata
-> and the RPC at start, so this is rare after boot), a neardata outage
-> serving stale data — or a bug. Nothing past the cursor is written. Fix
-> the source, confirm the cursor's `last_block_hash` is the real hash of
-> that height (R3 step 2), and restart. The `cast receipt` / `getJob` /
-> `DISABLE TRIGGER` repair below does not apply: no applied event can lose
-> its backing on NEAR. "Wrong data without a halt" is still read against
-> the chain: `near view <pactora account> get_job '{"job_id": <chain_job_id>}'`
-> and the API's `GET /v1/jobs/:id`; a job stuck in an API-written state
-> with no chain event means the transaction never landed — check
-> `signer_txs` for it.
+**Halt symptom:** every tick fails with `indexer halted: block does not
+follow the cursor` (`ChainLinkError`, `apps/indexer/src/indexer.ts`). The
+indexer reads final blocks only, so there is **no reorg**; this is its one
+halt. Block `N`'s `prev_hash` is not the hash the cursor holds, or the
+source returned a block at the wrong height.
 
-**Halt symptom:** every tick fails with `reorg dropped N transaction(s) this
-indexer had already applied: 0x…, 0x… — … halting for an operator`. This
-takes a reorg deeper than the confirmation depth (2 on testnet) — rare.
+**Cause:** a **wrong source** — `RPC_URL_TESTNET` or neardata pointing at
+another network (the indexer checks `status.chain_id` and compares one final
+block between neardata and the RPC at start, so this is rare after boot), a
+neardata outage serving stale data — or a bug. Nothing past the cursor is
+written.
 
-**Why it halts:** those transactions' events are in the append-only
-`job_events` and their effects are in `jobs`, `payments`, `agent_stats`. The
-chain no longer backs them, and there is no automatic undo.
-
-**Repair** (not rehearsed — do it in a transaction, on a backup first if you
-have one):
-
-1. Stop the indexer. Save the listed transaction hashes.
-2. Inspect what they touched:
-   ```sql
-   SELECT e.job_id, e.kind, e.block_number FROM job_events e WHERE e.tx_hash IN ('0x…');
-   SELECT * FROM payments WHERE tx_hash IN ('0x…');
-   ```
-3. Check each on chain (`cast receipt <hash>` → not found; and
-   `cast call <TaskEscrow> "getJob(uint256)" <chainJobId>` for the job's
-   real state).
-4. Remove the orphaned rows and correct the projection. `job_events` refuses
-   DELETE by trigger, so the repair must disable it explicitly:
-   ```sql
-   BEGIN;
-   ALTER TABLE job_events DISABLE TRIGGER job_events_no_update;
-   DELETE FROM job_events WHERE tx_hash IN ('0x…');
-   DELETE FROM payments  WHERE tx_hash IN ('0x…');
-   -- set each affected job's state to what getJob() reports
-   UPDATE jobs SET state = '<state>' WHERE id = <job_id>;
-   ALTER TABLE job_events ENABLE TRIGGER job_events_no_update;
-   COMMIT;
-   ```
-5. Reputation: `agent_stats` counters were incremented by the dropped
-   settlements. Decrement `completed`/`volume` (or `failed`) for the affected
-   worker by what those events added, then recompute `score` with the formula
-   in `Indexer.bumpReputation` (`apps/indexer/src/indexer.ts`). There is no
-   tool for this; it is a hand calculation.
-6. Start the indexer. It rewinds, finds nothing orphaned, and re-applies any
-   re-mined transactions correctly.
+**Repair:** fix the source, confirm the cursor's `last_block_hash` is the
+real hash of that height (R3, "Backfill a range", step 2), and restart. No
+applied event can lose its backing, because only final blocks are read.
 
 **"Wrong data" without a halt:** compare the job with the chain
-(`getJob(chainJobId)`), and the API's view (`GET /v1/jobs/:id` events). The
-indexer only moves states forward and is authoritative for chain facts; the
-API writes optimistic states the indexer later confirms. A job stuck in an
-API-written state with no chain event means the transaction never landed —
-check the signer's `signer_txs` row for its `tx_hash` and status.
+(`near view <pactora account> get_job '{"job_id": <chain_job_id>}'`) and the
+API's view (`GET /v1/jobs/:id` events). The indexer only moves states
+forward and is authoritative for chain facts; the API writes optimistic
+states the indexer later confirms. A job stuck in an API-written state with
+no chain event means the transaction never landed — check the signer's
+`signer_txs` row for its `tx_hash` and status.
 
-**Validation:** ticks succeed; `/v1/status` indexer `up`; the repaired jobs
-match `getJob`.
+**Validation:** ticks succeed; `/v1/status` indexer `up`; the job matches
+`get_job`.
 
 ## R5. RPC down or rate-limited
 
@@ -303,8 +242,7 @@ match `getJob`.
 errors or 429s; signer `/ready` `rpc.ok: false`; hires fail
 `UPSTREAM_UNAVAILABLE`.
 
-**Rewritten 2026-11-09 for NEAR** (was `eth_blockNumber`, `RPC_URL_10143`,
-`slow-rpc.mjs`). Two upstreams can fail: the **RPC** (`RPC_URL_TESTNET`,
+Two upstreams can fail: the **RPC** (`RPC_URL_TESTNET`,
 default `https://rpc.testnet.near.org`; used by api, signer and indexer) and
 the indexer's **block source**, neardata (`https://testnet.neardata.xyz`,
 from `chain/config/networks.json`).
@@ -333,9 +271,8 @@ from `chain/config/networks.json`).
 **Validation:** `/v1/status` `rpc: "up"`, indexer lag falling, signer
 `/ready` `rpc.ok: true`.
 **Rollback:** remove `RPC_URL_TESTNET` / `NEARDATA_API_KEY` from `.env` and
-`up -d` again. There is no fault-injecting proxy in the NEAR repo
-(`slow-rpc.mjs` was Monad); rehearse against the sandbox by stopping its
-node.
+`up -d` again. There is no fault-injecting proxy; rehearse against the
+sandbox by stopping its node.
 
 ## R6. Recover a failed service
 
@@ -347,8 +284,8 @@ node.
    problem at once:
    - `invalid environment:` — a variable missing or malformed (names each).
    - `✗ Pactora config invalid` — chain facts: e.g. `ENABLED_CHAINS` names a
-     chain with no `chain/deployments/<slug>.json` (the variable is
-     `ENABLED_CHAINS`, CAIP-2 ids — corrected 2026-11-09).
+     chain with no `chain/deployments/<slug>.json` (`ENABLED_CHAINS` takes
+     CAIP-2 ids).
    - `set SIGNER_TOKEN …` / `set WEBHOOK_SECRET_KEY …` / `set
      OBJECT_STORE_SECRET_ACCESS_KEY …` / `set MINIO_KMS_SECRET_KEY …` from
      `docker compose` itself — a required `.env` value is missing (the full
@@ -359,11 +296,11 @@ node.
    - `SIGNER_HOST=… without SIGNER_TOKEN` (signer refuses to expose itself).
    - `unhandled promise rejection` / `uncaught exception` — the process shuts
      down deliberately (exit 1) and Docker restarts it
-     (`restart: unless-stopped`; on Railway, `ON_FAILURE`, up to 10 retries).
+     (`restart: unless-stopped`).
 2. Fix the variable/config and redeploy; or roll back (R7) if a new release
    caused it.
 3. **Restart** a healthy-but-stuck service: on the VPS,
-   `$COMPOSE restart <service>`; on Railway, service → *Restart*.
+   `$COMPOSE restart <service>`.
    Shutdown is graceful: SIGTERM stops accepting, ends SSE streams (clients
    reconnect in 3 s), drains in-flight requests, closes pools, within 10 s.
 
@@ -371,14 +308,11 @@ node.
 
 ## R7. Roll back a deploy
 
-**Backend (VPS, live):** load the previous commit's images and
-`$COMPOSE up -d --no-build`. The same additive-migration rule below applies.
-
-**Backend (Railway):** service → *Deployments* → the previous successful
-deployment → *Redeploy* (per service: api, signer, indexer). Safe for the
-database **because every migration so far is additive** — the previous code
-runs on the newer schema. A migration is never rolled back by redeploying;
-reversing one needs a new forward migration or a backup restore
+**Backend (VPS):** load the previous commit's images and
+`$COMPOSE up -d --no-build`. Safe for the database **because every
+migration so far is additive** — the previous code runs on the newer
+schema. A migration is never rolled back by redeploying; reversing one
+needs a new forward migration or a backup restore
 ([14 §7](14-operations.md#7-database-and-migrations)).
 
 **Frontend (Vercel):** project → *Deployments* → the previous production
@@ -417,13 +351,13 @@ then R1's validation.
 
 | Secret | Where | Rotate by | Impact during rotation |
 |---|---|---|---|
-| `SIGNER_TOKEN` | shared variable → api + signer | `openssl rand -hex 24`, update the shared variable, redeploy **signer then api** | between the two restarts, api → signer calls answer 401 → callers get `UPSTREAM_UNAVAILABLE` (retry-safe) |
+| `SIGNER_TOKEN` | the server's `.env` → api + signer | `openssl rand -hex 24`, update `.env`, redeploy **signer then api** | between the two restarts, api → signer calls answer 401 → callers get `UPSTREAM_UNAVAILABLE` (retry-safe) |
 | `METRICS_TOKEN` | api (+ signer/indexer if set) | new value, redeploy, update the scraper | scrapes fail until updated |
-| `KEEPER_SECRET_KEY` (for `KEEPER_ACCOUNT_ID`; Monad: `KEEPER_PRIVATE_KEY`) | signer | add a new full-access key to the keeper account (`near account add-key`), put it in `.env`, redeploy, then delete the old key from the account; keep the account **funded with NEAR** | none; if unfunded, `keeper_exits_total{outcome="failed"}` rises and `signer_wallet_balance{role="keeper"}` is low |
+| `KEEPER_SECRET_KEY` (for `KEEPER_ACCOUNT_ID`) | signer | add a new full-access key to the keeper account (`near account add-key`), put it in `.env`, redeploy, then delete the old key from the account; keep the account **funded with NEAR** | none; if unfunded, `keeper_exits_total{outcome="failed"}` rises and `signer_wallet_balance{role="keeper"}` is low |
 | `SIGNER_KEY_PASSPHRASE` (encrypts the agents' wallet keys in Postgres) | signer | **no rotation tooling** — the stored keys would have to be re-encrypted. Owner decision; keep the current value with the backup passphrase | — |
-| Agent wallet keys (`signer_keys`, created by the signer; `SIGNER_DEV_CREDENTIALS` for the testnet dev accounts — Monad: `SIGNER_DEV_PRIVATE_KEYS`) | signer / database | a wallet's function-call key is scoped to the Pactora contract; a new key is a new `accept_wallet` by the agent's owner. No tooling exists — owner decision (corrected 2026-11-09) | the agent cannot sign until its wallet is re-accepted |
+| Agent wallet keys (`signer_keys`, created by the signer; `SIGNER_DEV_CREDENTIALS` for the testnet dev accounts) | signer / database | a wallet's function-call key is scoped to the Pactora contract; a new key is a new `accept_wallet` by the agent's owner. No tooling exists — owner decision | the agent cannot sign until its wallet is re-accepted |
 | Model keys (`GEMINI_API_KEY` …) | api, workers | rotate at the provider, update, redeploy | runs fail until updated |
-| `DATABASE_URL` password | Postgres service | on the VPS it is set in `docker-compose.full.yml`, and Postgres publishes no port (reachable only on the compose network). On Railway: Postgres settings; services reference `${{Postgres.DATABASE_URL}}`, so redeploy them | brief connection errors |
+| `DATABASE_URL` password | Postgres service | on the VPS it is set in `docker-compose.full.yml`, and Postgres publishes no port (reachable only on the compose network); change it there and recreate the services | brief connection errors |
 | Agent API keys (`ax_…`) | database | see below | the old key stops at once |
 
 **Revoke an agent API key** (no endpoint exists):
@@ -446,8 +380,8 @@ INSERT INTO api_keys (agent_id, key_id, key_hash, scopes)
 VALUES (<agentId>, '<keyId>', '<sha256$…>', '{client,worker}');
 ```
 
-(The generator was run on 2026-09-30 and produces the expected shapes; the
-SQL insert has not been exercised against a hosted database.)
+(The generator produces the expected shapes; the SQL insert has not been
+exercised against a hosted database.)
 
 **Suspected key leak (SEV1):** revoke/rotate first, then investigate. For a
 signing key: move its funds with a transaction from the same key before the
@@ -464,8 +398,7 @@ what a stolen private key can.
    `docker compose -f docker-compose.full.yml up --build` for the images.
 3. Majors (Fastify, drizzle, near-api-js / `@pactora/near`, zod) one at a
    time, each with a live check: `pnpm demo` on the sandbox (or
-   `DEMO_NETWORK=testnet pnpm demo`) for anything touching the chain path —
-   `verify-indexer.mjs` was Monad and does not exist here (2026-11-09).
+   `DEMO_NETWORK=testnet pnpm demo`) for anything touching the chain path.
 
 **Rollback:** revert the commit; the lockfile pins the old versions.
 
@@ -481,7 +414,7 @@ contract" — keeps the account ids and the cursor; only step 1 applies if
    contracts checkout) and commit `chain/`; CI fails until you do.
 2. **Reset the indexer cursor** to the new deployment:
    `DELETE FROM indexer_cursor WHERE chain_id = 'near:testnet' AND contract = 'Pactora';`
-   with the indexer stopped (corrected 2026-11-09: `chain_id` is text). The
+   with the indexer stopped (`chain_id` is text). The
    cursor is keyed by chain and the fixed name `Pactora`, not by account id:
    left alone, an indexer that had already passed the new `startBlock` would
    skip the new contract's first events.
@@ -499,10 +432,8 @@ contract" — keeps the account ids and the cursor; only step 1 applies if
 
 ## R12. Stop new jobs in an incident (pause)
 
-**Rewritten 2026-11-09 for the NEAR contract** (`pactora-contracts-near`,
-`contracts/pactora/src/lib.rs`). The Monad version — `PAUSER_ROLE`, Safes,
-`verify-pause.mjs`, ✅ rehearsed 2026-10-26 — does not apply; the NEAR pause
-is covered by the contract's unit tests
+From `pactora-contracts-near`, `contracts/pactora/src/lib.rs`. The pause is
+covered by the contract's unit tests
 (`pause_stops_new_hires_but_never_an_exit`) and has **not** been drilled live.
 
 **When**: something is wrong with the contracts, the signer or the judge, and
@@ -539,16 +470,3 @@ near call <pactora account> unpause '{}' --accountId <owner> --depositYocto 1 --
 **Expected result**: no new jobs until resumed; nothing else changes.
 Testnet only: pausing a mainnet contract would need the owner's explicit
 confirmation like any other mainnet action.
-
----
-
-## R13. Switch the hosted stack from v2 to v3
-
-> **Monad history, 2026-10; not applicable on NEAR (2026-11-09).** This
-> runbook moved the AgentX VPS from the v2 to the v3 Monad escrow
-> (`switch-to-v3.sh`, `seed-hosted.mjs`, `check-deployment.mjs`,
-> `SIGNER_DEV_PRIVATE_KEYS`, `SESSION_MANAGER_PRIVATE_KEY`). Pactora on NEAR
-> has one contract (1.1.0) and no v2→v3; a contract upgrade keeps the
-> account ids (contracts README, "Upgrading a deployed contract") and a
-> fresh deploy is R11. The heading stays so links to it keep resolving.
-> The original text is in the Monad `agentx-docs` repo's copy of this file.

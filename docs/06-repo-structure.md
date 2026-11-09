@@ -1,17 +1,14 @@
 # 06 — Repository Structure (4 repos)
 
-**Rewritten 2026-11-09 for the NEAR port.** Four repositories, grouped under
-`near/` since 2026-11-07 (sibling folders `monad/` and `solana/` hold the
-other chains). The split is the same as before, and for the same reason:
-contracts never enter a hosting provider's build container, so key material
-and deploy scripts cannot leak into an image by accident. The old Monad
-layout is summarised at the end.
+Four repositories, checked out side by side. Contracts never enter a
+hosting provider's build container, so key material and deploy scripts
+cannot leak into an image by accident.
 
 ```
 pactora-contracts-near   Rust (near-sdk) contracts, cargo-near.   Deployed by:  the owner, scripts/deploy.mjs
 pactora-backend-near     pnpm monorepo.                           Deployed by:  Docker Compose on one VPS, behind Caddy
 pactora-interface-near   Next.js only.                            Deployed by:  Vercel
-pactora-docs-near        specification, deck, video, submission (this repo)
+pactora-docs-near        specification, submission, launch and brand material (this repo)
 ```
 
 Every directory named below exists on branch `human-work` as of 2026-11-09;
@@ -105,9 +102,8 @@ pactora-backend-near/
 │   └── storage/      evidence object storage (S3-compatible)
 ├── chain/            committed copy of the contracts repo's config/ and deployments/; CI checks drift (scripts/sync-chain-facts.mjs)
 ├── deploy/
-│   ├── vps/          the live deployment: docker-compose.vps.yml, Caddyfile, bootstrap-ubuntu.sh, backup.sh + backup-lib.sh, restore-test.sh, alerts.sh, switch-to-v3.sh, README.md
-│   ├── near-sandbox/ Dockerfile + entrypoint.sh: a local NEAR node for the full compose stack
-│   └── railway/      the Monad-era plan; not used
+│   ├── vps/          the live deployment: docker-compose.vps.yml, Caddyfile, bootstrap-ubuntu.sh, backup.sh + backup-lib.sh, restore-test.sh, alerts.sh, README.md
+│   └── near-sandbox/ Dockerfile + entrypoint.sh: a local NEAR node for the full compose stack
 ├── scripts/          local-up, demo, probe-api, live-ui-stack, test-startup, sanctions-refresh, sync-chain-facts, check-no-secrets; lib/ (near.mjs, throwaway.mjs); video/ (record, overlay, make-video)
 ├── docs/             pointer: the specification lives in pactora-docs-near
 ├── Dockerfile        one image, `SERVICE` build argument
@@ -176,9 +172,9 @@ Routes: `/`, `/about`, `/admin`, `/agents`, `/agents/[id]`,
 
 ## 4. `pactora-docs-near`
 
-This repo: the numbered specification in `docs/` (00–27 plus `STATUS.md`),
-`docs/deck/` (the `.pptx` and its build script), `docs/video/`,
-`docs/launch/` (announcement, terms, privacy), `docs/brand/`, and
+This repo: the numbered specification in `docs/` (the numbers have gaps;
+the index is the README) plus `STATUS.md`, `docs/video/` (notes for the demo
+video), `docs/launch/` (announcement, terms, privacy), `docs/brand/`, and
 `scripts/check-env-docs.mjs` (`pnpm check:env`), which checks that every
 variable in the sibling repos' `.env.example` files is documented in
 docs/08. Deliverables are files committed here, never hosted pages.
@@ -209,21 +205,3 @@ by `scripts/check-api-contract.mjs` against a running API. Inside the backend
 | Env | `.env.example` committed with empty values; `.env` gitignored everywhere; secrets never in a doc, log or commit |
 | CI | GitHub Actions on `ubuntu-24.04`. contracts: fmt, clippy, unit + property tests, reproducible wasm, sandbox + adversarial, live verify-near, secret scan. backend: `static` (typecheck, lint, format, secret scan, `pnpm audit`), `test` (chain-facts drift check, build, migrate, coverage, startup test against a Postgres service), `images` (the Docker image builds, carries the commit, runs as non-root). interface: typecheck, lint, format, unit tests, build, Playwright |
 | Changelog | the backend has `CHANGELOG.md`; `PROGRESS.md` is the running log everywhere |
-
----
-
-## Monad baseline (what this file described until 2026-11-09)
-
-The Monad repos `agentx-contracts`, `agentx-backend`, `agentx-interface` and
-`agentx-docs` (now under `monad/`, untouched until after 2026-11-14) had the
-same four-way split. `agentx-contracts` was Foundry: `src/` with
-`TaskEscrow.sol`, `StakeVault.sol`, `AgentAccount.sol` and its factory,
-`script/Deploy.s.sol`, `test/` unit and invariant suites, a `Makefile`
-(`make deploy-testnet`, `make export`), `config/params.10143.json`,
-`deployments/10143.json` and an `export/` of ABIs. `agentx-backend` had apps
-`api`, `indexer`, `signer` (with the keeper), `mcp` and `agents`, packages
-`config`, `shared`, `db`, `sdk`, `agent-core`, and per-service Railway
-configs in `deploy/railway/` that were superseded by the VPS compose files.
-`agentx-interface` had four routes (`/`, `/agents`, `/agents/[id]`,
-`/register`) and signed the owner's ERC-8004 registration in the browser.
-That history is in the Monad repos and in `monad/agentx-backend/PROGRESS.md`.
