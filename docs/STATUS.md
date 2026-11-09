@@ -438,6 +438,34 @@ There is no backend `.env`; set `DATABASE_URL` inline.
   `deploy.mjs`, `verify-near.mjs` with `--network testnet`. Any local copy
   of it is a copy, not the source.
 
+## Where things stand, 2026-11-09 night
+
+All code work that does not need the owner is done, tested and pushed on
+`human-work` in all four repos: contracts `08453d2`, backend `ccd27e3`,
+interface `31a3308`, docs (this file). Last full gate: backend 1352 tests,
+interface 328 unit + 1600 e2e in five browsers, `demo:local` (71 checks),
+`swarm:local`, `verify-near --dao` (28), the live suite against the real
+backend in five browsers (61). Real screenshots for the X post are in
+`pactora-interface-near/docs/screenshots/`. What remains is the owner's.
+
+**Plan to the deadline (2026-11-14 23:59 UTC):**
+
+| Day | Owner | Agent, after the owner's step |
+|---|---|---|
+| 10 Nov | fund a testnet account (about 25 NEAR) into `pactora-contracts-near/.env` (`DEPLOYER_ACCOUNT_ID`, `DEPLOYER_SECRET_KEY`); say go | `create-dao`, `deploy`, `verify-near --network testnet --dao`, `sync-chain-facts`, testnet demo; account ids into the READMEs and here; push |
+| 11 Nov | D6 rights; `human-work` as default branch (or merge into `master`); repos public; optional: server `.env` for hosting | tag `hackathon-submission` (on the owner's go); final gate on that commit; hosted deploy if a server was given |
+| 12 Nov | record the video (docs/25 §3); post on X (docs/25 §2) | check the README steps from a fresh clone, as the AI screen will |
+| 13 Nov | submit the form once (docs/25 §1) | check every public link signed out |
+| 14 Nov | buffer, no changes | only fixes if a check fails |
+| 16–18 Nov | keep repos public and any demo up (ideally to 25 Nov) | answer judges' issues |
+
+**Not needed to submit:** a NEAR AI key for one live judge call; a KYC
+vendor, the EU list token, the matching threshold, a Telegram token and an
+email provider; the `job_events` retention and deletion-scrub decisions;
+whether a dispute reason stays public. **After the hackathon:** contract
+1.2.0 (deadline extension, hard hold, worker-side dispute), an external
+audit and a NEAR mainnet procedure (docs/28 §6).
+
 ## Next up (ordered)
 
 1. **Owner:** deploy the contracts to NEAR testnet from `human-work`
