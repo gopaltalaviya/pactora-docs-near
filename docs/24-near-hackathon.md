@@ -1,11 +1,8 @@
-# 24 — NEAR and Solana hackathons: rules, fit and plan
+# 24 — NEAR Hackathon: rules, fit and plan
 
 Researched 2026-11-04 from the organisers' own pages (sources at the end).
 **Verified** means quoted from an official page; **Inferred** is our judgement.
 Nothing was registered, submitted or posted.
-
-Naming (owner, 2026-11-04): Monad/EVM v3 = AgentX · NEAR = Pactora ·
-Solana = a new name, not chosen yet.
 
 ---
 
@@ -70,7 +67,7 @@ Without this framing judges may read us as a copy of Agent Market.
 | Function-call access keys | one `receiver_id`, named methods; "do not allow to attach NEAR tokens" | each agent signs only escrow methods; caps enforced in the contract | security track, very visible |
 | Sub-accounts | `worker-1.pactora.testnet` | one account per agent | swarms track |
 | NEAR AI Cloud | private inference in TEEs, attestation + response signatures | judge model runs there; its signed verdict hash is stored with the ruling | distinctive, cheap |
-| Sputnik DAO | listed partner (not checked in detail) | arbiter instead of the Safe | decentralised disputes |
+| Sputnik DAO | listed partner (not checked in detail) | the dispute arbiter | decentralised disputes |
 | NEAR Intents / 1Click | verifier `intents.near`; mainnet only; no JWT → 0.2% fee | pay workers in any token; `dry: true` quote on testnet, one tiny mainnet payment | needs owner's per-action mainnet OK |
 | Agent API / PingPay | per-agent Intents wallets in a TEE (demo keys rotate); x402 paywalls settled to NEAR | optional | risk: rotating keys |
 | OutLayer, Shade Agents | TEE compute/custody; Shade 2.0 (Feb 2026) | not in 10 days | skip |
@@ -94,67 +91,16 @@ the old code first.
 
 ### 1.6 Risks
 
-- Only the NEAR work counts: the README must state plainly that the
-  Monad/EVM version existed and link the diff.
-- Repo must be **public** — a new public repo, since the Monad repos are private.
+- Only the work in the window counts: each README must disclose what was
+  prototyped before it and link the diff (Q-002, Q-003).
+- Repos must be **public** through judging.
 - Intents is mainnet only; a function-call key's gas allowance can run out.
 - The AI screen runs the README literally: no step may need an API key or
   quota (use `AGENT_MODE=cached`).
 
 ---
 
-## 2. Encode Club Solana Hackathon 2026
-
-### 2.1 Rules (verified, quoted from the programme page, read in a browser)
-
-| Rule | Text |
-|---|---|
-| Deadline | "Final Submissions close Sunday 8 November 23:59 UTC-12 … winners announced Monday 16 November." A missed deadline "means you are not judged — it is a hard cut-off." |
-| **Registration** | "Submit what you have so far by Sunday 1 November… **Registration also closes at this point.**" FAQ: "Project creation closes on 19 October, but people can still join an existing team after that, right up until registration closes on 2 November." (The banner still says "you can still apply!" — the page contradicts itself.) |
-| Checkpoints | "Missing checkpoint 1 or 2 will not remove you … but you lose the feedback and it shows in the final score." |
-| Existing code | "You can bring existing work as a starting point, but the judged submission needs to be what you built during the four weeks. Say clearly in your submission what existed beforehand." |
-| Team | "alone or in a team of up to five"; AI tools encouraged |
-| Submission | "A working demo; deployment on Solana devnet is sufficient. A code repository with a README and setup instructions. A 2–4-minute demo video. A clear explanation of how Solana powers the project." |
-| Judging | "what has actually been built and works, technical depth, and how well the project uses Solana" |
-
-| Track | Criteria (quoted) | Prize |
-|---|---|---|
-| Best Consumer App | "Clear user need … Ease of use, including onboarding … A working end-to-end experience" | accelerator places, non-cash |
-| **Best Use of x402** | demo shows "a payment request, payment verification or settlement on Solana, and delivery of the requested resource"; "sensible handling of failed payments" | accelerator places, non-cash |
-| Aurora Intents | "a working integration of at least one Aurora Intents product … demoed live. An actual working flow rather than a mocked one"; "correct settlement/refund handling" | $1,500 / $1,000 / $500 |
-
-Aurora Intents facts: "There is no public testnet deployment" — real
-mainnet funds, an Intents Studio API key, and some features need organisation
-approval. "Failed deposits are retried rather than automatically refunded."
-
-### 2.2 Verdict (inferred)
-
-- **Eligibility is the blocker.** Project creation closed 19 Oct and
-  registration 1–2 Nov. We have no Encode project. Only an organiser can say
-  whether a late entry is accepted, and even then the two missed checkpoints
-  lower the score.
-- The prizes we fit (x402) are accelerator places, not cash. The only cash
-  track (Aurora, $3K total) needs mainnet money and an API key in 4 days.
-- 4 days to port 2,458 lines of Solidity to Anchor would take time from NEAR,
-  which has 80× the prize pool and a near-exact track fit.
-
-**Recommendation:** ask Encode on Discord today whether a new team can enter.
-If the answer is no (likely), drop Solana for this event and keep the Solana
-port for a later Solana hackathon, using what we learned: Solana Agent
-Registry (identity/reputation/validation, ERC-8004 bridge), x402 devnet
-(`exact`, and `batch-settlement`, which is metering, not a refundable job
-escrow — ours would be new), Squads v4 as arbiter. Closest past competitor:
-Amiko ("Best Trustless Agent", Solana x402 Hackathon 2025) — registry and job
-records, but no escrow, dispute or refund.
-
-If Encode says yes: x402 track only; Anchor escrow on devnet
-(create/accept/submit/approve/refund/expire, SPL USDC); an x402 server whose
-payment creates the job and refunds on failure; one orchestrator hiring one
-worker; README, 2–4 min video, disclosure of the EVM origin.
-
----
-
-## 3. What makes it more impactful (inferred, both chains)
+## 3. What makes it more impactful (inferred)
 
 1. **Show the attack, not just the feature.** A prompt-injected agent tries to
    overspend or pay a bad address, and the contract refuses — on chain, in the
@@ -224,10 +170,3 @@ Found and fixed on the way: a plain `cargo build` wasm traps every refusal as
 - https://docs.near.org/protocol/accounts-contracts/access-keys
 - https://docs.near.ai/llms.txt · https://app.outlayer.ai/docs/getting-started
 - https://docs.near.org/blog/2026-02-23-shade-agent-framework-2.0
-- https://www.encodeclub.com/programmes/solana-hackathon-2026
-- https://docs.intents.aurora.dev/getting-started/integration-best-practices/frequently-asked-questions.md
-- https://docs.intents.aurora.dev/intents-connect/supported-chains
-- https://docs.x402.org/core-concepts/network-and-token-support
-- https://solana.com/agent-registry/what-is-agent-registry
-- https://github.com/Squads-Protocol/v4
-- https://x.com/Hey_Amiko/status/1993403188347564378
