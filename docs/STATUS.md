@@ -104,21 +104,33 @@ M4 gate, run 2026-11-08 on this machine:
    yet); their off-host target (`BACKUP_REMOTE`) and alert webhook
    (`ALERT_WEBHOOK_URL`) are the owner's to choose.
 
-**Build round, 2026-11-09 (after the audit).** Four agents in parallel, one
-per repo; the owner's list and what has landed on `human-work` at the time
-this file was written (re-check `git log` in each repo; docs/28 §2 has the
-row-by-row evidence):
+**Build round, 2026-11-09 (after the audit), all landed on `human-work`.**
+Row-by-row evidence is in docs/28 §2 and each repo's README "Built on
+2026-11-09" section.
 
-| Item | State |
+| Repo | What landed |
 |---|---|
-| Backend: text search `q` on listings and jobs, `status` filter on jobs (migration 0023, `search.test.ts`) | landed, `444cb74`; documented in docs/15 |
-| Backend: listing and application events in the per-agent feed, exactly once (migration 0024, `agent-events.ts`, `listing-events.test.ts`) | landed, `7e82c3f` |
-| Backend: person decline, per-owner agent cap, faucet standing check, session revoke on key change, profile skills/location/availability toggle, client dispute evidence, reports/block + admin queue, GDPR export `GET /v1/me/export` and scrub `DELETE /v1/me`, retention purge job, remote MCP over HTTP, x402 step in `demo:local`, NEAR AI judge attestation (signature verification) | in progress, this round; not in the tree yet. Each new route needs a row in docs/15 (the backend test enforces it) |
-| Interface: README pages table and positioning, `.env.example` names, bond-split and 25-tools copy, error codes | landed, `86b08fb` |
-| Interface: CSP nonce (`middleware.ts`, `lib/csp.mjs`), job templates, new browser specs (account, csp, home, join, layout, register, templates) | in progress (uncommitted in the tree) |
-| Interface: the UI for the backend items above, docs pages fixes | in progress, this round |
-| Contracts: README method table (56 methods + `ft_on_transfer`), build/CI facts, libraries (Q-005), Agent Market positioning; SECURITY counts | landed, `1e63215` |
-| Docs: this round's rebase (docs/06, 08, 13, 14, 15, 16, 18, 20, 21, 25, 26, 27, README, `check:env`), docs/28 the inventory | landed with this file |
+| Backend (`444cb74`…`325e5f8`) | text search and status filter; listing/bid events in the feed; person decline and unselect; per-owner agent cap; faucet standing; sessions end on a real wallet or key change (not on a first wallet); profiles with skills, location, availability, alerts; client dispute evidence; reports and blocks with a reviewer queue; data export and account deletion; retention purge; remote MCP over HTTP; x402 step in `demo:local`; NEAR AI judge attestation; API-key scopes; the live-probe fixes (rotate race, NUL bytes, unknown tx, person privacy, hireable check) |
+| Interface (`86b08fb`…`65caf52`) | the UI for all of the above; nonce CSP; header that fits from 768 px; account menu with Admin; /me tabs, sessions, your data; job templates; terms box at /join; bids as cards on a phone; notifications grouped with per-item read; titles on jobs; the live UI audit fixes |
+| Contracts (`1e63215`…`08453d2`) | README method table, build facts, libraries, positioning; no source change (1.1.0, wasm hashes unchanged) |
+| Docs | rebased on the NEAR code; docs/28 the inventory; NEAR-only rewrite; submission text per nearhackathon.com |
+
+**Final gate, 2026-11-09 evening, all on this machine:**
+
+| Check | Result |
+|---|---|
+| Interface `pnpm check` | 317 unit tests |
+| Interface e2e, 5 browsers | 1554 passed, 40 skipped; 1 WebKit worker crash (people.spec), passed on re-run |
+| Backend `pnpm check` | green (1333+ tests) |
+| Backend `test:startup` | all 42 bad configurations refused |
+| Secret scans | backend 421 files, contracts 43 files: clean |
+| `pnpm demo:local` | `Demo passed.`, incl. the x402 step and the stolen-key refusals |
+| `verify-near --dao` | 28 checks passed on near:sandbox |
+| Live suite, real backend, 5 browsers | 61 passed, 4 skipped |
+| Docs `check:env` | OK |
+
+The live suite found one real bug this round: a person's own first
+`accept_wallet` ended the session they joined with (fixed in `325e5f8`).
 
 **Follow-up after M10, 2026-11-08:**
 
