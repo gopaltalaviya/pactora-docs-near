@@ -1,4 +1,4 @@
-# Pactora (NEAR): status, 2026-11-08
+# Pactora (NEAR): status, 2026-11-09
 
 Single resume point for the four `pactora-*-near` repos. Re-verify every
 claim against the code before relying on it. Deadline: **14 Nov 2026 23:59 UTC**.
@@ -26,8 +26,9 @@ committed wasm via `PACTORA_WASM` / `MOCK_USDC_WASM`.
 `human-work` exists in all four repos and is pushed (private remote). Feature
 list: [docs/26](26-human-work-integration-plan.md) (F1–F33). The milestone
 plan M0–M10 is the owner's local plan file (the M-list below is its
-summary). No contract change on this branch: the wasm hash stays
-`wasm/SHA256SUMS`.
+summary). The contract changed once on this branch, to 1.1.0 at `25df5c3`
+after the audit of 2026-11-09 ([docs/27](27-audit-2026-11.md)); the new
+hashes are in `wasm/SHA256SUMS`, and `migrate` carries a 1.0.0 deployment over.
 
 | Milestone | Backend | Interface | Docs |
 |---|---|---|---|
@@ -73,7 +74,8 @@ M4 gate, run 2026-11-08 on this machine:
 
 **What is left, in order:**
 
-1. The owner's go to push `human-work` (M4–M10 are local commits) to the private remote.
+1. ~~The owner's go to push `human-work` to the private remote.~~ Pushed
+   2026-11-09 on the owner's word, all four repos.
 2. A testnet run of the new flows, once the funded testnet account exists (master's deploy comes first, STATUS "Next up").
 3. Owner decisions (docs/26 §4):
    - D3, a KYC vendor; until then the provider is simulated only;
@@ -81,7 +83,11 @@ M4 gate, run 2026-11-08 on this machine:
    - a Telegram bot token, to verify the adapter live;
    - an email provider;
    - D6, the rights, before the repos go public.
-4. Not built: the EU sanctions list (its file needs a token). Built but only
+4. Built 2026-11-09: the held payout end to end on the sandbox (`demo:local`
+   step 8h, 64 checks) and a NEAR AI Cloud judge (`JUDGE_PROVIDER=near-ai`,
+   off by default, docs/08; its fixtures follow the documented shape and
+   are not from a live call until the owner OKs one).
+   Not built: the EU sanctions list (its file needs a token). Built but only
    checked locally: the backup, restore-test and alert scripts (no server
    yet); their off-host target (`BACKUP_REMOTE`) and alert webhook
    (`ALERT_WEBHOOK_URL`) are the owner's to choose.
@@ -219,8 +225,52 @@ Known, not fixed:
 - The indexer loops on a start block the node has garbage-collected. A
   fresh sandbox needs `INDEXER_START_AT_HEAD=1`, and testnet needs a check
   on a non-archival RPC.
-- Anyone can create wallet keys for accounts that do not exist on chain,
-  which turns `/v1/status` degraded (the gas reading).
+- ~~Anyone can create wallet keys for accounts that do not exist on chain,
+  which turns `/v1/status` degraded (the gas reading).~~ Fixed 2026-11-09
+  (backend security audit, M1): the signer watches only wallets an agent row
+  names, keys whose account never appears are swept after a day, the route
+  is limited per client, and the key derivation no longer blocks the signer.
+
+**Audit, 2026-11-09.** Five independent reviewers (contracts three ways:
+code review, property tests, on-chain attacks; backend; interface), then one
+fix pass per repo, every fix test-first. The full report, with each
+finding's red evidence and what held, is [docs/27](27-audit-2026-11.md).
+
+| Area | Found | Fixed | Documented |
+|---|---|---|---|
+| Contracts (now 1.1.0, `25df5c3`) | 1 medium, 5 low, 8 info | the medium, 4 low, 5 info | 1 low, 3 info |
+| Backend (`aa8dfa3`) | 1 high, 2 medium, 5 low, 5 info | all but 2 info | 2 info |
+| Interface (`bfc522a`) | 3 high, 8 medium, 8 low, 4 info | all high and medium, 7 low | 1 low, 4 info |
+
+The headline items: a late DAO ruling could be front-run by the worker's
+`expire_dispute` (a grace period and a 7-day testnet dispute timeout now);
+a retried hire could be signed twice when the RPC lost the first answer
+(the signer now asks the chain before calling a send failed); the browser
+signed whatever the API prepared (an allow-list per action now); typed API
+keys stayed in a page variable (gone). Nothing found could take or trap
+escrowed money on the contract. The owner also chose a rule change: an
+unanswered dispute now splits the client's bond, half to the worker.
+
+New in the suites, so it stays found: the property suite
+(`contracts/pactora/src/fuzz.rs`, 100 cases in CI), 14 on-chain attack
+tests (`tests/adversarial.rs`, run in CI against the previous wasm too),
+`e2e/audit.spec.ts` (one test per interface finding, 25 red on the old
+build), and the signer's uncertain-fate tests.
+
+Gate after the audit, run 2026-11-09:
+
+| Check | Result |
+|---|---|
+| Contracts (WSL / Docker) | unit 63, sandbox 6/6, adversarial 14/14, fuzz 100 cases, fmt and clippy clean; wasm rebuilt in the pinned image, `SHA256SUMS` updated |
+| Interface `pnpm check` | 290 unit tests |
+| Interface e2e, 5 browsers | 1309 passed, 0 failed, 16 skipped by design (the desktop header tests on the two phones) |
+| Backend `pnpm check` | 1272 passed, 10 skipped |
+| Backend `test:startup` | all 40 bad configurations refused |
+| Secret scans | clean: 394 backend files, 43 contracts files |
+| `pnpm demo:local` on the 1.1.0 wasm | `Demo passed.`, 64 checks (step 8h: a held worker's payout refused by the signer and skipped by the keeper, paid on chain once cleared) |
+| Contracts `verify-near --network sandbox --dao` | 28 checks passed |
+| Live browser suite (`e2e-live/`, real api, signer, indexer, notifier on the sandbox), 5 browsers | 61 passed, 0 failed, 4 skipped by design |
+| Docs `check:env` | OK |
 
 M5 gate, run 2026-11-08:
 

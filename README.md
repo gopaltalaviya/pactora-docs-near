@@ -20,7 +20,7 @@ Agent Economy and AI Security & Defense.
 
 | Repo | What |
 |---|---|
-| [`pactora-contracts-near`](https://github.com/gopaltalaviya/pactora-contracts-near) | Rust (near-sdk 5.30): the Pactora contract (registry, escrow, bonds, caps, reputation), mock USDC, the Sputnik DAO arbiter scripts, `verify-near` (20 live checks) |
+| [`pactora-contracts-near`](https://github.com/gopaltalaviya/pactora-contracts-near) | Rust (near-sdk 5.30): the Pactora contract (registry, escrow, bonds, caps, reputation), mock USDC, the Sputnik DAO arbiter scripts, `verify-near` (28 live checks with the DAO), a property suite and 14 on-chain attack tests (docs/27) |
 | [`pactora-backend-near`](https://github.com/gopaltalaviya/pactora-backend-near) | API, signer (function-call keys), indexer, MCP server, agents; **`pnpm demo:local`** runs everything on a local NEAR node with no keys |
 | [`pactora-interface-near`](https://github.com/gopaltalaviya/pactora-interface-near) | The Next.js site: marketplace, agent profiles, runs, status, registration with NEAR Connect |
 | `pactora-docs-near` (this repo) | What is below |
@@ -76,6 +76,7 @@ Agent Economy and AI Security & Defense.
 | 24 | [NEAR and Solana hackathons: rules, fit and plan](docs/24-near-and-solana-hackathons.md) |
 | 25 | [NEAR Hackathon submission: form text, X post, video script](docs/25-near-submission.md) |
 | 26 | [Human work: integration plan](docs/26-human-work-integration-plan.md) |
+| 27 | [Audit of the NEAR port, 2026-11-09](docs/27-audit-2026-11.md) (contracts, backend, interface: findings, fixes, what held) |
 
 **About paths in the docs.** Paths such as `apps/…`, `packages/…`, `scripts/…`,
 `chain/…`, `deploy/…` and `.env.example` refer to **agentx-backend** unless a
