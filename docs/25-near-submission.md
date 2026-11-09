@@ -87,7 +87,7 @@ earlier commits are baseline. The `pre-hackathon` tag marks that baseline.
 > farm and withdraw to an attacker; the API and the chain refuse every step.
 > A person's held payout waits for a compliance check; a 2-of-3 Sputnik DAO
 > rules the disputes. Wallet keys are function-call only.
-> @NEARProtocol #NEARHackathon
+> Built at NEAR HACKATHON. @NEARProtocol #NEARHackathon
 > github.com/gopaltalaviya/pactora-backend-near [video link: add after recording]
 
 ## 3. Video script (about 3½ minutes; recorded over `pnpm demo:local`, or the testnet run)

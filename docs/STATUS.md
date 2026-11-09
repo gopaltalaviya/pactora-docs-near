@@ -87,22 +87,44 @@ M4 gate, run 2026-11-08 on this machine:
 2. **Owner:** the testnet deploy from `human-work` (contracts README
    "Testnet": `create-dao`, `deploy`, `verify-near --network testnet --dao`),
    then `sync-chain-facts` in the backend and `DEMO_NETWORK=testnet pnpm demo`.
-   Then the `hackathon-submission` tag on `human-work`, the video, the X post
-   and the form (docs/25 §5). Everything else below can finish without it.
-3. Owner decisions (docs/26 §4):
+   Then the `hackathon-submission` tag on `human-work`; `human-work` made the
+   default branch of all four repos (the form's repository link opens the
+   default branch), or the `/tree/hackathon-submission` link submitted
+   instead; the repos public; the video, the X post and the form (docs/25 §5,
+   readiness table in docs/28 §14). Everything else below can finish without it.
+3. Owner decisions (docs/26 §4, backend PROGRESS "Owner decisions pending"):
    - D3, a KYC vendor; until then the provider is simulated only;
    - the matching threshold trade-off ("Erik"/"Eric", docs/04 §5.1h);
    - a Telegram bot token, to verify the adapter live;
    - an email provider;
-   - D6, the rights, before the repos go public.
-4. Built 2026-11-09: the held payout end to end on the sandbox (`demo:local`
-   step 8h, 64 checks) and a NEAR AI Cloud judge (`JUDGE_PROVIDER=near-ai`,
-   off by default, docs/08; its fixtures follow the documented shape and
-   are not from a live call until the owner OKs one).
-   Not built: the EU sanctions list (its file needs a token). Built but only
-   checked locally: the backup, restore-test and alert scripts (no server
-   yet); their off-host target (`BACKUP_REMOTE`) and alert webhook
-   (`ALERT_WEBHOOK_URL`) are the owner's to choose.
+   - D6, the rights, before the repos go public;
+   - whether the `job_events` audit log may be purged after 365 days (today
+     the purge removes only the per-agent copies, `agent_events`), and
+     whether a deleted account's dispute reasons in event payloads are scrubbed;
+   - Q-015, whether a second project is entered; which tracks to tick (docs/25 §1).
+4. Built 2026-11-09, all committed on `human-work` (row-by-row evidence in
+   docs/28): the held payout on the sandbox (`demo:local` 8h); the NEAR AI
+   judge with response-signature verification, stored with the settlement
+   (off by default; fixtures follow the documented shape, no live call yet);
+   search, listing events, decline and unselect, agent cap, faucet standing,
+   session revocation, profiles with skills/location/availability/alerts,
+   dispute evidence, reports and blocks, data export and deletion, the
+   retention purge, remote MCP over HTTP, x402 in `demo:local` (8i), API key
+   scopes, webhook secret rotation, `GET /v1/stats`, `GET /v1/me/applications`,
+   per-item read, the history routes and charts, the audit-log CSV export,
+   the indexer's pruned-start-block stall (migration 0032), and
+   `pnpm swarm:local` (20 buyers, 5 sellers, settled on the sandbox).
+   Not built, and why: the EU sanctions list (its file needs a token); a hard
+   compliance hold, deadline extension, worker-side dispute, an on-chain
+   verdict hash (all contract changes; frozen at 1.1.0); a 0–100 score per
+   week in the history (the charts show jobs closed and the rating); a
+   separate landing page for people (F33 partial); saved searches by query,
+   web push, receipts export, milestones, pre-hire Q&A (docs/28 §13, future).
+   Built but only checked locally: the backup, restore-test and alert scripts
+   (no server yet); `BACKUP_REMOTE` and `ALERT_WEBHOOK_URL` are the owner's.
+5. ~~The Postgres deadlock the swarm found between the API's event writes
+   and the indexer's batch.~~ Fixed in backend `cb19e32` (counters locked in
+   agent-id order; a two-connection test red first, docs/28 §11).
 
 **Build round, 2026-11-09 (after the audit), all landed on `human-work`.**
 Row-by-row evidence is in docs/28 §2 and each repo's README "Built on
@@ -110,8 +132,8 @@ Row-by-row evidence is in docs/28 §2 and each repo's README "Built on
 
 | Repo | What landed |
 |---|---|
-| Backend (`444cb74`…`325e5f8`) | text search and status filter; listing/bid events in the feed; person decline and unselect; per-owner agent cap; faucet standing; sessions end on a real wallet or key change (not on a first wallet); profiles with skills, location, availability, alerts; client dispute evidence; reports and blocks with a reviewer queue; data export and account deletion; retention purge; remote MCP over HTTP; x402 step in `demo:local`; NEAR AI judge attestation; API-key scopes; the live-probe fixes (rotate race, NUL bytes, unknown tx, person privacy, hireable check) |
-| Interface (`86b08fb`…`65caf52`) | the UI for all of the above; nonce CSP; header that fits from 768 px; account menu with Admin; /me tabs, sessions, your data; job templates; terms box at /join; bids as cards on a phone; notifications grouped with per-item read; titles on jobs; the live UI audit fixes |
+| Backend (`444cb74`…`9b8ff67`; round 3 from `c2b6bc1`: history routes, audit-log CSV, indexer stall, `swarm:local`, CORS `content-disposition`) | text search and status filter; listing/bid events in the feed; person decline and unselect; per-owner agent cap; faucet standing; sessions end on a real wallet or key change (not on a first wallet); profiles with skills, location, availability, alerts; client dispute evidence; reports and blocks with a reviewer queue; data export and account deletion; retention purge; remote MCP over HTTP; x402 step in `demo:local`; NEAR AI judge attestation; API-key scopes; the live-probe fixes (rotate race, NUL bytes, unknown tx, person privacy, hireable check) |
+| Interface (`86b08fb`…`3167193`; round 3 from `af4eab9`: history charts on /agents/[id] and /people/[id], audit export on /admin, people FAQ, stalled indexer on /status) | the UI for all of the above; nonce CSP; header that fits from 768 px; account menu with Admin; /me tabs, sessions, your data; job templates; terms box at /join; bids as cards on a phone; notifications grouped with per-item read; titles on jobs; the live UI audit fixes |
 | Contracts (`1e63215`…`08453d2`) | README method table, build facts, libraries, positioning; no source change (1.1.0, wasm hashes unchanged) |
 | Docs | rebased on the NEAR code; docs/28 the inventory; NEAR-only rewrite; submission text per nearhackathon.com |
 
@@ -131,6 +153,12 @@ Row-by-row evidence is in docs/28 §2 and each repo's README "Built on
 
 The live suite found one real bug this round: a person's own first
 `accept_wallet` ended the session they joined with (fixed in `325e5f8`).
+
+Round 3 gate, 2026-11-09 night (backend PROGRESS): backend `pnpm check`
+1350 passed, 10 skipped, 0 failed; `test:startup` all 42 refused;
+`check-no-secrets` clean (428 files); `demo:local` "Demo passed.", 71
+checks; `swarm:local` "Swarm passed." (20 listings, 76 bids, 20 settled on
+chain, caps kept, I1 holds). Interface: 317 unit tests (README "Commands").
 
 **Follow-up after M10, 2026-11-08:**
 
@@ -257,14 +285,19 @@ Gate after the deep testing, 2026-11-08:
 | Live browser suite (`e2e-live/`, real backend) | 61 passed, 4 skipped by design, 0 failed |
 | Secret scans, docs `check:env` | clean, OK |
 
-Known, not fixed:
+Known, not fixed (updated 2026-11-09 night):
 
-- The faucet has no standing check (test tokens only).
-- A non-party on a job in the wrong state gets 409 before 403 (the state
-  is public anyway).
-- The indexer loops on a start block the node has garbage-collected. A
-  fresh sandbox needs `INDEXER_START_AT_HEAD=1`, and testnet needs a check
-  on a non-archival RPC.
+- ~~The faucet has no standing check.~~ Fixed in backend `bd3b3ae`.
+- ~~A non-party on a job in the wrong state gets 409 before 403.~~ Fixed in
+  backend `bd3b3ae` (403 first).
+- The indexer on a start block the node has garbage-collected now stalls
+  loudly instead of looping (backend `9d579fd`, migration 0032: `/health`,
+  `/v1/status` and the `/status` page say so and name the fix). It is not
+  self-healing: the operator restarts with `INDEXER_START_AT_HEAD=1` or an
+  archival RPC. Not yet seen on a real non-archival testnet node.
+- ~~Under 20 concurrent jobs (`swarm:local`) the API's event writes could
+  deadlock against the indexer's batch.~~ Fixed in backend `cb19e32`
+  (`lockAgentEventSeqs`, agent-id order).
 - ~~Anyone can create wallet keys for accounts that do not exist on chain,
   which turns `/v1/status` degraded (the gas reading).~~ Fixed 2026-11-09
   (backend security audit, M1): the signer watches only wallets an agent row
@@ -415,9 +448,19 @@ There is no backend `.env`; set `DATABASE_URL` inline.
 4. Optional: host — backend on a VPS (`pactora-backend-near/deploy/vps/README.md`),
    interface on Vercel with `NEXT_PUBLIC_API_URL=https://$API_HOST`. Local-only
    is acceptable (Q-012) with the public repo, README and video.
-5. Put the deployed account ids in the READMEs and here; **owner:** tag
-   `hackathon-submission` on `human-work`, make the repos public, record the
-   video, post, submit (docs/25 §5).
+5. Put the deployed account ids in the READMEs and here; re-check the docs/25
+   figures against the testnet run.
+6. **Owner:** tag `hackathon-submission` on `human-work`; make `human-work`
+   the default branch of all four repos (the form's repository link opens
+   the default branch) or submit the `/tree/hackathon-submission` link; make
+   the repos public before 2026-11-14 23:59 UTC.
+7. **Owner:** record the video; post on X saying it was built at NEAR
+   HACKATHON, tagging @NEARProtocol and #NEARHackathon, with the video or
+   screenshots attached (docs/25 §2).
+8. **Owner:** submit the form once (it cannot be edited; corrections go
+   through nearhackathon.com/request-changes): one repository link, the demo
+   post link, a mainnet payout account, the 20–2,000-character description,
+   the tracks (docs/25 §1). Readiness, item by item: docs/28 §14.
 
 ## Uncommitted work
 
@@ -433,9 +476,15 @@ On `master`: none. On `human-work`, see the branch table above. 2026-11-08: the 
 - For Vultr: the server's `.env` (`SIGNER_TOKEN`, `SIGNER_KEY_PASSPHRASE`,
   `API_HOST`, `CORS_ORIGINS`, `MINIO_KMS_SECRET_KEY`, `BACKUP_REMOTE`,
   `ALERT_WEBHOOK_URL`, optional keeper account), on the server only.
-- Optional: a NEAR AI Cloud judge key (`NEAR_AI_API_KEY`). The adapter is
-  built and off by default (`JUDGE_PROVIDER=near-ai`, docs/08); the key is
-  needed only for one live call that captures real fixtures.
+- Optional: a NEAR AI Cloud judge key (`NEAR_AI_API_KEY`). The adapter and
+  its signature check are built and off by default (`JUDGE_PROVIDER=near-ai`,
+  docs/08); the key is needed only for one live call that captures real
+  fixtures and confirms the attestation field naming the signing key.
+- The submission itself: D6 rights before the repos go public; the
+  `hackathon-submission` tag and the default branch; public repos; the
+  video and X post; a mainnet payout account; the form (docs/28 §14).
+- The decisions in "What is left" item 3 (KYC vendor, threshold, bot token,
+  email provider, `job_events` retention, deletion and the event log, Q-015).
 
 ## Working agreements
 

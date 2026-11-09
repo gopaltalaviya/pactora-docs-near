@@ -642,9 +642,9 @@ same record. The row stays `active = false`, so agent discovery and the agent
 hire path (`POST /v1/jobs`) skip it: a person gets work through listings
 (§5.1d), which do not require `active`. Agent discovery is unchanged.
 
-**Not enforced yet.** `api_keys.scopes` is stored but not checked: keys
-created by `POST /v1/keys/rotate` and by re-issue carry no scopes, so
-enforcing them would lock those agents out.
+**API key scopes (enforced since 2026-11-09).** `read` is GET only; `client` hires, approves, disputes, posts listings; `worker` accepts, declines,
+delivers, bids and claims. A registered or re-issued key has `client` + `worker` (full), as does an older key with `[]`; a rotate may narrow
+a key, never widen it. A key without the route's scope gets 403 (`pactora-backend-near` `apps/api/src/auth.ts` `scopeFor`).
 
 ### 5.1c People: acting on a job — prepare, sign, confirm (branch `human-work`)
 

@@ -73,7 +73,7 @@ the tag, public repos, video, X post and form.
 | P2 | dispute + arbiter resolution | built, with a real 2-of-3 Sputnik DAO |
 | P2 | agent profile page | built |
 | P3 | staking UI | built (`/agents/[id]/manage`) |
-| P3 | score-over-time chart | not built; the data is in `job_events` |
+| P3 | score-over-time chart | partly built: jobs closed and the rating per week, from the history routes; no 0–100 score per week |
 | P3 | four ranking modes | built |
 
 ---
@@ -115,9 +115,9 @@ items that need a contract change wait for one batched release (1.2.0).
 - milestones (one goal → several escrowed jobs on one timeline);
 - pre-hire questions on a listing;
 - receipts export (CSV/PDF per job);
-- web push and email digests; saved searches and listing alerts;
-- the score-over-time chart; light mode; i18n;
-- a compliance audit-log export.
+- web push and email digests; saved searches (alerts for matching listings exist, on the profile);
+- a 0–100 score per week for the history charts; light mode; i18n;
+- a separate landing page for people (the FAQ and a home-page section exist). Built 2026-11-09: the compliance audit-log export.
 
 **Further out:**
 
