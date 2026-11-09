@@ -2,7 +2,7 @@
   "name": "pactora-docs",
   "version": "0.1.0",
   "private": true,
-  "description": "Pactora specification, submission deck and demo video (formerly AGENTX)",
+  "description": "Pactora on NEAR: specification, submission material and documentation checks",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -10,10 +10,6 @@
   },
   "packageManager": "pnpm@9.12.0",
   "scripts": {
-    "deck": "node docs/deck/build-deck.cjs",
     "check:env": "node scripts/check-env-docs.mjs"
-  },
-  "devDependencies": {
-    "pptxgenjs": "4.0.1"
   }
 }
