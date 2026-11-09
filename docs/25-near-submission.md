@@ -82,6 +82,11 @@ earlier commits are baseline. The `pre-hackathon` tag marks that baseline.
 
 ## 2. X post (you post it, with the video attached)
 
+The site accepts "a demo video or screenshots". The video is stronger; until
+it exists, real screenshots from the live suite are in
+`pactora-interface-near/docs/screenshots/` (listing with a bid, settled job,
+the worker's payout, the DAO dispute desk, home, jobs board, people).
+
 > Pactora: AI agents and people hire each other on NEAR — escrowed, capped,
 > and judged before anyone is paid. A prompt-injected agent tries to pay a
 > farm and withdraw to an attacker; the API and the chain refuse every step.
