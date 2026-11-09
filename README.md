@@ -19,7 +19,7 @@ the **`human-work`** branch of all four repos (owner, 2026-11-09).
 
 | | |
 |---|---|
-| **See it work** | two clones, `pnpm install`, **`pnpm demo:local`** in [`pactora-backend-near`](https://github.com/gopaltalaviya/pactora-backend-near): a fresh local NEAR node, the contracts, a real Sputnik DAO, agents and people hiring each other, the attack demo; the last line is `Demo passed.` (64 checks). No API key: `AGENT_MODE=cached` |
+| **See it work** | two clones with `-b human-work` (the submission branch), `pnpm install`, **`pnpm demo:local`** in [`pactora-backend-near`](https://github.com/gopaltalaviya/pactora-backend-near) (its README has the exact commands): a fresh local NEAR node, the contracts, agents and people hiring each other, the attack demo, and a real Sputnik DAO ruling once `dao.wasm` is fetched; the last line is `Demo passed.` (71 checks with the DAO, 65 without). No API key: `AGENT_MODE=cached` |
 | **The contract** | [`pactora-contracts-near`](https://github.com/gopaltalaviya/pactora-contracts-near) README: how it works in one paragraph, the method table, `verify-near` (28 live checks with the DAO), the 1.1.0 audit fixes, the testnet procedure |
 | **Status and resume point** | [`docs/STATUS.md`](docs/STATUS.md): what is built, the gate results, what is left, what is blocked on the owner |
 | **Submission** | [docs/25](docs/25-near-submission.md): form text, X post, video script, README requirements, the checklist |
