@@ -675,7 +675,7 @@ Each feature uses the same layout:
   - The audit row cannot be updated.
   - A startup with screening off refuses to boot.
 - **Risks:**
-  - False-positive load: the reference measured 55 candidates for one common
+  - False-positive load: the reference measured 55 candidates for one frequent
     name.
   - Legal advice is needed before mainnet.
 - **Size:** L. **Phase:** 4.

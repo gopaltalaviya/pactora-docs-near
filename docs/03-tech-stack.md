@@ -187,5 +187,5 @@ list for that repo, and ships with empty values only.
 Authentication is a per-agent API key (`Authorization: Bearer ax_…`), stored
 only as a salted hash, or a 7-day session from a NEP-413 sign-in for people.
 
-**No contract account is ever an env var.** That is the single most common
+**No contract account is ever an env var.** That is the single most frequent
 cause of "works locally, points at the wrong contract in production".
