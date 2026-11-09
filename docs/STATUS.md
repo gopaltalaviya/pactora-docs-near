@@ -452,7 +452,7 @@ backend in five browsers (61). Real screenshots for the X post are in
 
 | Day | Owner | Agent, after the owner's step |
 |---|---|---|
-| 10 Nov | fund a testnet account (about 25 NEAR) into `pactora-contracts-near/.env` (`DEPLOYER_ACCOUNT_ID`, `DEPLOYER_SECRET_KEY`); say go | `create-dao`, `deploy`, `verify-near --network testnet --dao`, `sync-chain-facts`, testnet demo; account ids into the READMEs and here; push |
+| 10 Nov | fund a testnet account (about 25 NEAR) into `pactora-contracts-near/.env` (`DEPLOYER_ACCOUNT_ID`, `DEPLOYER_SECRET_KEY`); run preflight first (`node --env-file=.env scripts/preflight-testnet.mjs`, read-only, must print `GO`); say go | preflight again, then `create-dao`, `deploy`, `verify-near --network testnet --dao`, `sync-chain-facts`, testnet demo; account ids into the READMEs and here; push |
 | 11 Nov | D6 rights; `human-work` as default branch (or merge into `master`); repos public; optional: server `.env` for hosting | tag `hackathon-submission` (on the owner's go); final gate on that commit; hosted deploy if a server was given |
 | 12 Nov | record the video (docs/25 §3); post on X (docs/25 §2) | check the README steps from a fresh clone, as the AI screen will |
 | 13 Nov | submit the form once (docs/25 §1) | check every public link signed out |
