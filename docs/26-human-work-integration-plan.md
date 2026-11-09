@@ -59,6 +59,8 @@ service (a KYC vendor, a sanctions list), that is a public third party.
 - **Frontend:** `main`, into which every branch is merged.
 - Pactora facts come from our own repos (`master`, 2026-11-08). Each one was
   checked against the code. Line references use the short forms below.
+  **Re-checked 2026-11-09** against contract 1.1.0 (branch `human-work`):
+  the `CT:` / `T:` line numbers below are the current ones.
 
 | Short form | File |
 |---|---|
@@ -75,8 +77,8 @@ service (a KYC vendor, a sanctions list), that is a public third party.
    test exists. Conclusion: **we copy designs, never code**, and every port is
    rebuilt and tested on our side.
 2. **Our contract already lets a person be a worker or a client.**
-   `only_wallet_of` (CT:982-990) checks only `predecessor == agent.wallet`. It
-   never checks the key type. `register_agent` (CT:239) does not forbid
+   `only_wallet_of` (CT:1128-1136) checks only `predecessor == agent.wallet`. It
+   never checks the key type. `register_agent` (CT:315) does not forbid
    `wallet == owner`. Only our backend and interface block people today:
    - the signer refuses full-access keys (`signer.ts:504`);
    - `/register` forces a new `<name>.<owner>` sub-account.
@@ -84,7 +86,7 @@ service (a KYC vendor, a sanctions list), that is a public third party.
    Most human-work features are therefore **backend + interface work, with no
    redeploy**.
 3. **Our contract has no upgrade or migrate path and no state version**
-   (CT:68-94). Any change to stored `Job`/`Agent`/`Params` means:
+   (the 1.0.0 `Contract` struct; now CT:83-109). Any change to stored `Job`/`Agent`/`Params` means:
    - a new wasm and a new sha256 in `wasm/SHA256SUMS`;
    - a fresh deploy;
    - an indexer update, because the indexer throws on an unknown event
@@ -94,6 +96,18 @@ service (a KYC vendor, a sanctions list), that is a public third party.
    The first testnet deploy has **not happened yet** (STATUS "Next up" 1). A
    contract change is cheapest **before** that deploy and much more expensive
    after it. That is a timing decision for the owner, see §4 D1.
+
+   **Superseded 2026-11-09 by contract 1.1.0.** The state now carries
+   `STATE_VERSION` (CT:57, 83-84; view `version`, CT:958), and the private
+   `migrate` (CT:184-231) moves a 1.0.0 state to the current layout when the
+   contract account redeploys and calls it in the same batch; it refuses to
+   run twice. The adversarial test
+   `upgrading_from_the_old_wasm_keeps_every_job_settleable` does this over
+   live jobs against `wasm/previous/pactora.wasm`, and the contracts
+   `README.md` ("Upgrading a deployed contract") has the procedure. So a
+   stored-type change is an upgrade, not a fresh deploy — it still needs a
+   new wasm and hash, a `migrate` for the new layout, an indexer update for
+   any new event version, and a `verify-near` run.
 
 ### 0.4 Hackathon recommendation
 
@@ -126,12 +140,12 @@ copy no text, assets, names or code.
 |---|---|---|
 | Who can act | Agents only, in practice. Each agent is an owner account plus a wallet sub-account whose function-call key the signer holds. | `signer.ts:504`, interface `/register` |
 | Hiring | One client to one worker per job. The price is the worker's fixed `pricePerTask`. No bids. | `jobs.ts` `hire()` |
-| Job states | Created → Accepted → Submitted → Settled/Refunded/Disputed. `direct_pay` jumps to Settled. | T:22-31 |
-| Exits | `cancel`, `expire_unaccepted`, `expire_undelivered`, `auto_approve`, `expire_dispute` (permissionless, run by the keeper) | CT:699-753 |
-| Disputes | Arbiter = a 2-of-3 Sputnik DAO. The contract checks only the caller. | CT:672 |
-| On-chain evidence | sha256 hashes only (`spec_hash`, `result_hash`, `review_hash`, `reason_hash`) | T:135-161 |
-| Money | One NEP-141 token. Agent purses with per-task and rolling 24 h caps. Stakes. 20% worker bond. Fee taken from the worker's payout. Invariant I1. | CT:1040-1088 |
-| Funding | Anyone can `Fund` or `Stake` any agent via `ft_transfer_call` (CT:932-958). The interface and API have no page or route for it. | — |
+| Job states | Created → Accepted → Submitted → Settled/Refunded/Disputed, and Disputed → Settled/Refunded (the arbiter's ruling, or `expire_dispute`). `direct_pay` jumps to Settled. | T:24-31 |
+| Exits | `cancel` is the **client's own** exit (state Created, any time). The four permissionless exits the keeper sends are `expire_unaccepted`, `expire_undelivered`, `auto_approve`, `expire_dispute` (the keeper's `Exit` type, `apps/signer/src/keeper.ts:41`). **Corrected 2026-11-09:** `cancel` was listed as permissionless. | CT:827-894 |
+| Disputes | Arbiter = a 2-of-3 Sputnik DAO. The contract checks only the caller. | CT:799 |
+| On-chain evidence | sha256 hashes only (`spec_hash`, `result_hash`, `review_hash`, `reason_hash`) | T:143-167 |
+| Money | One NEP-141 token. Agent purses with per-task and rolling 24 h caps. Stakes. 20% worker bond. Fee taken from the worker's payout. Invariant I1. | CT:1228-1290 |
+| Funding | Anyone can `Fund` or `Stake` any agent via `ft_transfer_call` (CT:1078-1104). The interface and API have no page or route for it. | — |
 | API auth | API key per agent. NEP-413 is used only for owner registration and key re-issue. No human sessions. | `apps/api/src/auth.ts` |
 | Delivery | Polling + SSE (`job_events`, LISTEN/NOTIFY). No webhooks, email or chat. | `live.ts` |
 | Storage of results | JSON in Postgres (`jobs.result`). `jobs.result_uri` and the `disputes` table exist but are never used. | `packages/db/src/schema.ts` |
@@ -139,7 +153,7 @@ copy no text, assets, names or code.
 | x402 | `pactora-directpay` / `pactora-escrow` schemes (v1 shapes) | `packages/shared/src/x402.ts` |
 | MCP | stdio. 9 client-side tools. No worker tools. | `apps/mcp/src/tools.ts` |
 | Interface | Marketplace, agent profiles, runs, demo, register, status, docs. **No job pages, no funding pages.** | `pactora-interface-near/app` |
-| Test token | `mock-usdc` `mint` is **owner-only** | `contracts/mock-usdc/src/lib.rs:45-46` |
+| Test token | `mock-usdc` `mint` is **owner-only** | `contracts/mock-usdc/src/lib.rs:48-49` |
 
 ---
 
@@ -213,7 +227,7 @@ Each feature uses the same layout:
     the signer for them.
   - The signer stays unchanged. It must keep refusing full-access keys.
 - **Decision D1:** people must meet `min_stake` (10 mUSDC testnet, cannot be
-  0, CT:1245) and the 20% bond. Options:
+  0, CT:1402) and the 20% bond. Options:
   - (a) keep the rules, and lower `min_stake`/`bond_bps` with `set_params`
     (owner, no redeploy);
   - (b) add a per-agent `kind` field with person-specific rules. This changes
@@ -321,7 +335,7 @@ Each feature uses the same layout:
 - **Reference:** a listing parent holds up to 20 child "assignments". Each
   child has its own escrow, chat, evidence, review and payout, and the parent
   holds no money.
-- **Pactora:** one job means one worker (T:135-161). The orchestrator already
+- **Pactora:** one job means one worker (T:143-167). The orchestrator already
   fans out to one job per subtask.
 - **Plan:** a parent listing in the database creates N independent 1:1 jobs,
   one per selected bid. This needs no contract change.
@@ -413,7 +427,7 @@ Each feature uses the same layout:
 - **Pactora:**
   - `approve` and `dispute` exist. The judge is tool-less.
   - **There is no "revise" on chain.** `submit_result` works once, from
-    Accepted only (CT:618-629). The review window then runs out and
+    Accepted only (CT:741-752). The review window then runs out and
     `auto_approve` pays the worker.
 - **Decision D2 (revisions):**
   - (a) **Off-chain draft rounds.** The person submits a draft snapshot off
@@ -588,7 +602,7 @@ Each feature uses the same layout:
 - **Plan:**
   - The same design, vendor-agnostic behind an `IdentityProvider` interface.
   - The gate is enforced in the API on apply/claim/accept, as a **soft gate**.
-  - A **hard gate** would need an allowlist in `validate_hire` (CT:1021-1037)
+  - A **hard gate** would need an allowlist in `validate_hire` (CT:1167-1183)
     or `accept_job`, which means a redeploy. Not recommended for testnet.
   - Store only the minimum fields (D3). Personal data never goes on chain.
 - **Decision D3:** which vendor, and whether KYC runs on testnet at all
@@ -755,7 +769,7 @@ Each feature uses the same layout:
   - The controller can revoke or withdraw.
 - **Pactora:**
   - **The contract already has all of it:**
-    - `ft_transfer_call` with `{"Fund":…}` / `{"Stake":…}` (CT:932-958);
+    - `ft_transfer_call` with `{"Fund":…}` / `{"Stake":…}` (CT:1078-1104);
     - `set_caps`, `withdraw`, `request_unstake`, `complete_unstake`,
       `storage_deposit`.
   - The interface and API have no page for any of it. The signer refuses
@@ -805,7 +819,7 @@ Each feature uses the same layout:
   It is included in the terms hash and the limits, and refunded in full on a
   refund.
 - **Pactora:** the fee is taken from the worker's payout:
-  `max(bps, min_fee)` (CT:1059-1079).
+  `max(bps, min_fee)` (CT:1215-1225).
 - **Plan: keep Pactora's model.** Changing it means a redeploy and changes
   invariant I1. Show the fee before every bid and selection ("you receive X
   after the 1% fee").
@@ -849,7 +863,7 @@ Each feature uses the same layout:
     mock token.
 - **Pactora:**
   - NEAR wallets already handle transfers.
-  - Our `mock-usdc` `mint` is **owner-only** (`mock-usdc/src/lib.rs:45-46`),
+  - Our `mock-usdc` `mint` is **owner-only** (`mock-usdc/src/lib.rs:48-49`),
     so a faucet needs either a server-held owner key (a hot key) or a small
     faucet contract.
 - **Plan:**
@@ -1017,6 +1031,14 @@ hard payout hold), batch them into one contract release:
 - a fresh testnet deploy;
 - `verify-near` extended for each new rule.
 
+**Corrected 2026-11-09:** since contract 1.1.0 a release is an **upgrade**,
+not a fresh deploy: the contract account redeploys the wasm and calls
+`migrate` in the same batch (`STATE_VERSION`, `version()`; contracts
+`README.md`, "Upgrading a deployed contract"), so open jobs, agents, purses
+and stakes survive. The release still needs the new hash, the indexer
+decoders and the `verify-near` run above, plus a `migrate` for the new
+layout and the upgrade test against the previous wasm (§0.3 finding 3).
+
 ## 4. Decisions for the owner
 
 | # | Question | Options | Recommended |
@@ -1037,8 +1059,8 @@ hard payout hold), batch them into one contract release:
   - `MAX_REVISION_ROUNDS = 3`;
   - `replace_stuck` absent.
 - Pactora: inventory against `master`, plus direct checks:
-  - `register_agent` / `only_wallet_of` (CT:239-283, 982-990);
-  - `min_stake > 0` (CT:1245);
+  - `register_agent` / `only_wallet_of` (CT:315-359, 1128-1136);
+  - `min_stake > 0` (CT:1402);
   - the signer's `ALLOWED_METHODS` (`signer.ts:33-42`) and its full-access
     refusal (`signer.ts:504`);
   - `mock-usdc` owner-only `mint`;

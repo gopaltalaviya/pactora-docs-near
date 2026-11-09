@@ -1,5 +1,9 @@
 # 18 — Portal entry (Monad Metropolis)
 
+> **Historical: the Monad Metropolis entry (2026-10).** Kept as written. The
+> NEAR hackathon submission is [docs/25](25-near-submission.md). Banner added
+> 2026-11-09.
+
 The text for each field of the hackathon portal, ready to paste. Each block
 is within the field's limit (counted when written). Facts come from
 [11 — Submission](11-submission.md).

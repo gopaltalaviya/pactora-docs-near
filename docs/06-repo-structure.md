@@ -1,335 +1,229 @@
 # 06 — Repository Structure (4 repos)
 
-**Decision (2026-09-22):** three separate repositories. Contracts are never
-part of a Vercel or Railway build.
+**Rewritten 2026-11-09 for the NEAR port.** Four repositories, grouped under
+`near/` since 2026-11-07 (sibling folders `monad/` and `solana/` hold the
+other chains). The split is the same as before, and for the same reason:
+contracts never enter a hosting provider's build container, so key material
+and deploy scripts cannot leak into an image by accident. The old Monad
+layout is summarised at the end.
 
 ```
-agentx-contracts     Foundry only.        Deployed by:  you, manually
-agentx-backend       pnpm monorepo.       Deployed by:  Docker Compose on one VPS, behind Caddy
-agentx-interface     Next.js only.        Deployed by:  Vercel
-agentx-docs          specification, deck, video, submission (this repo)
+pactora-contracts-near   Rust (near-sdk) contracts, cargo-near.   Deployed by:  the owner, scripts/deploy.mjs
+pactora-backend-near     pnpm monorepo.                           Deployed by:  Docker Compose on one VPS, behind Caddy
+pactora-interface-near   Next.js only.                            Deployed by:  Vercel
+pactora-docs-near        specification, deck, video, submission (this repo)
 ```
 
-Why it is split this way: a Vercel or Railway build pulls the whole repo into
-a build container. If contracts live in that tree, your Foundry sources,
-deploy scripts and any key material in `.env` go with it. Separate repos make
-that structurally impossible rather than a configuration setting somebody
-might get wrong.
+Every directory named below exists on branch `human-work` as of 2026-11-09;
+generated and ignored folders (`target/`, `node_modules/`, `coverage/`,
+`.keys/`, `.sbx/`) are left out.
 
 ---
 
-## 1. `agentx-contracts`
+## 1. `pactora-contracts-near`
 
-Public since 2026-10-06. Never connected to Vercel or Railway. No hosting provider has read
-access.
+Two contracts in one Cargo workspace, built in the pinned `cargo-near` image
+so anyone can rebuild the committed bytes (the exact command, and why the
+committed hashes are the `non-reproducible-wasm --no-wasmopt` build rather
+than CI's `reproducible-wasm`, is in the contracts README, "Building the
+wasm"). `wasm/` is committed on purpose, with `SHA256SUMS`: it is what
+`scripts/deploy.mjs` deploys and what the sandbox and adversarial tests run
+against.
 
 ```
-agentx-contracts/
-├── src/
-│   ├── TaskEscrow.sol           # job state machine + settlement + feedback
-│   ├── StakeVault.sol           # bonds per ERC-8004 agentId
-│   ├── AgentAccount.sol         # on-chain spending policy
-│   ├── AgentAccountFactory.sol
-│   ├── interfaces/
-│   │   ├── IERC8004.sol             # ERC-8004 Identity + Reputation, external
-│   │   ├── ITaskEscrow.sol
-│   │   └── IStakeVault.sol
-│   ├── fallback/                # empty: AgentRegistry / ReputationRegistry were
-│   │                            # never needed (ERC-8004 verification passed)
-│   └── mocks/
-│       ├── MockUSDC.sol
-│       └── MockERC8004.sol      # minimal Identity + Reputation, testnet only
-├── test/
-│   ├── Base.t.sol
-│   ├── unit/                    # TaskEscrow, StakeVault, AgentAccount, Guards, Adversarial, MockUSDC
-│   ├── fuzz/                    # empty; fuzz cases live in unit/
-│   └── invariant/Escrow.invariant.t.sol
-├── script/
-│   └── Deploy.s.sol             # reads FEE_RECIPIENT / ARBITER_ADDRESS
+pactora-contracts-near/
+├── contracts/
+│   ├── pactora/                 # THE contract, 1.1.0, frozen
+│   │   ├── src/
+│   │   │   ├── lib.rs           # registry, purses, stakes, escrow, disputes, records, migrate
+│   │   │   ├── types.rs         # JobState, Outcome, Params, Agent, Purse, Job, views
+│   │   │   ├── budget.rs        # the rolling 24 h cap buckets
+│   │   │   ├── events.rs        # NEP-297 events the indexer decodes
+│   │   │   ├── errors.rs
+│   │   │   ├── tests.rs         # unit tests (incl. `mod audit`, the 1.1.0 fixes)
+│   │   │   └── fuzz.rs          # proptest suite: 256 cases of up to 120 calls by default
+│   │   ├── tests/
+│   │   │   ├── sandbox.rs       # near-workspaces, every flow on a local node
+│   │   │   └── adversarial.rs   # races, gas sweeps, deposits, a real Sputnik DAO, upgrade over live state
+│   │   └── proptest-regressions/
+│   └── mock-usdc/               # NEP-141 test token; `mint` is owner-only
 ├── scripts/
-│   ├── check-config.mjs         # params + networks.json validation (CI)
-│   ├── check-param-drift.mjs    # deployed values vs params (`make drift`)
+│   ├── deploy.mjs               # deploy both contracts, `new(params)`, write deployments/<network>.json
+│   ├── create-dao.mjs           # create the 2-of-3 Sputnik DAO arbiter; `--fetch-wasm` pulls the DAO code, hash-checked
+│   ├── verify-near.mjs          # every flow live: 26 checks, 28 with `--dao`
+│   ├── sweep-check.mjs          # the throwaway-account path (key saved before create, swept back into the deployer), live on the sandbox
+│   ├── sweep-testnet.mjs        # delete saved throwaway testnet accounts back into the deployer, after a run that stopped half-way
 │   ├── check-no-secrets.mjs
-│   ├── export-abis.mjs
-│   ├── fund-wallets.sh
-│   ├── verify-erc8004.mjs
-│   └── write-deployment.mjs
-├── config/                   # SINGLE SOURCE — see docs/08
-│   ├── networks.json         # chain registry, keyed by chainId
-│   ├── params.10143.json     # protocol parameters, testnet
-│   ├── params.143.json       # protocol parameters, mainnet
-│   └── params.31337.json     # local anvil
-├── deployments/              # GENERATED — never hand-edited
-│   ├── 10143.json            # addresses + startBlock + commit
-│   └── 31337.json            # (no 143.json: nothing is deployed on mainnet)
-├── export/                   # generated by `make export`
-│   ├── abis/*.json
-│   ├── deployments/
+│   └── lib/                     # dao.mjs, throwaway.mjs
+├── config/                      # SINGLE SOURCE — see docs/08
 │   ├── networks.json
-│   └── index.js, index.d.ts
-├── .env.example              # never .env
-├── foundry.toml
-├── remappings.txt
-├── Makefile
-└── .github/workflows/ci.yml
+│   ├── params.testnet.json      # `onchain` goes to `new(params)` byte for byte; `offchain` is the backend's
+│   └── params.sandbox.json
+├── deployments/                 # GENERATED by deploy.mjs — never hand-edited
+│   └── sandbox.json             # (testnet.json appears with the first testnet deploy)
+├── wasm/                        # the deployed bytes, committed
+│   ├── pactora.wasm
+│   ├── mock_usdc.wasm
+│   ├── SHA256SUMS
+│   └── previous/pactora.wasm    # 1.0.0, for the upgrade + migrate test
+├── Cargo.toml, Cargo.lock, rust-toolchain.toml
+├── package.json                 # for the scripts (near-api-js)
+├── README.md, SECURITY.md
+└── .github/workflows/ci.yml     # fmt · clippy · unit+property tests; reproducible wasm; sandbox + adversarial; deploy + verify-near on a fresh near-sandbox; secret scan
 ```
 
-**`Makefile`** — the entire interface you need:
-
-```makefile
-NETWORK ?= monad_testnet          # alias from foundry.toml [rpc_endpoints]
-
-build:            forge build
-test:             forge test -vvv
-coverage:         forge coverage --report summary
-snapshot:         forge snapshot
-export:           node scripts/export-abis.mjs       # src + config → export/
-drift:            node scripts/check-param-drift.mjs $(NETWORK)  # deployed values vs config, exit 1 on a difference
-
-deploy:           ## NETWORK=monad_testnet make deploy   (VERIFY=1 to verify)
-	forge script script/Deploy.s.sol:Deploy --rpc-url $(NETWORK) --broadcast $(VERIFY_FLAG) -vvv
-	node scripts/write-deployment.mjs $(NETWORK)
-
-deploy-local:     NETWORK=anvil  $(MAKE) deploy
-deploy-testnet:   NETWORK=monad_testnet $(MAKE) deploy
-deploy-mainnet:   ## requires typing the chain id to confirm
-	@echo "MAINNET deploy. Type the chain id to confirm:"; read -r c; \
-	 [ "$$c" = "143" ] || { echo aborted; exit 1; }
-	NETWORK=monad $(MAKE) deploy
-
-publish:          make export && cd export && npm version patch && npm publish
-```
-
-This is a summary; the real `Makefile` also has `install`, `test-ci`, `fmt`,
-`lint`, `secrets`, `verify-erc8004`, `verify` and `clean`. `make drift` was
-listed from the first commit but the script did not exist until 2026-09-29.
-
-You only ever run `make deploy-testnet` and `make publish`. I write everything
-they call. There is one `deploy` target, parameterised by network — not one
-target per network that drifts apart.
+Mainnet is refused by every script. The upgrade procedure (`version`,
+`migrate` in the redeploy batch) is in the contracts `README.md`.
 
 ---
 
-## 2. `agentx-backend`
+## 2. `pactora-backend-near`
 
-pnpm monorepo. Live since 2026-10-07 on one Vultr VPS (Docker Compose, Caddy
-for HTTPS) at `https://api.64-177-41-175.sslip.io`. Contains the Postgres
-migrations and all long-running processes. There is no Redis.
+pnpm monorepo: the REST API, the signer and keeper, the indexer, the
+notifier, the chat channels, the demo agents and the MCP server, plus the
+packages they share. Postgres is the only store; there is no Redis.
 
 ```
-agentx-backend/
+pactora-backend-near/
 ├── apps/
-│   ├── api/          Fastify REST + SSE
-│   ├── indexer/      chain events → Postgres
-│   ├── signer/       cap check + keystore sign + broadcast; the keeper (keeper.ts)
-│   ├── mcp/          MCP server (agent-facing tools)
-│   └── agents/
-│       ├── orchestrator/
-│       ├── research-bot/
-│       ├── trading-bot/
-│       └── execution-bot/
+│   ├── api/          Fastify REST + SSE; people's sessions, listings, evidence, reviews, admin
+│   ├── signer/       function-call-key custody, caps, NEP-413; the keeper (src/keeper.ts) sends the four exits
+│   ├── indexer/      contract events → Postgres
+│   ├── notifier/     webhooks, email, in-app notifications
+│   ├── channels/     Telegram
+│   ├── agents/       orchestrator/, research-bot/, trading-bot/, execution-bot/
+│   └── mcp/          stdio MCP server, 25 tools (src/tools.ts)
 ├── packages/
+│   ├── agent-core/   brains, prompts, judge, worker loop, orchestrator
+│   ├── compliance/   sanctions lists and name matching
 │   ├── config/       THE import for chain facts, params, addresses
-│   ├── shared/       zod schemas, JobSpec/JobResult, error codes, validateShape
 │   ├── db/           Drizzle schema + migrations
+│   ├── near/         NEAR RPC helpers (blocks, calls, views)
 │   ├── sdk/          the typed client every agent uses
-│   └── agent-core/   brains, prompts, judge, worker loop, orchestrator
-├── docs/README.md    pointer: the specification moved to agentx-docs (2026-10-06)
-├── PLAN.md           the task plan
-├── PROGRESS.md       the running build log
-├── scripts/          e2e, demo, keeper-sweep, verify-indexer, verify-keystore,
-│                     check-no-secrets
-├── deploy/vps/       the live deployment: compose override, Caddyfile, bootstrap, daily backup.sh
-├── deploy/railway/   per-service Railway configs (the earlier plan; not used)
-├── docker-compose.yml        # local postgres :5442 only
-├── pnpm-workspace.yaml
-├── .env.example
+│   ├── service/      service plumbing: env, http, metrics, netguard, secretbox, shutdown, webhook signatures, build info
+│   ├── shared/       zod schemas, JobSpec/JobResult, error codes
+│   └── storage/      evidence object storage (S3-compatible)
+├── chain/            committed copy of the contracts repo's config/ and deployments/; CI checks drift (scripts/sync-chain-facts.mjs)
+├── deploy/
+│   ├── vps/          the live deployment: docker-compose.vps.yml, Caddyfile, bootstrap-ubuntu.sh, backup.sh + backup-lib.sh, restore-test.sh, alerts.sh, switch-to-v3.sh, README.md
+│   ├── near-sandbox/ Dockerfile + entrypoint.sh: a local NEAR node for the full compose stack
+│   └── railway/      the Monad-era plan; not used
+├── scripts/          local-up, demo, probe-api, live-ui-stack, test-startup, sanctions-refresh, sync-chain-facts, check-no-secrets; lib/ (near.mjs, throwaway.mjs); video/ (record, overlay, make-video)
+├── docs/             pointer: the specification lives in pactora-docs-near
+├── Dockerfile        one image, `SERVICE` build argument
+├── docker-compose.yml        local Postgres only
+├── docker-compose.full.yml   every app, for the VPS and for the live UI stack
+├── PLAN.md, PROGRESS.md, CHANGELOG.md, CONTRIBUTING.md, SECURITY.md
+├── pnpm-workspace.yaml, vitest.config.ts, eslint.config.js
+├── .env.example      never .env
 └── .github/workflows/ci.yml
 ```
 
-> **The specification lives in `agentx-docs`** (since 2026-10-06). Until
-> 2026-09-25 the docs, the plan and the build log were in no repository at all;
-> they then went into this repo, and on 2026-10-06 the docs moved, history
-> included, to their own public repo. The plan and the build log stay here.
-
-**Live deployment:** every app runs as a container on one VPS, from
-`docker-compose.full.yml` plus `deploy/vps/docker-compose.vps.yml` (Postgres
-and the API publish no port; Caddy alone listens on 80/443; the signer stays
-on the private compose network, with no port). Steps: [docs/13 §5](13-deploy.md).
-The Railway layout below was the original plan; its configs are kept in the
-repo, but Railway is no longer used (its trial expired).
-
-Each app is a separate Railway service off the same repo, built from the one
-`Dockerfile` with a `SERVICE` build variable and a config file in
-`deploy/railway/`. The full runbook, variables included, is
-[docs/13](13-deploy.md).
-
-| Railway service | `SERVICE` | Config | Notes |
-|---|---|---|---|
-| `api` | `@pactora/api` | `api.json` | public, has a domain; runs migrations before each deploy |
-| `signer` | `@pactora/signer` | `signer.json` | **private networking only**; needs `SIGNER_TOKEN` (shared with `api`) to listen beyond loopback, and `SIGNER_HOST=::` on Railway; runs the keeper when `KEEPER_PRIVATE_KEY` is set |
-| `indexer` | `@pactora/indexer` | `indexer.json` | no public port |
-| workers | e.g. `@pactora/research-bot` | `worker.json` | optional; no public port |
-| Postgres | Railway plugin | | |
-
-The images build from this repo alone: the chain facts come from `chain/`, a
-committed copy of `agentx-contracts` that CI checks for drift
-(`scripts/sync-chain-facts.mjs`).
-
-There is no Redis service: one was provisioned early and nothing ever used it
-(see the comment in `docker-compose.yml`).
-
-Filters take the **package name**, not the directory — `--filter api` matches
-nothing.
-
-`mcp` is **not** a Railway service: it speaks MCP over stdio, so a client
-spawns it rather than calling it over HTTP. Hosting it would mean building a
-transport it does not have.
-
-`signer` must not be exposed publicly. Railway private networking only; the
-API reaches it at its internal hostname and presents `SIGNER_TOKEN`. Without
-a token, the signer binds to `127.0.0.1` and would not be reachable from
-another Railway service at all.
+**Start here:** `PROGRESS.md` — current state, blockers, decisions, and the
+cold-start section. Filters take the **package name**, not the directory —
+`--filter api` matches nothing. `mcp` is not a hosted service: it speaks MCP
+over stdio, so a client spawns it. `signer` listens on the private compose
+network only and is never published.
 
 ---
 
-## 3. `agentx-interface`
+## 3. `pactora-interface-near`
 
-Next.js 15. Live on Vercel at `https://agentx-interface-iota.vercel.app`,
-auto-deployed from `master`. It never signs a
-protocol transaction and never holds a key beyond the visitor's own wallet
-connection. Its one chain write is the owner's ERC-8004 registration, signed
-in the browser; it then calls `POST /v1/agents` with the new id.
+Next.js (App Router). Every route is a `page.tsx` under `app/`; the list
+below is the tree as of 2026-11-09. The interface never holds a protocol key:
+people sign with their own NEAR wallet (NEP-413 for sign-in, a transaction
+for on-chain actions), agents act through the API.
 
 ```
-agentx-interface/
+pactora-interface-near/
 ├── app/
-│   ├── page.tsx                  home: start a run, live run trace
-│   ├── agents/page.tsx           marketplace
-│   ├── agents/[id]/page.tsx      agent profile
-│   └── register/page.tsx         register an agent; passes chainAgentId
-│                                 from the Registered event to the API
+│   ├── page.tsx                      home: start a run, live run trace
+│   ├── about/  contact/  fees/  privacy/  terms/  risks/
+│   ├── docs/                         docs, api, build-an-agent, concepts, faq, guides, mcp, people, quickstart, security
+│   ├── agents/                       marketplace; agents/[id] profile; agents/[id]/manage
+│   ├── people/                       public profiles; people/[id]
+│   ├── jobs/                         jobs list; jobs/[id]; jobs/new; jobs/listing/[id]
+│   ├── runs/                         runs list; runs/[id]
+│   ├── register/  join/  signin/  me/  notifications/
+│   ├── kyc/simulated/                the labelled testnet identity check
+│   ├── admin/                        the admin console and the DAO dispute desk
+│   ├── demo/  status/
+│   ├── layout.tsx, template.tsx, error.tsx, global-error.tsx, not-found.tsx
+│   └── manifest.ts, robots.ts, sitemap.ts, icon.svg, opengraph-image.tsx, twitter-image.tsx, apple-icon.tsx
 ├── components/
-│   ├── RunTrace.tsx              the live trace, incl. `retrying` events
-│   └── NetworkBadge.tsx
-├── lib/
-│   ├── api.ts                    hand-written typed client for agentx-backend
-│   └── wallet.ts                 viem + EIP-1193 (no wagmi)
-├── scripts/check-api-contract.mjs  checks a running API still returns
-│                                   every field the interface reads
+│   ├── RunTrace.tsx, StepList.tsx, TrustCard.tsx, ReviewProof.tsx, NetworkBadge.tsx, SiteHeader.tsx, ModelNotice.tsx, RouteFocus.tsx
+│   └── brand/  docs/  info/  landing/  market/  search/  ui/
+├── lib/                              api.ts (typed client), api-routes.ts, near.ts, wallet.ts, session.tsx, csp.mjs, market.ts, search.ts, review.ts, evidence.ts, kyc.ts, notifications.ts, profiles.ts, fees.ts, … with their unit tests beside them
+├── e2e/                              Playwright against mock-api.mjs: a11y, admin, audit, channels, connect, delivery, edge, guides, identity, jobs, notifications, people, profiles, search, smoke, user-agents
+├── e2e-live/                         live.spec.ts against the real stack
+├── scripts/                          check-api-contract.mjs, screenshots.mjs, brand.mjs
+├── public/  assets/  docs/
+├── playwright.config.ts, vitest.config.mts, next.config.mjs, eslint.config.mjs
 ├── .env.example
 └── .github/workflows/ci.yml
 ```
 
----
-
-## 4. How code crosses repo boundaries
-
-> **As built (2026-09-29): nothing is published.** The backend reads the
-> contracts repo as a sibling checkout (`PACTORA_CONTRACTS_ROOT`, default
-> `../agentx-contracts`): `config/`, `deployments/` and `export/abis/`. The
-> interface does not import any `@pactora/*` package; `lib/api.ts` is a
-> hand-copied view of the API, guarded by `scripts/check-api-contract.mjs`
-> against a running API. Decision D1 chose a git dependency over GitHub
-> Packages for when one is published. The plan below is the intent.
-
-Planned approach: **publish npm packages**, semver. No git submodules, no
-copy-paste, no `file:` links.
-
-```
-agentx-contracts ──publishes──▶ @pactora/contracts   ABIs + networks + deployments
-                                       │
-                                       ▼
-                                @pactora/config      validated, frozen, one import
-                                       │
-                 ┌─────────────────────┴─────────────────────┐
-                 ▼                                           ▼
-        agentx-backend ──publishes──▶ @pactora/shared ──▶ agentx-interface
-                                      (JobSpec, JobResult,
-                                       error codes, API types)
-                        └──publishes──▶ @pactora/sdk  ──▶ agents, interface
-```
-
-Dependency direction is strictly one-way: `contracts → config → shared → sdk`.
-Nothing can form a cycle.
-
-### `@pactora/contracts`
-
-Generated by `make export`. Contains no Solidity — only what consumers need,
-keyed by chain ID so nothing is ever "the" network:
-
-```ts
-// export/index.d.ts, as generated
-export declare const TaskEscrowAbi, StakeVaultAbi, AgentAccountAbi,
-  AgentAccountFactoryAbi, MockUSDCAbi,
-  MockIdentityRegistryAbi, MockReputationRegistryAbi: Abi
-export declare const networks: Record<string, unknown>   // config/networks.json
-export declare const deployedChainIds: number[]          // from deployments/
-```
-
-There is no `AgentRegistry` or `ReputationRegistry` ABI: those fallback
-contracts were never built, and ERC-8004's registries are used instead.
-
-The `startBlock` in `deployments/<chainId>.json` is why the indexer never
-scans from genesis.
-Full design: [08 — Configuration Architecture](08-configuration.md).
-
-### `@pactora/shared`
-
-Zod schemas and the types derived from them. One definition of `JobSpec`, used
-by the API for validation, by agents for construction, and by the interface for
-display.
-
-### Release rules
-
-- Semver. ABI change → **minor** before launch, **major** after.
-- The ABI freezes 2026-09-28 ([roadmap M1](05-roadmap.md#4-m1--contracts--sep-2528)).
-  After that, a change requires a written reason and a version bump across all
-  three repos.
-- Consumers pin exact versions. No `^` ranges on a 21-day clock.
-
-### The escape hatch
-
-Publishing to GitHub Packages needs a token and about twenty minutes of setup.
-If that blocks on day one, the fallback is: `agentx-contracts` commits
-`export/` and both consumers install it as a git dependency
-(`github:you/agentx-contracts#v0.1.0`). Same versioning, zero registry setup.
-Decide this on **Sep 23**, not later.
+Routes: `/`, `/about`, `/admin`, `/agents`, `/agents/[id]`,
+`/agents/[id]/manage`, `/contact`, `/demo`, `/docs`, `/docs/api`,
+`/docs/build-an-agent`, `/docs/concepts`, `/docs/faq`, `/docs/guides`,
+`/docs/mcp`, `/docs/people`, `/docs/quickstart`, `/docs/security`, `/fees`,
+`/jobs`, `/jobs/[id]`, `/jobs/listing/[id]`, `/jobs/new`, `/join`,
+`/kyc/simulated`, `/me`, `/notifications`, `/people`, `/people/[id]`,
+`/privacy`, `/register`, `/risks`, `/runs`, `/runs/[id]`, `/signin`,
+`/status`, `/terms` — 37 pages.
 
 ---
 
-## 5. Standard conventions (all three repos)
+## 4. `pactora-docs-near`
 
-Nothing bespoke. If a tool has a documented default, we use it.
+This repo: the numbered specification in `docs/` (00–27 plus `STATUS.md`),
+`docs/deck/` (the `.pptx` and its build script), `docs/video/`,
+`docs/launch/` (announcement, terms, privacy), `docs/brand/`, and
+`scripts/check-env-docs.mjs` (`pnpm check:env`), which checks that every
+variable in the sibling repos' `.env.example` files is documented in
+docs/08. Deliverables are files committed here, never hosted pages.
+
+---
+
+## 5. How code crosses repo boundaries
+
+Nothing is published. The backend reads the contracts repo's `config/` and
+`deployments/` as a sibling checkout and keeps a committed copy in `chain/`
+that CI compares (`scripts/sync-chain-facts.mjs`). The interface imports no
+`@pactora/*` package; `lib/api.ts` is a hand-written view of the API, guarded
+by `scripts/check-api-contract.mjs` against a running API. Inside the backend
+`shared` is the root package: `config`, `near` and `sdk` depend on it, and
+`agent-core` on `sdk` (from the packages' `package.json`); `db`, `storage`,
+`compliance` and `service` sit beside them. No cycles.
+
+---
+
+## 6. Conventions (all repos)
 
 | Area | Convention |
 |---|---|
-| Branching | **`master` only, direct commits.** The branch-and-PR convention below was written for a team; with one person and an assistant it added ceremony and no review, so it was dropped rather than pretended at. |
-| Commits | [Conventional Commits](https://www.conventionalcommits.org): `feat:`, `fix:`, `chore:`, `docs:`, `test:` |
-| Versioning | Semver, tagged `v0.1.0` |
-| TS config | `strict: true`, `noUncheckedIndexedAccess: true` |
-| Lint / format | Prettier defaults (`format:check` in CI). ESLint in backend and interface (`eslint.config.*`, `pnpm lint` in CI). An earlier `lint` script had no config behind it and was removed; the real one came later. TypeScript strict, `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` carry the weight. |
-| Solidity style | [Official Solidity style guide](https://docs.soliditylang.org/en/latest/style-guide.html), `forge fmt` |
-| NatSpec | Every external function on every contract |
-| Env | `.env.example` committed with empty values; `.env` gitignored everywhere |
-| CI | GitHub Actions on `ubuntu-24.04`, actions on their Node 24 majors. contracts: fmt, build, test, coverage, gas snapshot. backend: typecheck, lint, format, secret scan always; the suite needs a Postgres service **and** the contracts checkout, and all repos are public, so `github.token` is enough. interface: typecheck, lint, format, unit tests, build, Playwright. |
-| PRs | **Not used.** 27 commits straight to `master` (named `main` until 2026-10-06). The commit messages carry the reasoning a PR description would. |
-| Changelog | **None.** No repo has one. `PROGRESS.md` is the real change log, and two logs disagree the moment one is forgotten. |
+| Branching | `master`, with `human-work` the working branch for the people features; direct commits, no PRs |
+| Commits | Conventional Commits: `feat:`, `fix:`, `chore:`, `docs:`, `test:` |
+| TS config | `strict: true`, `noUncheckedIndexedAccess: true`, `exactOptionalPropertyTypes` |
+| Lint / format | Prettier defaults; ESLint in backend and interface; `cargo fmt` and `clippy -D warnings` in contracts |
+| Env | `.env.example` committed with empty values; `.env` gitignored everywhere; secrets never in a doc, log or commit |
+| CI | GitHub Actions on `ubuntu-24.04`. contracts: fmt, clippy, unit + property tests, reproducible wasm, sandbox + adversarial, live verify-near, secret scan. backend: `static` (typecheck, lint, format, secret scan, `pnpm audit`), `test` (chain-facts drift check, build, migrate, coverage, startup test against a Postgres service), `images` (the Docker image builds, carries the commit, runs as non-root). interface: typecheck, lint, format, unit tests, build, Playwright |
+| Changelog | the backend has `CHANGELOG.md`; `PROGRESS.md` is the running log everywhere |
 
 ---
 
-## 6. What changes in the existing docs
+## Monad baseline (what this file described until 2026-11-09)
 
-[03-tech-stack §2](03-tech-stack.md#2-repository-layout) describes a single
-monorepo. **This document supersedes it.** The technology choices in 03 are
-unchanged; only the layout differs.
-
-The milestones in [05-roadmap](05-roadmap.md) are unchanged — M1 is
-`agentx-contracts`, M2 is `agentx-backend`, M4 is `agentx-interface`. The split
-adds one task to M0: publish `@pactora/contracts` v0.0.1 and install it in both
-consumers, so the wiring is proven before there is anything real to wire.
-
-**Cost of the split, stated honestly:** roughly half a day of extra setup, and
-every ABI change becomes publish → bump → install in two places instead of a
-single save. That is the price of contracts never entering a hosting provider's
-build container, and on this project it is worth paying.
+The Monad repos `agentx-contracts`, `agentx-backend`, `agentx-interface` and
+`agentx-docs` (now under `monad/`, untouched until after 2026-11-14) had the
+same four-way split. `agentx-contracts` was Foundry: `src/` with
+`TaskEscrow.sol`, `StakeVault.sol`, `AgentAccount.sol` and its factory,
+`script/Deploy.s.sol`, `test/` unit and invariant suites, a `Makefile`
+(`make deploy-testnet`, `make export`), `config/params.10143.json`,
+`deployments/10143.json` and an `export/` of ABIs. `agentx-backend` had apps
+`api`, `indexer`, `signer` (with the keeper), `mcp` and `agents`, packages
+`config`, `shared`, `db`, `sdk`, `agent-core`, and per-service Railway
+configs in `deploy/railway/` that were superseded by the VPS compose files.
+`agentx-interface` had four routes (`/`, `/agents`, `/agents/[id]`,
+`/register`) and signed the owner's ERC-8004 registration in the browser.
+That history is in the Monad repos and in `monad/agentx-backend/PROGRESS.md`.

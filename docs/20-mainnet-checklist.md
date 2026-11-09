@@ -1,5 +1,23 @@
 # 20 — Mainnet launch checklist
 
+> **Monad baseline, 2026-10; the NEAR mainnet procedure is not written
+> (2026-11-09).** The items below — `make …`, `check-launch.mjs`,
+> `verify-kms.mjs`, `check-config.mjs`, `check-param-drift.mjs`,
+> `verify-v3.mjs`, `SESSION_MANAGER_KMS_KEY_ID`, `ENABLED_CHAIN_IDS`,
+> `deployments/143.json`, USDC on Monad — are the Monad (AgentX v3)
+> checklist; none of those scripts or variables exist in the NEAR repos. A
+> Pactora mainnet on NEAR would need, at least: a `near:mainnet` entry in
+> `pactora-contracts-near/config/networks.json` and a
+> `config/params.mainnet.json`; a deploy through the contracts README's
+> flow (`create-dao.mjs`, `deploy.mjs`, `verify-near.mjs` — every script
+> refuses mainnet today) that writes `deployments/mainnet.json`, synced
+> into the backend's `chain/`; the backend on `ENABLED_CHAINS=near:mainnet`
+> (`RPC_URL_MAINNET` if not the public RPC); the signer on
+> `SIGNER_KMS_KEYS` and `KEEPER_KMS_KEY_ID` with AWS KMS
+> `ECC_NIST_EDWARDS25519` keys (`apps/signer/src/kms.ts`); and a checklist
+> written for that. **Standing rule: testnet only.** Any mainnet action
+> needs the owner's explicit confirmation, per action.
+
 Nothing in v3 has been sent to Monad mainnet (143), and nothing should be
 until every box below is ticked by the owner. Each item says **why** it is
 there and **how to verify** it — a box is ticked by evidence, not by intent.
@@ -41,7 +59,7 @@ none should be a key from `.env`.
 | 🧑‍💻 | `ARBITER_ROLE` | A Safe — ideally with signers outside the operator, so the party that runs the service is not the only judge | `hasRole`; the deployer must NOT hold it (as on testnet) |
 | 🧑‍💻 | `CONFIGURER_ROLE` | The admin Safe | `hasRole` |
 | 🧑‍💻 | `feeRecipient`, `slashRecipient` | Safe addresses | `config()` / vault config on chain |
-| 🧑‍💻 | Signer keys (agents' session keys) | **AWS KMS**, `ECC_SECG_P256K1` — built (`apps/signer/src/kms.ts`, `SIGNER_KMS_KEYS`); raw keys and a single shared keystore are refused off testnet. 🧑‍💻 create the keys (docs/21 §2) | `verify-kms.mjs` with `VERIFY_KMS_KEY_ID`; the signer logs `aws-kms` on 143 |
+| 🧑‍💻 | Signer keys (agents' session keys) | **AWS KMS**, `ECC_NIST_EDWARDS25519` (**corrected 2026-11-09**, was `ECC_SECG_P256K1`: NEAR is ed25519) — built (`apps/signer/src/kms.ts`, `SIGNER_KMS_KEYS`); raw keys and a single shared keystore are refused off testnet. 🧑‍💻 create the keys (docs/21 §2) | `verify-kms.mjs` with `VERIFY_KMS_KEY_ID`; the signer logs `aws-kms` on 143 |
 | 🧑‍💻 | Keeper and renewer | `KEEPER_KMS_KEY_ID`, `SESSION_MANAGER_KMS_KEY_ID` — built; raw keys refused off testnet. The renewer is each hosted account's session manager, never its owner (docs/22 F1) | the signer's startup log |
 
 ## 4. Deploy

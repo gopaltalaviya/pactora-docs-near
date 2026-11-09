@@ -10,13 +10,16 @@ in [08 §5](08-configuration.md#5-environment-variables--secrets-and-wiring-only
 the HTTP API is [15 — API](15-api.md).
 
 Written 2026-09-30 from the code at the commit that adds it, and written
-against a planned Railway deployment. **Since 2026-10-07 the hosted
-deployment is one Vultr VPS** (Docker Compose behind Caddy, API at
-`https://api.64-177-41-175.sslip.io`) with the site on Vercel
-(`https://agentx-interface-iota.vercel.app`); Railway is no longer used (its
-trial expired). Where a section below says "Railway", read it as the original
-plan; the VPS specifics are in [13 §5](13-deploy.md#5-a-single-vps-the-live-deployment)
-and [§8](#8-backup-and-disaster-recovery).
+against a planned Railway deployment. From 2026-10-07 the Monad (AgentX)
+deployment was one Vultr VPS (Docker Compose behind Caddy, API at
+`https://api.64-177-41-175.sslip.io`) with the site on Vercel; Railway was
+never used past its trial. **Status 2026-11-09:** that VPS was retired on
+2026-11-06 and no Pactora-on-NEAR backend is hosted yet. Where a section
+below says "Railway", read it as the original plan; where it says "live" or
+"VPS", read it as the Monad server. The hosting recipe for the NEAR stack is
+`pactora-backend-near/deploy/vps/README.md`
+([13 §5](13-deploy.md#5-a-single-vps-the-live-deployment) summarises it);
+sections re-checked against the NEAR code on 2026-11-09 say so in place.
 
 **Not applicable to Pactora**, so not covered: Redis or any cache/queue (none —
 see `docker-compose.yml`), WebSockets (live updates are SSE), a subgraph (the
@@ -27,20 +30,26 @@ indexer is our own), trading, markets or price charts.
 ## 1. Architecture and data flow
 
 ```
-Monad testnet ──logs──▶ indexer ──▶ Postgres ◀── api ──HTTPS/SSE──▶ interface (Vercel) ──▶ browser
-      ▲                                ▲          │
-      └──────── signed txs ─── signer ─┘◀─token───┘     workers / orchestrator ──▶ api
-                     └─ keeper (exits that fell due)
+NEAR testnet ──final blocks (neardata)──▶ indexer ──▶ Postgres ◀── api ──HTTPS/SSE──▶ interface (Vercel) ──▶ browser
+      ▲                                                  ▲  ▲       │  └── MinIO (evidence)
+      └──────── signed txs ─── signer ───────────────────┘  │  ◀─token─┘     workers / orchestrator ──▶ api
+                     └─ keeper (exits that fell due)        └── notifier (webhooks), channels (Telegram/email)
 ```
+
+**Corrected 2026-11-09** (the table said `TaskEscrow` logs and listed five
+services): the NEAR stack in `docker-compose.full.yml` is
 
 | Service | Code | Role | Listens | Public? |
 |---|---|---|---|---|
-| api | `apps/api` | REST + SSE, runs the orchestrator in-process | `PORT` 8080 | **yes** — the only public service |
-| signer | `apps/signer` | holds agent keys, policy-checks and signs; keeper sweeps due exits | `SIGNER_PORT` 7070 | **never** — private network + `SIGNER_TOKEN` |
-| indexer | `apps/indexer` | polls `TaskEscrow` logs → `job_events`, projections | `INDEXER_HEALTH_PORT` (optional) | no |
-| workers | `apps/agents/*` | research/trading/execution bots, poll the API | — (x402 port optional) | no |
+| api | `apps/api` | REST + SSE, runs the orchestrator in-process | `PORT` 8080 | **yes** — the only public service (behind Caddy on the VPS) |
+| signer | `apps/signer` | holds the agents' wallet keys (encrypted in Postgres under `SIGNER_KEY_PASSPHRASE`), policy-checks and signs; keeper sweeps due exits; watches wallet balances | `SIGNER_PORT` 7070 | **never** — compose network + `SIGNER_TOKEN` |
+| indexer | `apps/indexer` | reads final blocks (neardata on testnet, RPC polling on the sandbox), decodes the `Pactora` and token contracts' events → `job_events`, `token_transfers`, projections | `INDEXER_HEALTH_PORT` 9090 | no |
+| notifier | `apps/notifier` | delivers webhooks (`webhook_deliveries`), shares `WEBHOOK_SECRET_KEY` with the api | `NOTIFIER_HEALTH_PORT` 9091 | no |
+| channels | `apps/channels` | Telegram and email outbox; off unless `TELEGRAM_BOT_TOKEN` is set | `CHANNELS_HEALTH_PORT` 9092 | no |
+| workers | `apps/agents/*` | research/trading/execution bots, poll the API (`--profile hosted`) | — | no |
 | mcp | `apps/mcp` | stdio MCP server for an LLM client | stdio | not deployed |
-| Postgres 16 | `packages/db` | all state; migrations in `packages/db/migrations` | 5432 | no |
+| Postgres 16 | `packages/db` | all state; migrations in `packages/db/migrations` | 5432 in the compose network; host `5443` in the base file, **none** with the VPS overlay | no |
+| MinIO (pinned `cgr.dev/chainguard/minio`) | `minio`, `minio-setup` | evidence bucket `pactora-evidence`, SSE with `MINIO_KMS_SECRET_KEY` | 9000 in the compose network only | no |
 
 A hire: client → `POST /v1/jobs` → API writes the job, asks the signer →
 signer checks caps, takes a per-agent advisory lock, picks the nonce, signs,
@@ -69,11 +78,11 @@ Every field is classified: **public** (safe on the internet), **authenticated**
 
 | Endpoint | Service | Returns | Class |
 |---|---|---|---|
-| `GET /health` | api | `ok`, `chains[{chainId,name,testnet,escrow}]`, `defaultChainId`, `subscribers` (open SSE subscriptions), `orchestrator`, `build` | public |
+| `GET /health` | api | `ok`, `chains[{chainId,name,testnet,contract}]` (**corrected 2026-11-09**: the field is `contract`, the Pactora account id, not `escrow`; `chainId` is `near:testnet`), `defaultChainId`, `subscribers` (open SSE subscriptions), `orchestrator`, `build` | public |
 | `GET /ready` | api | 200/503, `checks.database.ok`, `checks.signer.ok` — **no error text** since 2026-09-30 (it used to echo the driver error, which names internal hosts) | public |
 | `GET /v1/status` | api | overall status, components, per-chain RPC + indexer lag, build — [15 §4](15-api.md#4-get-v1status) | public |
 | `GET /metrics` | api | Prometheus text | authenticated (`METRICS_TOKEN`); **not served** in production without one |
-| `GET /health` | signer | `ok`, `chainId`, `keys` (`raw`/`keystore` kind, never a key), `build` | internal |
+| `GET /health` | signer | `ok`, `chainId`, `keys` (the key source's kind — `dev-credentials-testnet-only`, `db-keystore`, joined with `+` when both; never a key), `wallets` (the balance watch's last snapshot: `checkedAt`, per-account readings, `anyLow`), `build` — **corrected 2026-11-09** (said `raw`/`keystore`; `apps/signer/src/app.ts`) | internal |
 | `GET /ready` | signer | `checks.database`, `checks.rpc`, with error text | internal |
 | `GET /metrics` | signer | Prometheus | internal (+ `METRICS_TOKEN` if set) |
 | `GET /health` | indexer | `ok`, `build` | internal |
@@ -99,7 +108,7 @@ One scheme, one source per kind of version:
 | **A running backend** | the **git commit** | `/app/build-info.json` in the image → `build.commit` on every `/health` and `/v1/status` | The commit is the release identity. Nothing else needs to be bumped to deploy |
 | HTTP API | `/v1` path prefix | `apps/api/src/routes/*` | Additive changes (new fields, routes, optional params) stay in `/v1`. Removing or changing the meaning of a field is a new prefix served alongside the old |
 | Database schema | ordered migration files | `packages/db/migrations`, ledger table `_migrations` | Forward-only; never rename or edit an applied file ([§7](#7-database-and-migrations)) |
-| Contracts | deployment | `deployments/<chainId>.json` → `commit`, `deployedAt`, `startBlock`; copied to `chain/` | A redeploy is new addresses and a new `startBlock`; `chain/` must be re-synced (CI fails otherwise) |
+| Contracts | deployment | `deployments/<slug>.json` (`testnet.json`, `sandbox.json`) → account ids, `startBlock`; copied to `chain/` | A redeploy is new account ids and a new `startBlock`; `chain/` must be re-synced (CI fails otherwise) |
 | Packages | `package.json` `version` | `0.0.1` in every backend package; `0.1.0` interface and contracts | Private and unpublished, so they carry no meaning today. `build.version` reports them for completeness |
 
 How the commit gets into the image: the Dockerfile's runtime stage takes
@@ -117,23 +126,26 @@ and nothing consumes them yet (owner decision, [17](17-production-readiness.md))
 
 ## 4. Environments and configuration
 
+**Corrected 2026-11-09** against `docker-compose.yml`, `docker-compose.full.yml`
+and `ci.yml`:
+
 | Environment | Chain | Database | How it runs | Config |
 |---|---|---|---|---|
-| **local dev** | anvil 31337 or Monad testnet 10143 | docker compose Postgres on `127.0.0.1:5442` (shared; the test suite TRUNCATEs it) | `pnpm dev`, scripts | `.env` (from `.env.example`) + `agentx-contracts` checkout |
-| **local production images** | 10143 | its own Postgres on `:5443`, own volume | `docker-compose.full.yml` | shell env; chain facts from `chain/` |
-| **CI** | none (unit + integration against Postgres) | service container `:5442` | `.github/workflows/ci.yml` | contracts repo checked out beside |
-| **testnet hosted** (live since 2026-10-07) | 10143 | Postgres container on the VPS, own volume, daily backup | one Vultr VPS (Docker Compose, Caddy) + Vercel, [13 §5](13-deploy.md#5-a-single-vps-the-live-deployment) | the server's `.env` (never committed); chain facts from `chain/` in the image |
-| **mainnet** (future) | 143 | separate | not built | `deployments/143.json` does not exist, so `ENABLED_CHAIN_IDS=143` refuses to boot. The signer refuses raw keys and the keeper refuses to start off-testnet |
+| **local dev** | `near:sandbox` (local node, `--profile sandbox`) or `near:testnet` | docker compose Postgres on `127.0.0.1:5443`, database `pactora_near`, user `pactora` (shared; the test suite TRUNCATEs it); MinIO on `127.0.0.1:9110` | `pnpm dev`, `pnpm demo`, scripts | `.env` (from `.env.example`) + `pactora-contracts-near` checkout |
+| **local production images** | `near:testnet` by default; `near:sandbox` with `RPC_URL_SANDBOX` | its own Postgres (`agentx`/`agentx`), own volume — **also published on host `:5443`**, so the dev stack and the full stack cannot run at the same time on one machine (a code issue in `docker-compose.full.yml`, not fixed; the VPS overlay removes the port) | `docker-compose.full.yml` | shell env; chain facts from `chain/` |
+| **CI** | none (unit + integration against Postgres; `test:startup` points every service at a closed port) | service container `:5443`, `pactora_near` | `.github/workflows/ci.yml` | `pactora-contracts-near` and `pactora-docs-near` checked out beside |
+| **testnet hosted** | `near:testnet` | Postgres container on the VPS, own volume, daily encrypted backup | one VPS (Docker Compose, Caddy) + Vercel — the recipe in `deploy/vps/README.md`; **not hosted today** (the Monad server was retired 2026-11-06) | the server's `.env` (never committed); chain facts from `chain/` in the image |
+| **mainnet** (future) | `near:mainnet` | separate | not built | no `near:mainnet` in `networks.json` and no `deployments/mainnet.json`, so `ENABLED_CHAINS=near:mainnet` refuses to boot (`✗ Pactora config invalid`). The signer refuses raw keys off testnet (AWS KMS, [docs/21](21-launch-runbook.md)). Testnet only; mainnet needs the owner's explicit per-action confirmation |
 
 **Which copy of a fact is authoritative** — the rule from docs/08, checked
 across the three repos on 2026-09-30:
 
 | Fact | Authoritative | Copies, and what keeps them honest |
 |---|---|---|
-| Network facts (chain id, RPC, explorer, confirmations) | `agentx-contracts/config/networks.json` | `agentx-backend/chain/config/` — byte copy, `sync-chain-facts.mjs --check` in CI. The interface reads them at runtime from `GET /v1/network` |
-| Protocol parameters | `agentx-contracts/config/params.<id>.json` | `chain/config/`, same check; on-chain values checked by `make drift` in the contracts repo (manual) |
-| Contract addresses | `agentx-contracts/deployments/<id>.json` (generated) | `chain/deployments/` (same check); served by `/health` and `/v1/network`; `check-deployment.mjs` compares the live API with `chain/` |
-| RPC override | `RPC_URL_<chainId>` env, per service (api, signer, indexer) | must be set on each service that reads chain state; never served (`/v1/network` publishes the public URLs only) |
+| Network facts (CAIP-2 id, RPC, block source, explorer) | `pactora-contracts-near/config/networks.json` | `pactora-backend-near/chain/config/` — byte copy, `sync-chain-facts.mjs --check` in CI. The interface reads them at runtime from `GET /v1/network` |
+| Protocol parameters | `pactora-contracts-near/config/params.<slug>.json` | `chain/config/`, same check; on chain, `get_params` on the Pactora account (no drift script on NEAR — Monad's `make drift` has no equivalent) |
+| Contract account ids | `pactora-contracts-near/deployments/<slug>.json` (generated by `scripts/deploy.mjs`) | `chain/deployments/` (same check); served by `/health` (`chains[].contract`) and `/v1/network`. Compare by eye — Monad's `check-deployment.mjs` has no NEAR equivalent (2026-11-09) |
+| RPC override | `RPC_URL_<SLUG>` env (`RPC_URL_TESTNET`, `RPC_URL_SANDBOX`), per service (api, signer, indexer; one value in the compose `x-chain` block) | must be set on each service that reads chain state; never served (`/v1/network` publishes the public URLs only). The indexer's block source is `networks.json`'s `blockSource` (neardata); `NEARDATA_API_KEY` raises its rate limit |
 | API URL | `NEXT_PUBLIC_API_URL` on Vercel (build time) | `CORS_ORIGINS` on the API must name the site; `PACTORA_API_URL` for workers |
 | Secrets | `.env` (locally, and the server's `.env` on the VPS) | none — `.env.example` has names only |
 
@@ -172,6 +184,13 @@ schema on 2026-09-30 and brought up to date (it was missing 17 names).
 | `indexer_ticks_total` | indexer | `chain`, `outcome` |
 | `indexer_last_success_seconds` | indexer | `chain` |
 | `indexer_head_block`, `indexer_indexed_block`, `indexer_lag_blocks` | indexer (added 2026-09-30) | `chain` |
+| `signer_wallet_balance` (gauge, NEAR) | signer (added with the wallet watch; `apps/signer/src/main.ts`) | `address`, `role` |
+| `keeper_backlog_age_seconds` (gauge; 0 = none) | signer (keeper, `apps/signer/src/keeper.ts`) | — |
+| `webhook_deliveries_total` | notifier | `outcome` |
+| `channel_messages_total` | channels | `outcome` |
+
+(The four rows above were added 2026-11-09 from the code; the names were
+grep'd from `metrics.counter(` / `metrics.gauge(` calls.)
 
 - **Escalating logs:** the indexer logs `warn` per failed tick and `error`
   ("indexer is failing") from the fifth consecutive failure.
@@ -215,12 +234,31 @@ digests and every evidence object's hash matched); not yet run on a server.
 | `components.rpc == "down"` 10 min | uptime monitor | SEV2 | owner | [R5](16-runbooks.md#r5-rpc-down-or-rate-limited) |
 | `rate(signer_refusals_total{code="INTERNAL"}[10m]) > 0` | metrics | SEV3 | owner | [R6](16-runbooks.md#r6-recover-a-failed-service) |
 | `rate(http_request_duration_seconds_count{status=~"5.."}[5m])` > 1% of requests | metrics | SEV3 | owner | read logs by `traceId` |
-| `keeper_exits_total{outcome="failed"}` increasing | metrics | SEV3 — expired jobs not exited; check keeper MON balance | owner | [R9](16-runbooks.md#r9-rotate-secrets-and-keys) |
-| Agent / keeper wallet MON low | **not monitored** — check before a demo | SEV3 | owner | fund from DEPLOYER |
+| `keeper_exits_total{outcome="failed"}` increasing, or `keeper_backlog_age_seconds` growing | metrics; `alerts.sh` check 5 (jobs past a deadline) | SEV3 — expired jobs not exited; check the keeper account's NEAR balance | owner | [R9](16-runbooks.md#r9-rotate-secrets-and-keys) |
+| Agent / keeper wallet NEAR low | **monitored** (corrected 2026-11-09, was "not monitored"): the signer's wallet watch → `signer_wallet_balance` per account, `/v1/status` `gas.state: "low"` (below `WALLET_LOW_BALANCE_YOCTO`; status is then `degraded` even with every component up), `alerts.sh` check 3 | SEV3 | owner | fund from the deployer account |
 
 The owner is the project owner for every row: there is one person on call.
 
 ## 6. Indexer lifecycle
+
+> **Monad baseline, 2026-09; the NEAR indexer differs (checked
+> 2026-11-09, `apps/indexer/src/`).** It reads **final blocks only**, in
+> order, from the network's `blockSource` (neardata on testnet, RPC polling
+> on the sandbox), at most 50 blocks per tick (`MAX_BLOCKS_PER_TICK`), one
+> tick per `INDEXER_POLL_MS` (2 s), backing off to `INDEXER_MAX_BACKOFF_MS`
+> (60 s) on failure. Final blocks do not reorg, so there is **no rewind and
+> no confirmation depth**: every block must name the previous one as its
+> parent, and one that does not halts the worker at that block
+> (`ChainLinkError`, logged `indexer halted: block does not follow the
+> cursor`) — a wrong source or a bug, not a reorg. The cursor row is
+> `indexer_cursor (chain_id text 'near:testnet', contract 'Pactora')` →
+> `last_block`, `last_block_hash`, `updated_at`, written in the same
+> transaction as the batch. `INDEXER_START_AT_HEAD=1` seeds a **first** cursor
+> at the final head (an existing cursor is never moved). Idempotency keys are
+> `job_events (chain_id, receipt_id, log_index)`, `token_transfers` likewise,
+> `payments (chain_id, tx_hash, job_id)`. The bullets below (`eth_getLogs`,
+> `maxLogRange`, reorg rewinds, `TaskEscrow`, ERC-8004) describe the Monad
+> indexer; procedures are [16 R3–R5](16-runbooks.md#r3-indexer-stopped-or-behind).
 
 - **Cursor:** `indexer_cursor (chain_id, contract)` → `last_block`,
   `last_block_hash`, `updated_at`. A first start with no cursor begins at the
@@ -249,8 +287,14 @@ The owner is the project owner for every row: there is one person on call.
   one success resets it. An RPC error during the reorg check is a failed tick,
   not a halt.
 - **Chain → UI:** chain events → `job_events` / `jobs` / `payments` /
-  `agent_stats` → API reads → interface. Indexer events are **not** pushed on
-  SSE live (separate process, no bus); they appear on reconnect or refetch.
+  `agent_stats` → API reads → interface. **Corrected 2026-11-09** (this said
+  indexer events are not pushed live): since migration
+  `0009_events_notify.sql`, an `AFTER INSERT` trigger on `job_events` and
+  `run_events` does `pg_notify('agentx_events', {kind, topic, id})`; every
+  API instance LISTENs (`apps/api/src/live.ts`), loads the row and publishes
+  it on its SSE bus, so the indexer's events reach open streams live — as §1
+  says. Ids only, never the payload; a notify inside the indexer's
+  transaction is held until commit.
 - **Scope:** only `TaskEscrow` is indexed. ERC-8004 registrations are
   verified on demand by the API (`chainAgentId`), not indexed. Jobs created
   directly on the contract, not through the API, are logged and skipped.
@@ -281,6 +325,16 @@ Backfill, reindex and repair procedures: [16 R3–R4](16-runbooks.md#r3-indexer-
 | `0004_sweet_tusk` | nullable `api_keys.key_id` + unique index | as 0002 |
 | `0005_numerous_falcon` | `public_id uuid DEFAULT gen_random_uuid() NOT NULL` on `jobs` and `runs` + unique indexes | a **volatile default rewrites the table** under ACCESS EXCLUSIVE — seconds at thousands of rows; would need a batched backfill at millions |
 
+  **Count corrected 2026-11-09:** the table reviews the first seven files
+  (2026-09-30). `packages/db/migrations/` now holds **35** `.sql` files,
+  numbered `0000` through **`0022_sanctions_uk_source.sql`** (generated and
+  hand-written files share numbers on purpose — `README.md` there). The NEAR
+  port's `0011_near_network_keys.sql` retypes every `chain_id` from integer to
+  text (`near:<network>`, CHECKed) and `0012_near_receipt_ids.sql` re-keys
+  `job_events` on `receipt_id`; `0009_events_notify.sql` adds the live-event
+  triggers (§6). The later files have **not** had the downtime review above;
+  the additive rule has been kept by inspection, not re-verified.
+
   All of them are **additive**: the previous release's code runs against
   today's schema, which is what makes a code rollback safe. Future migrations
   should keep that property (add nullable, backfill, then constrain; never
@@ -303,38 +357,52 @@ Backfill, reindex and repair procedures: [16 R3–R4](16-runbooks.md#r3-indexer-
 
 ## 8. Backup and disaster recovery
 
-- **Daily backups on the VPS (since 2026-10-08).** `deploy/vps/backup.sh`
-  (in `agentx-backend`) runs from cron at 03:00 UTC: `pg_dump -Fc` of the live
-  database into `~/agentx/backups/`, verified with `pg_restore --list`, 7 days
-  kept. The local database is a dev volume the tests truncate and is not
-  backed up.
-- **Restore — verified.** A dump was restored into a throwaway Postgres
-  container on 2026-10-08 and its row counts matched the live database
-  (agents, jobs, runs, API keys). Steps: `deploy/vps/README.md` in
-  `agentx-backend`, and [16 R2](16-runbooks.md#r2-database-down): bring up
-  Postgres alone, `pg_restore --no-owner` into it, then start the services;
-  the indexer keeps its cursor and catches up.
-- **Backups live on the same server.** A copy off the server is not
-  automated; losing the VPS loses its backups too.
-- **Since 2026-11-08 (branch `human-work`, not yet on a server):**
-  `backup.sh` encrypts the dump and an archive of the evidence bucket
-  (AES-256, `openssl enc -pbkdf2`, a passphrase file kept off the server
-  too), decrypts each back to check it, and copies both to `BACKUP_REMOTE`
-  over scp, warning when that is unset. `restore-test.sh` (monthly) restores
-  the newest dump into a scratch database, compares the table count with
-  the live one and drops it. Each failure path — wrong passphrase,
-  truncated dump or archive, no backup, schema drift — was run locally and
-  failed the run. Steps: `deploy/vps/README.md`.
+- **Daily backups (corrected 2026-11-09; the plain `pg_dump -Fc` into
+  `~/agentx/backups/` with `pg_restore --list` was the Monad script, run on
+  the Monad VPS from 2026-10-08).** `deploy/vps/backup.sh` in
+  `pactora-backend-near` runs from cron at 03:00 UTC and writes
+  `pactora-db-<stamp>.dump.enc` (`pg_dump -Fc`) and
+  `pactora-evidence-<stamp>.tar.enc` (the MinIO bucket via `mc mirror`),
+  each **AES-256** (`openssl enc -aes-256-cbc -pbkdf2`, passphrase file
+  `~/.pactora-backup-pass`, chmod 600, a copy kept off the server) with an
+  **HMAC-SHA256** beside it (`<file>.hmac`, keyed from the passphrase under
+  its own label, `backup-lib.sh`). Each run verifies the HMAC, decrypts the
+  dump back and `pg_restore --list`s it (no tables = failed run), lists the
+  archive, copies all four files to `BACKUP_REMOTE` over scp (warns when
+  unset — a backup on the same disk dies with the disk) and keeps 7 days.
+  The local dev database is a volume the tests truncate and is not backed up.
+- **Restore** = `up -d --wait postgres`, `verify_hmac` the dump (stop if it
+  fails), `openssl enc -d … | pg_restore --no-owner --exit-on-error`, then
+  the evidence archive back into MinIO with `mc cp --enc-s3`, then `up -d`;
+  the indexer keeps its cursor and catches up. The exact commands:
+  `deploy/vps/README.md` ("Restore into a fresh database") and
+  [16 R2](16-runbooks.md#r2-database-down). **Checked locally 2026-11-08**
+  (backup → wipe → restore against the production images: 51 tables and 7
+  evidence objects restored; wrong passphrase, truncated dump, truncated
+  archive, empty directory, missing passphrase file and schema drift each
+  failed the run). The 2026-10-08 rehearsal was the Monad script.
+- **`restore-test.sh`** (monthly cron) verifies the newest dump's HMAC
+  before decrypting anything, restores it into a scratch database, fails if
+  the table count differs from the live one or the dump is over 48 h old,
+  counts the off-chain rows (agents, API keys, jobs, runs, evidence records,
+  profiles, signer keys) and the evidence objects, then drops the scratch.
+- **Not yet run on a server.** When it is, `BACKUP_REMOTE` must be set: with
+  it unset the backups live on the same host, and losing the VPS loses them.
 - **What can be rebuilt without a backup:** everything the indexer projects
   (job states, `payments`, `agent_stats`) can be re-derived from the chain for
   jobs whose rows exist. **What cannot:** agents' off-chain registrations
   (capabilities, prices, endpoints), API key hashes, job specs and results,
   run traces, the signer's nonce ledger. Losing the database means agents must
   re-register and receive new API keys.
-- **Keys** are not in the database: they are in the server's `.env`
-  (`SIGNER_DEV_PRIVATE_KEYS` or `SIGNER_KEYSTORE_JSON`, `KEEPER_PRIVATE_KEY`).
-  Keep an offline copy of the keystore and passphrase; losing both loses the
-  agents' wallets.
+- **Keys (corrected 2026-11-09; the Monad names were
+  `SIGNER_DEV_PRIVATE_KEYS` / `SIGNER_KEYSTORE_JSON` / `KEEPER_PRIVATE_KEY`).**
+  On NEAR the agents' wallet keys **are in the database** (`signer_keys`,
+  encrypted under `SIGNER_KEY_PASSPHRASE` from the server's `.env`), so the
+  backup holds them and the passphrase is what must be kept off the server
+  with the backup passphrase and `MINIO_KMS_SECRET_KEY`. Testnet dev
+  credentials (`SIGNER_DEV_CREDENTIALS`) and the keeper's
+  `KEEPER_ACCOUNT_ID` / `KEEPER_SECRET_KEY` are in `.env` only. Losing the
+  passphrase loses every stored wallet key.
 - **Targets (proposed, owner decision):** RPO 24 h (daily backup), RTO 1 h
   (restore + redeploy). The restore itself was rehearsed on 2026-10-08; a full
   timed recovery of the live server has not been.
@@ -371,10 +439,14 @@ Backfill, reindex and repair procedures: [16 R3–R4](16-runbooks.md#r3-indexer-
   - *static* — `pnpm typecheck` (sources and tests), `pnpm lint`,
     `pnpm format:check`, `check-no-secrets.mjs`, gitleaks over the full
     history, `pnpm audit --prod --audit-level high`;
-  - *test* — checks out `agentx-contracts` beside it (public, so
-    `github.token` is enough) and `agentx-docs` (for the API-doc test), `sync-chain-facts.mjs
-    --check`, build, migrate, `vitest run --coverage` against a Postgres
-    service with coverage floors (75/78/74/75);
+  - *test* — checks out `pactora-contracts-near` beside it (public, so
+    `github.token` is enough) and `pactora-docs-near` (for the API-doc test),
+    `sync-chain-facts.mjs --check`, build, migrate, `vitest run --coverage`
+    against a Postgres service on `:5443` (`pactora_near`) with coverage
+    floors enforced by `vitest.config.ts`, then **`pnpm test:startup`**
+    (`scripts/test-startup.mjs`: each built service, given a bad
+    configuration, must refuse to start and say why; reaches no network) —
+    repo names and the startup step corrected 2026-11-09;
   - *images* — builds api, signer, indexer from this repo alone, with the
     commit baked in, and asserts they run as non-root.
   The interface has its own CI (typecheck, lint, format, unit, audit, build,
@@ -386,9 +458,12 @@ Backfill, reindex and repair procedures: [16 R3–R4](16-runbooks.md#r3-indexer-
   onto the VPS and started with `docker compose … up -d --no-build`
   ([13 §5](13-deploy.md#5-a-single-vps-the-live-deployment)).
 - **Release process:** merge to `master` with CI green → build and load the
-  images, `up -d` on the VPS (migrations first, then signer, indexer, api) → `node
-  scripts/check-deployment.mjs <api> <site>` → confirm `/v1/status`
-  `build.commit` equals the merged commit. Details: [16 R1](16-runbooks.md#r1-deploy-and-verify).
+  images, `up -d` on the VPS (migrations first, then signer, indexer, api) →
+  `curl $API/health` (`chains[].contract` = `chain/deployments/<slug>.json`,
+  `build.commit` = the merged commit), `curl $API/ready` 200, `/v1/status`
+  operational, `node scripts/probe-api.mjs $API` (Monad's
+  `check-deployment.mjs` has no NEAR equivalent — 2026-11-09). Details:
+  [16 R1](16-runbooks.md#r1-deploy-and-verify).
 
 ## 11. Incident management
 
@@ -408,7 +483,8 @@ Backfill, reindex and repair procedures: [16 R3–R4](16-runbooks.md#r3-indexer-
    back before debugging if a deploy caused it (R7).
 3. **Communicate** — a maintenance/incident notice where users are (the
    submission page, the repo README) if it lasts beyond minutes.
-4. **Verify** — `/v1/status` operational, `check-deployment.mjs` green.
+4. **Verify** — `/v1/status` operational, `/health` serving the expected
+   contract and commit, `probe-api.mjs` clean (R1's validation).
 5. **Review** — a postmortem for SEV1/SEV2 within two days, committed to
    `docs/incidents/YYYY-MM-DD-<slug>.md`.
 

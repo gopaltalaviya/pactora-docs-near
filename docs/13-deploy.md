@@ -1,18 +1,27 @@
 # 13 — Deploying Pactora: VPS + Vercel (Railway kept as an alternative)
 
-> **Live today (since 2026-10-07): one Vultr VPS behind Caddy + Vercel — see [§5](#5-a-single-vps-the-live-deployment).**
-> API `https://api.64-177-41-175.sslip.io`, site `https://agentx-interface-iota.vercel.app`
-> (auto-deploys from `master`). Railway is no longer used — its trial expired;
-> the same images run on one 2 vCPU / 4 GB server. §1–§2 below are the
-> original Railway plan, kept for reference; §3, §3b and §5 apply to the live
-> deployment.
+> **Status 2026-11-09.** The Monad VPS (`api.64-177-41-175.sslip.io`) and
+> its Vercel site were the AgentX deployment; the VPS was retired on
+> 2026-11-06 and **no Pactora-on-NEAR backend is hosted today**. The live
+> procedure for hosting the NEAR stack — the server's `.env`, the cron jobs,
+> backups, restore and alerts — is `pactora-backend-near/deploy/vps/README.md`;
+> [§5](#5-a-single-vps-the-live-deployment) below summarises it. §1–§3b are
+> the **Monad baseline** (Railway plan, `check-deployment.mjs`,
+> `seed-hosted.mjs`, v2/v3), kept for the shape of a deployment; their
+> variable names and scripts do not exist in the NEAR repos.
 
 The whole hosted deployment, step by step. Everything here was rehearsed on
-2026-09-30 against the same production images, built the way Railway builds
+2026-09-30 against the Monad production images, built the way Railway builds
 them (one repo, no sibling checkout), with the signer bound the way Railway's
-private network needs it — then checked with `scripts/check-deployment.mjs`.
-What was not rehearsed is Railway and Vercel themselves: that needs your
-accounts.
+private network needs it — then checked with `scripts/check-deployment.mjs`
+(Monad only; the NEAR backend has no such script — its read-only checks are
+`GET /health`, `GET /v1/status` and `scripts/probe-api.mjs`). What was not
+rehearsed is Railway and Vercel themselves: that needs your accounts.
+
+> **Monad baseline, 2026-10; not the NEAR layout.** On NEAR the chain is
+> `near:testnet`, read by the indexer from neardata, and the backend has
+> seven images (api, signer, indexer, notifier, channels, three bots) plus
+> Postgres and MinIO — `docker-compose.full.yml`.
 
 ```
              Vercel                         Railway (one project)
@@ -33,10 +42,13 @@ only over Railway's private network, and only with `SIGNER_TOKEN`.
 
 ## 0. Before you start
 
-- `agentx-backend` builds **from itself alone**. The chain facts every image
-  carries (networks, parameters, addresses, ABIs) are in `chain/`, a committed
-  copy of `agentx-contracts`. After any redeploy of the contracts:
-  `node scripts/sync-chain-facts.mjs` and commit `chain/` — CI fails until you do.
+- `pactora-backend-near` builds **from itself alone**. The chain facts every
+  image carries (`config/networks.json`, `params.<slug>.json`,
+  `deployments/<slug>.json`) are in `chain/`, a committed copy of
+  `pactora-contracts-near`. After any redeploy of the contracts:
+  `node scripts/sync-chain-facts.mjs` and commit `chain/` — CI fails until you
+  do. (**2026-11-09:** `chain/deployments/` holds `sandbox.json` only; a
+  testnet deploy has to land there before a testnet image can be built.)
 - Generate the shared token once: `openssl rand -hex 24`. Keep it out of chat
   and out of any committed file.
 - Decide the model. Railway has no Ollama, so a hosted run needs a hosted
@@ -46,6 +58,18 @@ only over Railway's private network, and only with `SIGNER_TOKEN`.
   `/health` says `orchestrator: false`.
 
 ## 1. Railway
+
+> **Monad baseline, 2026-10; not the NEAR procedure.** The tables below use
+> the Monad names: `ENABLED_CHAIN_IDS` / `DEFAULT_CHAIN_ID` (`10143`),
+> `SIGNER_DEV_PRIVATE_KEYS`, `SIGNER_KEYSTORE_JSON`, `KEEPER_PRIVATE_KEY`,
+> `PACTORA_CHAIN_ID=10143`. On NEAR they are `ENABLED_CHAINS` /
+> `DEFAULT_CHAIN` (`near:testnet`), `SIGNER_DEV_CREDENTIALS` +
+> `SIGNER_KEY_PASSPHRASE`, `KEEPER_ACCOUNT_ID` + `KEEPER_SECRET_KEY`,
+> `PACTORA_CHAIN_ID=near:testnet`; the full list with what each is for is
+> the `.env` block in `pactora-backend-near/deploy/vps/README.md`. The
+> `deploy/railway/*.json` files still exist in the backend, but nothing has
+> been deployed to Railway since the trial expired, and the live procedure
+> is the VPS one in that README.
 
 Create a project, then add, in this order:
 
@@ -130,12 +154,12 @@ fine for the demo. Hosted, each is one service with:
 
 ## 2. Vercel
 
-**Add New → Project → import `agentx-interface`.** Framework: Next.js
+**Add New → Project → import `pactora-interface-near`** (Monad: `agentx-interface`). Framework: Next.js
 (detected). One environment variable, for Production:
 
 | Variable | Value |
 |---|---|
-| `NEXT_PUBLIC_API_URL` | the Railway API domain, e.g. `https://agentx-api-production.up.railway.app` |
+| `NEXT_PUBLIC_API_URL` | the API's public URL — on the VPS `https://api.<ip-with-dashes>.sslip.io` (§5); the Railway form was `https://<service>.up.railway.app` |
 | `NEXT_PUBLIC_SITE_URL` | this site's own URL, e.g. `https://agentx.vercel.app` — without it, the link preview image (Open Graph) points at localhost |
 
 It is read **at build time** — the CSP is built from it — so changing it
@@ -145,6 +169,17 @@ missing.
 Then go back to Railway and set the API's `CORS_ORIGINS` to the Vercel URL.
 
 ## 3. Check it
+
+> **Monad baseline, 2026-10.** `scripts/check-deployment.mjs` is Monad-only;
+> the NEAR backend has no equivalent (its `scripts/` are check-no-secrets,
+> demo, live-ui-stack, local-up, probe-api, sanctions-refresh,
+> sync-chain-facts, test-startup). The NEAR check, read-only, is:
+> `curl -s $API/health` — `chains[].contract` must be the Pactora account in
+> `chain/deployments/<slug>.json` of the commit you deployed, `build.commit`
+> that commit; `curl -s $API/ready` 200; `curl -s $API/v1/status` →
+> `"status": "operational"` once the indexer has caught up; and
+> `node scripts/probe-api.mjs $API` for the hostile-input checks (nothing it
+> sends can spend). CORS is checked by loading the site.
 
 ```bash
 cd agentx-backend
@@ -171,6 +206,19 @@ That needs the model from §0, a registered and funded orchestrator, and
 workers listening.
 
 ## 3b. Hosted live runs
+
+> **Monad baseline, 2026-10; not the NEAR procedure.** `seed-hosted.mjs`,
+> `../agentx-contracts/.env`, `SIGNER_DEV_PRIVATE_KEYS`,
+> `SESSION_MANAGER_PRIVATE_KEY`, `AgentAccount` session keys, MON funding
+> and the v2/v3 split are Monad history; none exists on NEAR, where there is
+> no v2→v3 and no session manager. On NEAR an agent is registered through
+> the site or `pnpm demo` (`scripts/demo.mjs`, `DEMO_NETWORK=testnet`): the
+> signer creates the wallet key (kept encrypted in Postgres under
+> `SIGNER_KEY_PASSPHRASE`), the owner's account creates the wallet and calls
+> `register_agent`. The hosted bots still take `PACTORA_API_KEY` as
+> `RESEARCH_BOT_API_KEY`, `TRADING_BOT_API_KEY`, `EXECUTION_BOT_API_KEY` in
+> the server's `.env` (`docker-compose.full.yml`, profile `hosted`); the
+> model-chain and `RUNS_PER_DAY` notes below still apply.
 
 Browsing needs only §1–§3. For a judge to press **Run** on the hosted site,
 four more things must be true — each one was a reason a hosted run would
@@ -236,6 +284,11 @@ docker compose -f docker-compose.full.yml --profile hosted up -d
 
 ## 4. What costs money
 
+> **Monad figures, 2026-10.** On NEAR, gas is paid in testnet NEAR from the
+> agents' wallets and the keeper account (the contracts README budgets ~25
+> testnet NEAR for a full deploy + verify pass); the VPS row describes the
+> retired Monad server.
+
 | | |
 |---|---|
 | VPS (live) | one Vultr server, 2 vCPU / 4 GB, running every backend service, the hosted workers and Postgres |
@@ -246,28 +299,59 @@ docker compose -f docker-compose.full.yml --profile hosted up -d
 
 ## 5. A single VPS (the live deployment)
 
+**Status 2026-11-09:** this is the recipe the Monad server ran until it was
+retired on 2026-11-06; the NEAR stack has been brought up this way locally
+(2026-11-08, `ENABLED_CHAINS=near:sandbox`, all seven images, every
+component `operational`) but **not yet on a server**. The source of truth
+is `pactora-backend-near/deploy/vps/README.md`.
+
 The site is on Vercel; the backend runs on one Ubuntu server (Vultr,
 2 vCPU / 4 GB — 1 GB was too little: the status probes timed out under swap).
-The files are in `agentx-backend/deploy/vps/`:
+The files are in `pactora-backend-near/deploy/vps/`:
 
 | File | What it does |
 |---|---|
 | `bootstrap-ubuntu.sh` | ufw (22, 80, 443 only), Docker, 2 GB swap, automatic security updates |
 | `docker-compose.vps.yml` | on top of `docker-compose.full.yml`: Postgres and the API publish **no** port; Caddy alone listens on 80/443 |
-| `Caddyfile` | HTTPS for the API, Let's Encrypt, SSE passed through unbuffered |
+| `Caddyfile` | HTTPS for the API, Let's Encrypt, SSE passed through unbuffered, `/metrics` answers 404 at the edge |
+| `backup.sh`, `backup-lib.sh` | daily: the database and the evidence bucket, encrypted and HMAC'd, checked, copied off the host (below) |
+| `restore-test.sh` | monthly: verifies the newest backup's HMAC, restores it into a scratch database, compares it with the live schema |
+| `alerts.sh` | every 5 minutes: readiness, status, signer gas, indexer lag, keeper backlog, failed webhooks, sanctions-list age, backup age |
 
 The API's name is free: `api.<ip-with-dashes>.sslip.io` resolves to the server,
 so Caddy can obtain a real certificate without a domain.
 
 ```bash
-# on this machine: images are built here and loaded there — the server builds nothing
-docker compose -f docker-compose.full.yml --profile hosted build
-docker save $(docker images --format '{{.Repository}}' | grep agentx-full) postgres:16-alpine caddy:2-alpine | gzip > images.tar.gz
-# on the server, in ~/agentx with .env (SIGNER_TOKEN, API_HOST, CORS_ORIGINS, the
-# §3b variables), docker-compose.full.yml, docker-compose.vps.yml and Caddyfile:
+# on this machine: images are built here and loaded there — the server builds nothing.
+# The build needs the required variables set to placeholders (the compose file refuses without them).
+SIGNER_TOKEN=placeholder-placeholder-placeholder-00 SIGNER_KEY_PASSPHRASE=placeholder-placeholder-placeholder-00 \
+  OBJECT_STORE_SECRET_ACCESS_KEY=placeholder MINIO_KMS_SECRET_KEY=placeholder WEBHOOK_SECRET_KEY=placeholder \
+  docker compose -f docker-compose.full.yml --profile hosted build
+# Corrected 2026-11-09: the evidence store is a pinned MinIO image (docker-compose.full.yml, `minio` and `minio-setup`); save it too.
+docker save $(docker images --format '{{.Repository}}' | grep agentx-full) postgres:16-alpine caddy:2-alpine \
+  cgr.dev/chainguard/minio@sha256:869ca3178831d9f521ea02258a0f0d4fbc1e9f84302e707514e1f861b860865d | gzip > images.tar.gz
+# on the server, in ~/agentx with .env, docker-compose.full.yml, docker-compose.vps.yml, Caddyfile and the deploy/vps scripts:
 gunzip -c images.tar.gz | docker load
 docker compose -f docker-compose.full.yml -f docker-compose.vps.yml --profile hosted up -d --no-build
 ```
+
+**The server's `.env`** (never committed). **Corrected 2026-11-09:** the
+earlier summary — `SIGNER_TOKEN`, `API_HOST`, `CORS_ORIGINS` and the §3b
+variables — is short of what `docker-compose.full.yml` now refuses to start
+without. Required: `SIGNER_TOKEN`, `SIGNER_KEY_PASSPHRASE` (encrypts the
+agents' wallet keys in Postgres — lose it and those keys are lost),
+`API_HOST`, `CORS_ORIGINS`, `COMPLIANCE_REVIEWERS` (two NEAR accounts; the
+api refuses to start in production without them), `ENABLED_CHAINS` /
+`DEFAULT_CHAIN` (`near:testnet`), `OBJECT_STORE_SECRET_ACCESS_KEY` and
+`MINIO_KMS_SECRET_KEY` (the evidence MinIO's password and encryption key —
+keep the latter with the backup passphrase, or no stored evidence can be
+read), `WEBHOOK_SECRET_KEY` (shared by api and notifier). Recommended:
+`KEEPER_ACCOUNT_ID` + `KEEPER_SECRET_KEY` (a gas-only testnet account).
+Optional: `FAUCET_ACCOUNT_ID` + `FAUCET_SECRET_KEY`, `RPC_URL_TESTNET`,
+`NEARDATA_API_KEY`, the model keys and the three `*_BOT_API_KEY`s. The
+annotated block, with how to generate each value, is the top of
+`pactora-backend-near/deploy/vps/README.md` — read that, not this, when
+writing the file.
 
 Then on Vercel set `NEXT_PUBLIC_API_URL=https://api.<ip>.sslip.io` and
 **redeploy** (it is read at build time), and run §3. SSH is key-only
@@ -275,9 +359,10 @@ Then on Vercel set `NEXT_PUBLIC_API_URL=https://api.<ip>.sslip.io` and
 old database into a fresh one before the services start; the indexer keeps its
 cursor and catches up.
 
-Live run checks (2026-10-07): 16/16 deployment checks, status `operational`
+*Monad record, 2026-10-07:* 16/16 deployment checks, status `operational`
 throughout, and three runs from the site with the example goal settled 2/2 each
-(88–91 s).
+(88–91 s). The paragraph below is the same Monad deployment (`AgentAccount`,
+MockUSDC caps); the NEAR stack has no hosted run record yet.
 
 The judges' hosted orchestrator pays through its `AgentAccount` with on-chain
 caps of 0.1 MockUSDC per task and 5 MockUSDC per day, and the API allows 20
@@ -288,8 +373,21 @@ rate-limited.
 
 ### Backups
 
-`deploy/vps/backup.sh` (in `agentx-backend`) runs from cron daily at 03:00 UTC:
-`pg_dump -Fc` into `~/agentx/backups/`, checked with `pg_restore --list`, 7
-days kept. A restore into a throwaway container was verified on 2026-10-08 —
-row counts matched the live database. Restore steps:
-`agentx-backend/deploy/vps/README.md` and [docs/16](16-runbooks.md).
+**Corrected 2026-11-09** (the plain `pg_dump -Fc` described here before was
+the Monad script). `deploy/vps/backup.sh` (in `pactora-backend-near`) runs
+from cron daily at 03:00 UTC and writes to `~/agentx/backups/`:
+`pactora-db-<stamp>.dump.enc` (`pg_dump -Fc`) and
+`pactora-evidence-<stamp>.tar.enc` (the MinIO bucket), each AES-256
+(`openssl enc -pbkdf2`, passphrase file `~/.pactora-backup-pass` — keep a
+copy off the server) with an HMAC-SHA256 beside it (`<file>.hmac`,
+`backup-lib.sh`). Each run verifies the HMAC, decrypts the dump back and
+`pg_restore --list`s it (no tables = failed run), copies all four files to
+`BACKUP_REMOTE` over scp (warns when unset), and keeps 7 days.
+`restore-test.sh` runs monthly. **Restore** = bring up `postgres` alone,
+`verify_hmac` the file, `openssl enc -d` it into `pg_restore --no-owner
+--exit-on-error`, then the evidence archive into MinIO, then `up -d`; the
+exact commands are in `deploy/vps/README.md` ("Restore into a fresh
+database") and [docs/16 R2](16-runbooks.md#r2-database-down). Checked
+locally on 2026-11-08 (backup → wipe → restore, 51 tables, 7 evidence
+objects; every failure path failed the run); the 2026-10-08 rehearsal was
+the Monad script. Not yet run on a server.

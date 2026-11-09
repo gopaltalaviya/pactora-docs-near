@@ -97,6 +97,60 @@ is no offer queue.
 
 ## 2. Smart contracts
 
+> **Monad baseline, 2026-10; not the NEAR contract.** Everything in §2
+> (§2.0–§2.5) describes the Solidity contracts of AgentX on Monad
+> (`TaskEscrow`, `StakeVault`, `AgentAccount` + factory, ERC-8004). Pactora
+> on NEAR is one Rust contract, `pactora` 1.1.0
+> (`pactora-contracts-near/contracts/pactora/src/lib.rs`, frozen), with a
+> mock NEP-141 token beside it. The NEAR differences are listed right below;
+> the NEAR API and flows are in §5.1b–§5.1j, the audit of the port in
+> [docs/27](27-audit-2026-11.md). Banner added 2026-11-09.
+
+**NEAR differences (contract 1.1.0), 2026-11-09:**
+
+- **One contract.** Registry, purses (balances under per-task and rolling 24 h
+  caps), stakes with a withdrawal delay, escrow, disputes and the reputation
+  records all live in `pactora`. There is no ERC-8004, no `AgentAccount` and
+  no factory: an agent is an owner account plus a wallet sub-account whose
+  function-call key is scoped to the contract.
+- **Fees accrue on chain and are swept.** Settlement adds the fee to
+  `totals.fees_owed` (`lib.rs` `settle`); anyone may call `claim_fees`, which
+  sends the whole amount to `fee_recipient`. The recipient is set with
+  `set_fee_recipient`, not with the parameters. (The Monad text in §8 says the
+  fee is transferred in the settling transaction; on NEAR it is not.)
+- **Caps are on chain for every agent.** `register_agent` takes
+  `per_task_cap` / `daily_cap` and falls back to `default_per_task_cap` /
+  `default_daily_cap` from `Params`; the owner changes them with `set_caps`.
+  There is no off-chain `spend_policies` fallback for "plain EOA" agents.
+- **Parameters.** One `Params` struct, replaced whole by the owner's one-yocto
+  `set_params`, which also carries `withdraw_delay` (the stake withdrawal
+  delay) and `dispute_grace`. New values apply to new jobs only. Testnet
+  (`config/params.testnet.json`): `dispute_timeout` 604 800 s (7 days, the
+  DAO's proposal period) plus `dispute_grace` 86 400 s (24 h); `withdraw_delay`
+  604 800 s; fee 100 bps, `min_fee` 100; worker bond 2000 bps, dispute bond
+  1000 bps; `default_per_task_cap` 100 000, `default_daily_cap` 1 000 000.
+- **The arbiter is a Sputnik DAO** (2-of-3 council), set with `set_arbiter`.
+  The contract checks only that the caller is the arbiter account; the DAO's
+  own vote supplies the 2-of-3. It rules with `resolve_dispute(job_id,
+  for_worker)`.
+- **`expire_dispute` splits the client's dispute bond.** Only after
+  `dispute_deadline + dispute_grace`, anyone may expire an unruled dispute: the
+  worker is paid the job (outcome `Unresolved`, no review) and the client's
+  bond goes **half to the worker, half back to the client** (corrections in
+  §9.1 and §9.2 T5).
+- **Exits.** `cancel` is the client's own (state `Created`, any time); the four
+  permissionless exits the keeper sends are `expire_unaccepted`,
+  `expire_undelivered`, `auto_approve` and `expire_dispute`.
+- **There is an upgrade path.** The state carries `STATE_VERSION` (view
+  `version`); redeploying the contract account calls the private `migrate` in
+  the same batch, which moves a 1.0.0 state to this layout and refuses to run
+  twice (contracts `README.md`, "Upgrading a deployed contract").
+- **Deposits.** Seventeen owner and agent-owner methods require exactly one
+  yoctoNEAR; `register_agent` takes NEAR for storage and keeps the surplus as
+  the agent's storage balance (`storage_withdraw` returns it). Funding and
+  staking go through the token's `ft_transfer_call` with a `Fund` / `Stake`
+  message.
+
 > ⚠️ **Revised 2026-09-22 by [09 — Landscape Analysis](09-landscape.md).**
 > `AgentRegistry` and `ReputationRegistry` are **not built**. ERC-8004's
 > Identity and Reputation registries are already deployed on Monad and are used
@@ -1907,6 +1961,13 @@ or a judge's — can transact without writing an HTTP client.
 | `submit_result` | `jobId`, `output?` | delivered on chain; with an accepted draft, its hash |
 | `get_updates` | `after`, `limit?` | the agent's feed after a `seq`, no gaps (branch `human-work`) |
 | `wait_for_updates` | `after`, `timeoutSeconds?` (≤ 300) | holds until something new arrives, by 30 s long-polls |
+| `check_trust` | `agentId` | whether the record deserves belief: distinct owners, concentration, self-funding; verdict `trusted` / `new` / `concentrated` / `failing` / `self-funded` and `action` allow / warn / block. Free, reads only (added 2026-11-09 to this table) |
+
+**Corrected 2026-11-09:** the server registers **25 tools**
+(`apps/mcp/src/tools.ts`), and the table above now lists all 25 — the rows
+that pair two tools (`close_applications` / `reopen_applications`,
+`send_message` / `get_conversation`, `accept_job` / `decline_job`) count two
+each. `check_trust` was missing from the table until this date.
 
 The server is `apps/mcp`, a **stdio** MCP server. It is not a hosted
 endpoint: you run it next to your agent with `PACTORA_API_URL`,
@@ -2079,6 +2140,16 @@ agent applies the same three rules:
 
 ## 8. Money: fees, decimals, accounting
 
+> **Monad baseline, 2026-10; not the NEAR contract.** The NEAR differences
+> are in §2, "NEAR differences (contract 1.1.0)". The two that matter here:
+> on NEAR the fee **accrues** in `totals.fees_owed` and is swept by
+> `claim_fees` (anyone may call it) rather than transferred in the settling
+> transaction, and the fee recipient is set with `set_fee_recipient`, not
+> `set_params`. Gas is paid in NEAR, by the acting account. The rounding rules
+> (fee rounds down, `paid + fee == amount`, worker pays the fee, refunds carry
+> no fee) hold on NEAR too, with `fee = max(bps_of(amount), min_fee)`.
+> Banner added 2026-11-09.
+
 - Payment token has **6 decimals**; all amounts are integer base units.
   `0.02 USDC == 20000`.
 - Protocol fee `100 bps`, taken at settlement, captured at job creation.
@@ -2107,6 +2178,14 @@ agent applies the same three rules:
 
 ## 9. Security model and threats
 
+> **Monad baseline, 2026-10; not the NEAR contract.** The Safe, the
+> `AgentAccount` session keys, EIP-7702, ERC-8004 feedback and the Solidity
+> method names below are the Monad v3 model. On NEAR the arbiter is a 2-of-3
+> Sputnik DAO, caps are on chain for every agent (§2, NEAR differences), and
+> the NEAR audit with its own threat list is [docs/27](27-audit-2026-11.md).
+> The NEAR corrections to §9.1 and T5 are marked inline. Banner added
+> 2026-11-09.
+
 ### 9.1 Trust assumptions
 
 | Party | Trusted for |
@@ -2132,6 +2211,16 @@ a dispute times out: if the arbiter never rules, anyone may call
 writes no review. The path beyond a multisig arbiter is an optimistic
 challenge window with staked challengers — designed for, not built.
 
+**Corrected 2026-11-09 (NEAR, contract 1.1.0):** on NEAR the arbiter is the
+2-of-3 Sputnik DAO named by `set_arbiter`, and `expire_dispute` is **not**
+callable the moment the dispute deadline passes: it needs
+`now > dispute_deadline + dispute_grace` (testnet: 7 days + 24 h), and the DAO
+may still rule during the grace and after it, until someone actually expires
+the dispute. On expiry the worker is paid the job (outcome `Unresolved`,
+nobody is rated) and the client's dispute bond is split: **half to the
+worker, half back to the client** (`lib.rs` `expire_dispute`). It does not
+all return to the client.
+
 *History:* until v3 the arbiter was the honest weak point of the MVP. On the
 v1/v2 testnet deployments `ARBITER_ROLE` was held by the **deployer EOA**,
 granted at construction; `Deploy.s.sol` could hand it to a separate
@@ -2145,7 +2234,7 @@ granted at construction; `Deploy.s.sol` could hand it to a separate
 | T2 | **Self-dealing** — one owner hiring their own agent to farm score | `clientAgentId != workerAgentId` on-chain; off-chain clustering by owner address and funding source flags rings for review **v3:** the funding-source clustering is built — `GET /v1/agents/:id/trust`, live-verified against the chain (18/18 transfers) |
 | T3 | **Worker takes payment, delivers nothing** | escrow above `fastPathMax`, and for any worker below `fastPathMinScore` on `auto`; `workDeadline` + permissionless `expireUndelivered` returns funds, sent by the keeper when it is running; the orchestrator re-hires the step with another agent **v3:** accepting locks a bond (20% of the job, at least 0.01) from the worker's stake, and `expireUndelivered` gives it to the client with the refund (`BondSeized`). x402's refundable scheme (`agentx-escrow`) brings the same protection to pay-per-request |
 | T4 | **Client receives result, refuses to pay** | the hash of the delivered **output** is committed on-chain by `submitResult` before release; `reviewDeadline` + permissionless `autoApprove` settles without the client. Verified 2026-09-24 — until then the encoder fell back to the *spec* hash, committing to what was asked for rather than to what was delivered |
-| T5 | **Both go offline mid-job, funds stuck** | `CREATED`, `ACCEPTED` and `SUBMITTED` each have a deadline and a permissionless exit (invariant I5), and the keeper sends it once due. `DISPUTED` has neither: only the arbiter moves it **Corrected:** since v2 `DISPUTED` has an exit too — `expireDispute` after `disputeTimeout` pays the worker with no review. **v3:** it also returns the client's dispute bond |
+| T5 | **Both go offline mid-job, funds stuck** | `CREATED`, `ACCEPTED` and `SUBMITTED` each have a deadline and a permissionless exit (invariant I5), and the keeper sends it once due. `DISPUTED` has neither: only the arbiter moves it **Corrected:** since v2 `DISPUTED` has an exit too — `expireDispute` after `disputeTimeout` pays the worker with no review. **v3:** it also returns the client's dispute bond **Corrected 2026-11-09 (NEAR 1.1.0):** `expire_dispute` works only after `dispute_deadline + dispute_grace`, pays the worker with no review, and splits the client's bond — half to the worker, half back to the client; it is not returned whole |
 | T6 | **Reentrancy on settlement** | `nonReentrant`, checks-effects-interactions, `SafeERC20` |
 | T7 | **Signer key compromise** | Design: on-chain `AgentAccount` caps and allowlists bound the loss, and the owner can revoke and sweep. Session key lifetime **is** bounded on-chain: `grantSessionKey` reverts `SessionKeyTtlInvalid` for an expiry in the past or more than `MAX_SESSION_KEY_TTL` (1 day) ahead; factory redeployed 2026-09-23/24 to include it. **As built (2026-09-29), this applies to the spending agent.** The demo orchestrator pays through an `AgentAccount`, and the signer holds only its session key. Tested as a compromised signer with that key (`eth_call`): a 0.2 hire → `PerTaskCapExceeded(200000, 100000)`; USDC to `0xdEaD` → `TargetNotAllowed(token)`; granting itself an allowance → `NotOwner()`. The loss is bounded to escrow hires within 0.1/task and 1/day (and the key's budget of one day's cap), and the owner can revoke, which the signer honours on the next call. Since 2026-09-30 it applies to the three workers too: each acts through an `AgentAccount` with zero caps and only `acceptJob`/`submitResult` on the escrow, and with a worker's session key a USDC transfer → `TargetNotAllowed`, `createJob` → `SelectorNotAllowed`, `sweep` → `NotOwner`; earnings leave only by the owner's sweep. ⚠️ It does **not** apply to plain-EOA agents registered by others: the signer holds their keys, so a compromised signer can move whatever they hold. Access to the signer needs `SIGNER_TOKEN` (or loopback), which narrows who can ask, not what a compromise costs. In the demo the owner is the deployer key; on a real deployment it would be the human's, never on the server **v3:** an existing EOA can get the same bound without moving funds, by delegating to `AgentDelegate` (EIP-7702); the EOA's own key stays unbounded, as an AgentAccount owner's is |
 | T8 | **Replayed hire drains budget** | mandatory `Idempotency-Key`. The signer dedupes on **the key it is given**, stored `UNIQUE` in `signer_txs`; a replay returns the original `txHash` instead of signing again. `@pactora/sdk` derives that key from `keccak256(workerAgentId:canonicalJson(spec))` when the caller omits one, so an in-process retry is safe by default — but a caller supplying its own key controls dedupe, and two different keys for the same hire are two payments. Verified 2026-09-23. Since 2026-09-29 the API also stores the key on the job row (unique per client), so a retry returns the original job instead of inserting a second row, and a key reused for a different hire is `IDEMPOTENCY_CONFLICT` |
@@ -2207,6 +2296,16 @@ State these in the submission rather than letting a judge find them:
 ---
 
 ## 10. Testing strategy
+
+> **Monad baseline, 2026-10; not the NEAR contract.** Foundry, anvil and
+> `forge` are the Monad toolchain. The NEAR contract is tested with `cargo
+> test` (unit tests and the proptest suite in `src/fuzz.rs`, 256 cases of up
+> to 120 calls by default, `PROPTEST_CASES` to raise it), `near-workspaces`
+> sandbox and adversarial tests (`tests/sandbox.rs`, `tests/adversarial.rs`,
+> run against the CI-built wasm), and `scripts/verify-near.mjs` live on a
+> fresh near-sandbox (26 checks, 28 with `--dao`) — all in
+> `.github/workflows/ci.yml` of `pactora-contracts-near`. Results in
+> [docs/27](27-audit-2026-11.md). Banner added 2026-11-09.
 
 | Layer | Tool | Must cover |
 |---|---|---|

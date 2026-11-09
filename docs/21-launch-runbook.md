@@ -1,5 +1,24 @@
 # 21 — Launch runbook: v3 on Monad mainnet
 
+> **Monad baseline, 2026-10; the NEAR mainnet procedure is not written
+> (2026-11-09).** Everything below — the Safes, `make dry-run-mainnet`,
+> `make deploy-mainnet`, `make handover`, `check-launch.mjs`,
+> `verify-kms.mjs`, `SESSION_MANAGER_KMS_KEY_ID`,
+> `ENABLED_CHAIN_IDS=10143,143`, `RPC_URL_143` — is the Monad (AgentX v3)
+> launch and exists in none of the NEAR repos. A Pactora mainnet on NEAR
+> would need, at least: a `near:mainnet` entry in
+> `pactora-contracts-near/config/networks.json` and a
+> `config/params.mainnet.json`; a deploy through the contracts README's
+> flow (`create-dao.mjs`, `deploy.mjs`, `verify-near.mjs` with
+> `--network mainnet` — every script refuses mainnet today) that writes
+> `deployments/mainnet.json`, copied into the backend's `chain/` by
+> `sync-chain-facts.mjs`; the backend on `ENABLED_CHAINS=near:mainnet`
+> (`RPC_URL_MAINNET` if not the public RPC); the signer on `SIGNER_KMS_KEYS`
+> and `KEEPER_KMS_KEY_ID` with AWS KMS `ECC_NIST_EDWARDS25519` keys
+> (`apps/signer/src/kms.ts` — raw keys are refused off testnet); and a
+> runbook written for that. **Standing rule: testnet only.** Any mainnet
+> action needs the owner's explicit confirmation, per action.
+
 The exact sequence, for the owner, from "nothing on mainnet" to "open to real
 users". Everything a script can check is a script; everything here that sends
 a mainnet transaction is the owner's, run by hand, one step at a time.
@@ -51,7 +70,11 @@ not among them: it stays with you. On a mainnet the signer refuses raw keys;
 with KMS the keys never leave AWS and the signer only asks it to sign.
 
 1. AWS → KMS → *Create key*: **asymmetric**, **Sign and verify**,
-   **ECC_SECG_P256K1**. One per agent, one keeper, one session manager.
+   **ECC_NIST_EDWARDS25519**. One per agent, one keeper, one session manager.
+   **Corrected 2026-11-09:** this said `ECC_SECG_P256K1` (the EVM curve).
+   NEAR signs with ed25519; the signer (`apps/signer/src/kms.ts`) refuses a
+   KMS key whose `KeySpec` is not `ECC_NIST_EDWARDS25519` and signs with
+   `ED25519_SHA_512`, `MessageType: RAW`.
 2. An IAM user or role for the signer with only `kms:GetPublicKey` and
    `kms:Sign` on those keys.
 3. The signer's environment (`.env.example` documents each):
