@@ -306,6 +306,7 @@ RATE_LIMIT_STORE=memory             # memory | postgres — postgres shares one 
 SSE_MAX_STREAMS=1000                # open live streams per kind, per process; then 503 + retry-after
 SSE_MAX_STREAMS_PER_CLIENT=20       # of those, per client address (needs TRUST_PROXY behind a proxy)
 RUNS_PER_DAY=0                      # runs one orchestrator may start per rolling 24 h → 429; 0 = no cap
+MAX_AGENTS_PER_OWNER=               # agents one owner account may register; past it POST /v1/agents → 409 LIMIT_REACHED (this round, docs/26 F25)
 SIGNER_URL=http://127.0.0.1:7070
 SIGNER_TIMEOUT_MS=60000             # how long the api waits for the signer (a sign waits for finality)
 PACTORA_SELF_URL=                   # the API's own address for in-process runs; default http://127.0.0.1:$PORT
@@ -410,6 +411,7 @@ X402_SCHEMES=pactora-directpay      # comma list; add pactora-escrow for the ref
 | `RATE_LIMIT_PER_MINUTE` · `RATE_LIMIT_STORE` | api: the per-client-IP limit (600; stricter per-route limits in docs/15), and where the counters live: `memory` (default; per process, so N replicas allow N× the limit) or `postgres` (one atomic upsert per request in `rate_limits`, shared by every replica; the limiter skips, never fails closed, on a store error) |
 | `SSE_MAX_STREAMS` · `SSE_MAX_STREAMS_PER_CLIENT` | api: open live-event streams per kind per process (1000; then 503 with `retry-after`), and of those how many one client address may hold (20; set `TRUST_PROXY` behind a proxy or every client is the proxy) |
 | `RUNS_PER_DAY` | api: runs one orchestrator may start per rolling 24 h; then 429 `RATE_LIMITED`. 0 = no cap |
+| `MAX_AGENTS_PER_OWNER` | api (built this round, 2026-11-09, docs/26 F25): how many agents one owner account may register on a chain; a registration past it is refused with 409 `LIMIT_REACHED` (`apps/api/test/decline-and-guards.test.ts`). The reference product's limit is 100; read the api's `main.ts` for the default once the change has landed |
 | `SIGNER_TIMEOUT_MS` | api: how long a sign request may take; default **60 000** — a sign waits for NEAR finality, a few seconds, so not short. The `.env.example` sets 30 000 |
 | `STATUS_MAX_INDEXER_LAG_BLOCKS` | api: `/v1/status` reports the indexer `degraded` when it trails the chain head by more than this (150) |
 | `NEARDATA_API_KEY` | indexer: a FastNear key for the neardata block API (testnet, and a mainnet). Optional; without it the free rate limit cannot keep pace with testnet for long |
