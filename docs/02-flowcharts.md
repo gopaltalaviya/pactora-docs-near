@@ -1,7 +1,6 @@
 # 02 — Flow Charts
 
-Every diagram here is also given as Mermaid so it renders on GitHub and can be
-pasted into the submission deck.
+Every diagram here is also given as Mermaid so it renders on GitHub.
 
 ---
 
@@ -23,23 +22,21 @@ pasted into the submission deck.
                                        ▼
         ┌──────────────────────────────────────────────────────────┐
         │                   PACTORA BACKEND                        │
-        │   discovery · job state machine · signer · indexer       │
+        │   api · signer (+ keeper) · indexer · notifier · mcp     │
         └───────┬──────────────────────────────────┬───────────────┘
                 │                                  │
      off-chain  │                                  │ on-chain
                 ▼                                  ▼
         ┌───────────────┐              ┌──────────────────────────────────┐
-        │  PostgreSQL   │              │            MONAD                 │
-        │  agents       │              │  ── ERC-8004 ──                  │
-        │  jobs         │◀── indexer ──│  Identity Registry   (1)         │
-        │  events       │              │  Reputation Registry (1)         │
-        │  payments     │              │  ── ours ──                      │
-        │  runs         │              │  TaskEscrow  ─ giveFeedback() ─▶ │
-        └───────────────┘              │  StakeVault                      │
-                ▲                      │  AgentAccount (2)                │
-                │                      │  MockUSDC (ERC-20, testnet)      │
-                │                      └──────────────────────────────────┘
-                │ worker protocol (workers poll GET /v1/jobs)
+        │  PostgreSQL   │              │             NEAR                 │
+        │  agents       │              │  pactora   registry · purses ·   │
+        │  jobs         │◀── indexer ──│            caps · stake ·        │
+        │  job_events   │  (NEP-297,   │            escrow · reputation   │
+        │  payments     │  final       │  mUSDC     NEP-141 (testnet)     │
+        │  runs         │  blocks)     │  Sputnik DAO   arbiter, 2 of 3   │
+        └───────────────┘              └──────────────────────────────────┘
+                ▲
+                │ worker protocol (workers poll GET /v1/jobs?role=worker)
       ┌─────────┴──────────┬────────────────────┐
       ▼                    ▼                    ▼
 ┌───────────┐       ┌───────────┐        ┌───────────┐
@@ -48,25 +45,20 @@ pasted into the submission deck.
 └───────────┘       └───────────┘        └───────────┘
 ```
 
-(1) The canonical `0x8004A1…` / `0x8004BA…` registries on Monad mainnet. On
-testnet, where ERC-8004 is not deployed, our own minimal registries
-(`MockIdentityRegistry`, `MockReputationRegistry`) at the addresses in
-`deployments/10143.json`.
-(2) Created through `AgentAccountFactory`. The demo's orchestrator, the only
-agent that spends, pays through one: the signer sends `execute(target, data)`
-to the account, signed by a session key, and the account enforces the caps.
-Since 2026-09-30 each of the three workers acts through its own account too,
-with zero caps and only `acceptJob` and `submitResult` on the escrow allowed;
-its payouts land there and only the owner can `sweep` them out.
+Each agent's wallet is a NEAR account holding one **function-call key
+scoped to the `pactora` contract**, kept encrypted by the signer. The signer
+signs only the agent methods it allows, on `pactora`
+(`pactora-backend-near/docs/NEAR-PORT.md` §6). The owner's full-access key
+never reaches the backend.
 
-There is no push channel to workers. They poll `GET /v1/jobs?role=worker`, and
-every chain write they make goes through the API and the signer. The signer
-accepts requests only with the shared `SIGNER_TOKEN`; without one configured
-it listens on `127.0.0.1` only.
+There is no push channel to agent workers. They poll
+`GET /v1/jobs?role=worker`, and every chain write they make goes through the
+API and the signer. The signer accepts requests only with the shared
+`SIGNER_TOKEN`; without one configured it listens on loopback only.
 
-The signer process also runs the **keeper** when `KEEPER_PRIVATE_KEY` is set:
-on its own key, it sends `TaskEscrow`'s permissionless exits once their
-deadlines pass (see §3).
+The signer process also runs the **keeper** when `KEEPER_ACCOUNT_ID` and its
+key are set: on its own account, it sends the contract's permissionless
+exits once their deadlines pass (see §3).
 
 ```mermaid
 flowchart TD
@@ -74,29 +66,22 @@ flowchart TD
     M -->|MCP tools| B[Pactora Backend]
     B --> DB[(PostgreSQL)]
     B --> SG[Signer service]
-    SG --> CH[Monad]
-    SG -.->|keeper, own key: expire / autoApprove| CH
+    SG -->|function-call keys| CH[NEAR]
+    SG -.->|keeper, own account: expire / auto_approve| CH
     CH --> IDX[Indexer] --> DB
     W1[Research Agent] -->|poll jobs, accept, deliver| B
     W2[Trading Agent] -->|poll jobs, accept, deliver| B
     W3[Execution Agent] -->|poll jobs, accept, deliver| B
-    subgraph ERC-8004 - canonical on mainnet, own copy on testnet
-      R[Identity Registry]
-      P[Reputation Registry]
+    subgraph NEAR contracts
+      P[pactora: registry, purses, caps, stake, escrow, reputation]
+      T[mUSDC NEP-141]
+      D[Sputnik DAO arbiter]
     end
-    subgraph Pactora contracts
-      E[TaskEscrow]
-      SV[StakeVault]
-      A[AgentAccount - orchestrator wallet]
-    end
-    CH --- R
     CH --- P
-    CH --- E
-    CH --- SV
-    CH --- A
-    E -->|giveFeedback when money moves| P
-    E -->|reads payout wallet| R
-    E -->|isHireable| SV
+    CH --- T
+    CH --- D
+    T -->|ft_transfer_call Fund / Stake| P
+    D -->|resolve_dispute, 2 of 3 votes| P
 ```
 
 ---
@@ -104,7 +89,7 @@ flowchart TD
 ## 2. The hire-to-settle flow (happy path, escrow)
 
 ```
-CLIENT AGENT          BACKEND            MONAD            WORKER AGENT
+CLIENT AGENT          BACKEND            NEAR             WORKER AGENT
      │                   │                 │                    │
      │ 1 discover(cap)   │                 │                    │
      ├──────────────────▶│                 │                    │
@@ -112,12 +97,13 @@ CLIENT AGENT          BACKEND            MONAD            WORKER AGENT
      │   candidates      │                 │                    │
      │                   │                 │                    │
      │ 2 hire(agent,     │                 │                    │
-     │      spec, max)   │                 │                    │
-     ├──────────────────▶│                 │                    │
-     │                   │ 3 createJob()   │                    │
-     │                   ├────────────────▶│                    │
-     │                   │                 │ funds locked       │
-     │                   │◀────────────────┤ JobCreated         │
+     │      spec, max)   │ trust check     │                    │
+     ├──────────────────▶│ (allow/warn/    │                    │
+     │                   │  block)         │                    │
+     │                   │ 3 create_job    │                    │
+     │                   ├────────────────▶│ purse → escrow,    │
+     │                   │                 │ caps checked       │
+     │                   │◀────────────────┤ job_created        │
      │◀──────────────────┤ jobId, txHash   │                    │
      │                   │                 │                    │
      │                   │ 4 poll GET      │                    │
@@ -125,15 +111,15 @@ CLIENT AGENT          BACKEND            MONAD            WORKER AGENT
      │                   │◀────────────────┼────────────────────┤
      │                   │ 5 POST accept   │                    │
      │                   │◀────────────────┼────────────────────┤
-     │                   │ acceptJob()     │ (signed with the   │
-     │                   ├────────────────▶│                    │
-     │                   │                 │  worker's key)     │
+     │                   │ accept_job      │ (signed with the   │
+     │                   ├────────────────▶│  worker's key;     │
+     │                   │                 │  bond locked)      │
      │                   │                 │       6 do work    │
      │                   │ 7 POST result   │                    │
      │                   │◀────────────────┼────────────────────┤
      │                   │ schema check,   │                    │
-     │                   │ submitResult(   │                    │
-     │                   │  keccak(output))│                    │
+     │                   │ submit_result(  │                    │
+     │                   │  sha256(output))│                    │
      │                   ├────────────────▶│                    │
      │◀──────────────────┤ result ready    │                    │
      │                   │                 │                    │
@@ -141,48 +127,46 @@ CLIENT AGENT          BACKEND            MONAD            WORKER AGENT
      │   LLM judge       │                 │                    │
      │                   │                 │                    │
      │ 9 approve(jobId)  │                 │                    │
-     ├──────────────────▶│ approve()       │                    │
-     │                   ├────────────────▶│                    │
-     │                   │                 │ - pay worker       │
-     │                   │                 │ - fee to recipient │
-     │                   │                 │ - giveFeedback(100)│
-     │                   │◀────────────────┤ JobSettled         │
+     ├──────────────────▶│ approve         │                    │
+     │                   ├────────────────▶│ - credit worker    │
+     │                   │                 │ - fee to fees_owed │
+     │                   │                 │ - bond released    │
+     │                   │                 │ - records + review │
+     │                   │◀────────────────┤ job_settled        │
      │◀──────────────────┤ txHash          │                    │
 ```
 
 Workers never talk to the chain directly. Every write, the worker's included,
 is an API call that the signer turns into a transaction signed with **that
-agent's** key: the contract checks `msg.sender` against the agent's registered
-wallet. For an agent whose wallet is an `AgentAccount` (the orchestrator), the
-transaction goes to the account as `execute(target, data)`, signed by a session
-key it granted, and the account makes the call, so `msg.sender` is still the
-registered wallet. The API returns once the transaction is broadcast. The indexer
-catches up behind it and corrects the job's state from the chain's events.
+agent's** function-call key; the contract checks the caller against the
+agent's accepted wallet (`only_wallet_of`). The indexer reads final blocks
+behind it and corrects the job's state from the contract's NEP-297 events.
 
 ```mermaid
 sequenceDiagram
     participant C as Client Agent
     participant B as Backend
-    participant M as Monad
+    participant N as NEAR (pactora)
     participant W as Worker Agent
     C->>B: discover(capability, maxPrice, minScore, rank)
     B-->>C: ranked candidates
     C->>B: hire(agentId, spec, maxPrice)
-    B->>M: createJob() via signer - funds locked
-    B-->>C: jobId + txHash (on broadcast)
-    M-->>B: JobCreated(jobId, specHash) via indexer
+    B->>B: counterparty check (block = 403 COUNTERPARTY_BLOCKED)
+    B->>N: create_job via signer - purse to escrow, caps checked
+    B-->>C: jobId + txHash
+    N-->>B: job_created via indexer
     W->>B: poll GET /v1/jobs?role=worker
     W->>B: POST /v1/jobs/{id}/accept
-    B->>M: acceptJob(jobId) signed with the worker's key
+    B->>N: accept_job(job_id) signed with the worker's key - bond locked
     W->>W: perform work
     W->>B: POST /v1/jobs/{id}/result
-    B->>M: submitResult(jobId, keccak256(output), "")
-    C->>B: await result (poll)
+    B->>N: submit_result(job_id, sha256(output))
+    C->>B: await result
     C->>C: schema check + LLM judge
     C->>B: approve(jobId)
-    B->>M: approve(jobId)
-    M-->>M: pay worker, fee to recipient, giveFeedback(100)
-    M-->>B: JobSettled via indexer
+    B->>N: approve(job_id)
+    N-->>N: credit worker, fee owed, bond released, records + reviews
+    N-->>B: job_settled via indexer
     B-->>C: txHash
 ```
 
@@ -190,86 +174,81 @@ sequenceDiagram
 
 ## 3. Job state machine
 
-This is the contract's authoritative lifecycle. Nothing off-chain may
-contradict it.
+This is the contract's authoritative lifecycle (`JobState` in
+`pactora-contracts-near/contracts/pactora/src/types.rs`). Nothing off-chain
+may contradict it.
 
 ```
-                        createJob()
+                        create_job
                              │
                              ▼
-                      ┌─────────────┐  cancel() before accept
+                      ┌─────────────┐  cancel (client, any time before accept)
                       │   CREATED   │────────────────────────┐
                       └──────┬──────┘                        │
-                    accept() │       acceptDeadline passed   │
-                             │       ─────────────────────▶  │
+                accept_job   │   expire_unaccepted           │
+                             │   (anyone, after accept_deadline)
                              ▼                               │
-                      ┌─────────────┐                        │
-                      │  ACCEPTED   │  workDeadline passed   │
-                      └──────┬──────┘  ─────────────────────▶│
-               submitResult()│                               │
+                      ┌─────────────┐  expire_undelivered    │
+                      │  ACCEPTED   │  (anyone, after        │
+                      └──────┬──────┘   work_deadline)──────▶│
+              submit_result  │                               │
                              ▼                               ▼
                       ┌─────────────┐                 ┌────────────┐
                       │  SUBMITTED  │                 │  REFUNDED  │
                       └──┬───────┬──┘                 └────────────┘
-               approve()  │      │  dispute()               ▲
-                          ▼      ▼                          │
-                  ┌──────────┐  ┌──────────┐ arbiter rules  │
-                  │ SETTLED  │  │ DISPUTED │────────────────┤
-                  └──────────┘  └────┬─────┘  for client    │
-                       ▲             │                      │
-   review window ──────┘             └──────────────────────┘
-   expires, no dispute                 arbiter rules for worker
-                                       ▼ SETTLED
+     approve / auto_approve │    │ dispute (client,          ▲
+                          ▼      ▼  inside review window)    │
+                  ┌──────────┐  ┌──────────┐ arbiter rules   │
+                  │ SETTLED  │◀─│ DISPUTED │─────────────────┘
+                  └──────────┘  └──────────┘  for client
+                        arbiter rules for worker, or
+                        expire_dispute (anyone, after
+                        dispute_deadline + dispute_grace)
 ```
 
 | State | Money is | Who can move it | Next |
 |---|---|---|---|
-| `CREATED` | locked | worker (accept), client (cancel), anyone (expire) | ACCEPTED / REFUNDED |
-| `ACCEPTED` | locked | worker (submit), anyone (expire) | SUBMITTED / REFUNDED |
-| `SUBMITTED` | locked | client (approve/dispute), anyone (auto-approve after window) | SETTLED / DISPUTED |
-| `DISPUTED` | locked | arbiter | SETTLED / REFUNDED |
-| `SETTLED` | paid out | — | terminal |
-| `REFUNDED` | returned | — | terminal |
+| `Created` | in escrow | worker (accept), client (cancel), anyone (expire after `accept_deadline`) | Accepted / Refunded |
+| `Accepted` | in escrow, worker bond locked | worker (submit), anyone (expire after `work_deadline`) | Submitted / Refunded |
+| `Submitted` | in escrow | client (approve, dispute inside the review window), anyone (`auto_approve` after `review_deadline`) | Settled / Disputed |
+| `Disputed` | in escrow, plus the client's dispute bond | arbiter (`resolve_dispute`, until expiry runs), anyone (`expire_dispute` after `dispute_deadline + dispute_grace`) | Settled / Refunded |
+| `Settled` | credited to the worker's purse | — | terminal |
+| `Refunded` | credited back to the client's purse | — | terminal |
 
-**Liveness rule:** `CREATED`, `ACCEPTED` and `SUBMITTED` each have a deadline
-and a permissionless transition out of it (`expireUnaccepted`,
-`expireUndelivered`, `autoApprove`), so neither party going offline can hold
-funds forever. **`DISPUTED` is the exception.** It has no deadline, and only
-`ARBITER_ROLE` can move it. A disputed job's funds wait for the arbiter.
+**Liveness rule:** every open state has a deadline and a permissionless
+exit, so neither party going offline can hold funds forever. On testnet the
+dispute timeout is 7 days (the arbiter DAO's proposal period) and the grace
+24 h more. An expired dispute pays the worker the job and half the client's
+dispute bond for the wait; the other half returns to the client. Pause
+stops `create_job` and `direct_pay` only; every exit stays open.
 
 An exit happens only when somebody sends the transaction; the contract does
 not act on its own. Pactora's **keeper** (`apps/signer/src/keeper.ts`) is that
-somebody. It runs inside the signer when `KEEPER_PRIVATE_KEY` is set, on its
-own key (never the signer's, so the two cannot race for nonces). Every
-`KEEPER_INTERVAL_MS` (default 15 s) it takes the escrow jobs the database
-still thinks are open, reads each one's state and deadlines **from the
-chain**, and sends whichever exit is due, strictly after the deadline,
-simulating first so losing a race costs a read rather than gas.
-`scripts/keeper-sweep.mjs` runs one sweep by hand and reads the results back
-from the chain. Without the keeper key, expired jobs wait for someone else to
-send the exit. Since v2 that includes `DISPUTED`: once the dispute timeout
-passes, the keeper sends `expireDispute`, which settles for the worker with
-outcome `UNRESOLVED` and no review. Every non-terminal state now has a
-permissionless exit, as `TaskEscrow.sol` says.
+somebody. It runs inside the signer when `KEEPER_ACCOUNT_ID` is set, on its
+own account (never an agent's, so the two cannot race for nonces). Every
+`KEEPER_INTERVAL_MS` (default 15 s) it takes the jobs the database still
+thinks are open, reads each one's state and deadlines **from the chain**
+(`get_job`), and sends whichever exit is due. Without the keeper, expired
+jobs wait for someone else to send the exit.
 
-Only some refunds count against the worker. `expireUndelivered` (accepted,
-then did not deliver) and a dispute the worker loses write a 0 to ERC-8004.
-`cancel` and `expireUnaccepted` write nothing: nobody accepted, so nobody
-failed.
+Only some endings count against the worker. `expire_undelivered` (accepted,
+then did not deliver: bond seized) and a dispute the worker loses write a 0
+review. `cancel` and `expire_unaccepted` write nothing: nobody accepted, so
+nobody failed.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> CREATED: createJob
-    CREATED --> ACCEPTED: acceptJob
-    CREATED --> REFUNDED: cancel / accept deadline
-    ACCEPTED --> SUBMITTED: submitResult
-    ACCEPTED --> REFUNDED: work deadline
-    SUBMITTED --> SETTLED: approve / review window expiry
-    SUBMITTED --> DISPUTED: dispute
-    DISPUTED --> SETTLED: arbiter rules for worker
-    DISPUTED --> REFUNDED: arbiter rules for client
-    SETTLED --> [*]
-    REFUNDED --> [*]
+    [*] --> Created: create_job
+    Created --> Accepted: accept_job
+    Created --> Refunded: cancel / expire_unaccepted
+    Accepted --> Submitted: submit_result
+    Accepted --> Refunded: expire_undelivered
+    Submitted --> Settled: approve / auto_approve
+    Submitted --> Disputed: dispute
+    Disputed --> Settled: arbiter rules for worker / expire_dispute
+    Disputed --> Refunded: arbiter rules for client
+    Settled --> [*]
+    Refunded --> [*]
 ```
 
 ---
@@ -280,46 +259,47 @@ stateDiagram-v2
                 hire(price, path = "auto")
                          │
               ┌──────────┴───────────┐
-       price ≤ fastPathMax           price > fastPathMax
+       price ≤ fast_path_max         price > fast_path_max
        AND worker score              OR worker score
          ≥ fastPathMinScore            < fastPathMinScore
               │                          │
               ▼                          ▼
    ┌────────────────────┐      ┌────────────────────┐
    │   DIRECT PAY       │      │      ESCROW        │
-   │ 1 tx, pay-on-send  │      │ 4 tx: create,      │
+   │ 1 tx, direct_pay   │      │ 4 tx: create,      │
    │ settled at once;   │      │ accept, submit,    │
    │ result delivered   │      │ approve; pay after │
    │ off-chain after    │      │ result             │
    └─────────┬──────────┘      └─────────┬──────────┘
              │                           │
              ▼                           ▼
-   feedback 100 written          feedback written at
-   in the payment tx             settlement (or 0 on a
+   review 100 written            review written at
+   in the payment call           settlement (or 0 on a
                                  counted refund)
 ```
 
 The caller can also force `path: "direct"` or `"escrow"`. The contract
-rejects a direct payment above `fastPathMax` (`AmountTooLargeForFastPath`).
+refuses a direct payment above `fast_path_max` (`AmountTooLargeForFastPath`;
+0.03 mUSDC on testnet).
 
-A direct-pay job is `settled` in the database the moment it is created, and
-carries `hasResult: false` until the worker delivers. The delivery is recorded
-off-chain against the payment that already happened. There is no on-chain
-call to attach it to, and nothing to dispute: a bad fast-path result is
-reported as `unrecoverable`, because that is the cost of skipping escrow.
+A direct-pay job is `settled` the moment it is created, and carries
+`hasResult: false` until the worker delivers. The delivery is recorded
+off-chain against the payment that already happened. There is nothing to
+dispute: a bad fast-path result is reported as `unrecoverable`, because that
+is the cost of skipping escrow.
 
 Rationale: below the threshold, the cost of protecting a payment exceeds the
 payment. Above it, protection is worth the extra transactions. The threshold
-is a per-chain parameter in `config/params.<chainId>.json`, not a constant
-buried in code.
+is a contract parameter (`config/params.<network>.json` in the contracts
+repo), not a constant buried in code.
 
 **The score cut-off.** The fast path pays before any work is done, so `auto`
-also requires a proven worker: score ≥ `fastPathMinScore` (70 on testnet, 80
-on mainnet), read from the catalogue's `agent_stats`. An agent with no history
-scores 50 and always goes through escrow on `auto`. The rule is the API's, not
-the contract's: `directPay` does not check the score, so an explicit
-`path: "direct"` is still the client's call. (Until 2026-09-29 nothing read
-`fastPathMinScore`, and any price at or under `fastPathMax` went direct.)
+also requires a proven worker: score ≥ `fastPathMinScore` (70 on testnet),
+read from the catalogue's `agent_stats`. An agent with no history scores 50
+and always goes through escrow on `auto`. The rule is the API's
+(`apps/api/src/routes/jobs.ts`), not the contract's: `direct_pay` does not
+check the score, so an explicit `path: "direct"` is still the client's call.
+A hire from a listing always uses escrow.
 
 ---
 
@@ -329,7 +309,7 @@ the contract's: `directPay` does not check the score, so an explicit
   request: capability="market-research", maxPrice=0.05, minScore=80
                               │
                               ▼
-              filter: chain ∧ active ∧ capability ∈ tags
+              filter: network ∧ active ∧ capability ∈ tags
                       ∧ price ≤ maxPrice
                       ∧ score ≥ minScore
                               │
@@ -350,51 +330,47 @@ can say so instead of always taking the cheapest bid. `GET /v1/rank-modes`
 lists them. The demo orchestrator uses `balanced` and lets its model choose
 among the candidates.
 
-**Stake is not a discovery filter.** The catalogue's `stake` column is never
-updated from `StakeVault`, so discovery can list an agent whose bond is below
-`minStake`. The chain still refuses to hire it: `createJob` and `directPay`
-revert `NotHireable` unless `StakeVault.isHireable(worker)`.
+**Stake is checked by the chain.** Whatever discovery lists, `create_job`
+and `direct_pay` refuse a worker that is not hireable (`NotHireable`: no
+accepted wallet, frozen, or unlocked stake below `min_stake`), and a worker
+with the same owner as the client (`SameOwner`).
 
 ---
 
 ## 6. Reputation update
 
-Feedback is written to the **ERC-8004 Reputation Registry**, but only by
-`TaskEscrow`, and only after funds have actually moved.
+The contract writes reputation itself, in the same call that moves the
+money.
 
 ```
-   job settles (100)  ·  directPay (100, at payment)
-   expireUndelivered (0)  ·  dispute lost (0)
-        │
-        ▼
-   TaskEscrow → reputation.giveFeedback(
-       agentId, value = SUCCESS ? 100 : 0, valueDecimals = 0,
-       tag1 = "agentx", tag2 = "settled",
-       feedbackHash = keccak256(abi.encode(jobId, specHash, resultHash, amount))
-   )                          wrapped in try/catch → FeedbackFailed
-        │
-        ▼
-   ERC-8004 Reputation Registry  (mainnet 0x8004BAa1…9b63;
-                                  our MockReputationRegistry on testnet)
+   approve · auto_approve · ruling for worker · direct_pay
+        → worker_record.completed + 1, worker review 100
+   expire_undelivered → worker_record.failed + 1, bond seized, review 0
+   ruling for client  → worker_record.disputes_lost + 1, review 0
+   expire_dispute     → worker_record.unresolved + 1, no review
+   cancel · expire_unaccepted → nothing
+
+   client side (client_record): paid on approve and direct_pay (review 100),
+   silent on auto_approve (review 50), disputes_upheld (review 100) and
+   disputes_rejected (review 0) on a ruling
 
 
-   Reading it — naming the source is MANDATORY, not optional:
+   Reading it — free view calls, anyone:
 
-   getSummary(agentId, [],              "",       "")        → REVERTS
-   getSummary(agentId, [PACTORA_ESCROW], "agentx", "settled") → paid for, provable
+   worker_record(agent_id)  client_record(agent_id)  verdict_of(job_id)
 ```
 
-`tag2` is `"settled"` on the 0-value refund writes too, so a reader counts
-failures and successes together. `specHash` is
-`keccak256(canonicalJson(spec) + ":" + jobId)`, scoped to the job so that two
-identical specs never share a commitment. On the fast path `resultHash` is
-zero, because the payment happens before any result exists.
+`verdict_of` is 100 for a delivered job settled without a dispute, 0 for a
+dispute upheld, and null when the ending is not attributable. Every hash the
+contract stores (`spec_hash`, `result_hash`, review and reason hashes) is
+sha256, 64 lowercase hex; `specHash = sha256(canonicalJson(spec) + ':' +
+publicId)`, scoped to the job so two identical specs never share a
+commitment.
 
-The score shown in Pactora is **not** read back from `getSummary()`. The
-indexer counts `completed` (each `JobSettled`) and `failed` (each counted
-`JobRefunded`) from `TaskEscrow`'s own events and applies the formula in SQL
-(`apps/indexer/src/indexer.ts`). It is Laplace-smoothed so a 1-for-1 agent is
-not "100":
+The score shown in Pactora is computed by the indexer from the contract's
+own `job_settled` and `job_refunded` events
+(`apps/indexer/src/indexer.ts`, formula in `packages/db/src/reputation.ts`).
+It is Laplace-smoothed so a 1-for-1 agent is not "100":
 
 ```
    raw = 100 · (completed + 1) / (completed + failed + 2)
@@ -405,61 +381,48 @@ not "100":
    score      = 50 + (raw - 50) · confidence
 ```
 
-`confidenceFloor` is the per-chain parameter (25 on testnet, 50 on mainnet).
-Only a `JobRefunded` whose reason is `undelivered` or `dispute` counts as a
-failure, matching what the contract records against the worker; `cancel` and
-`expireUnaccepted` refunds do not.
+`confidenceFloor` is a per-network parameter (25 on testnet). Only a refund
+whose reason is `undelivered` or `dispute` counts as a failure, matching what
+the contract records against the worker; `cancelled` and `unaccepted`
+refunds do not.
 
-> **Fixed 2026-09-29.** Before then the SQL hard-coded 25, and every
-> `JobRefunded` was counted as a failure, because the check
-> (`payload.reason !== undefined`) was always true. The same fix took the
-> payment row's `tx_hash` from the log (it had been `''` on every row), and
-> made linking a row to its on-chain id by `specHash` also require the event's
-> client and worker ERC-8004 ids to match the row's.
-
-Anyone may write to the ERC-8004 registry — that is the standard's design, and
-the reason a published study found its reputation manipulable. Pactora does not
-try to stop them. It makes its **own** feedback expensive to produce, and
-gives readers a one-line filter to count only that.
-
-An agent cannot rate itself through Pactora, because writing feedback requires
-a settled job and `clientAgentId != workerAgentId` is enforced on-chain.
+An agent cannot rate itself through Pactora: a review needs a settled job,
+and the contract refuses a job whose client and worker are the same agent
+(`SelfDealing`) or have the same owner (`SameOwner`). A farm of agents with
+different owners funded from one source is caught off-chain by the
+counterparty check, which reads the token's transfer events and blocks a
+self-funded worker at hire time.
 
 ---
 
 ## 7. The demo, as a single trace
 
 ```
-USER: "Research ETH/USDC liquidity on Monad and tell me whether to open a position."
+USER: "Research ETH/USDC liquidity on NEAR and tell me whether to open a position."
 MAIN: discover()                         → capabilities on offer
 MAIN: plan = [market-research, trade-analysis (, trade-execution)]
 MAIN: budget → ceiling per step = min(dailyRemaining / steps, maxSingleSpend)
 MAIN → discover(market-research)         → research worker (0.02)
-MAIN → hire                              → tx  ESCROW 0.02 USDC (createJob; score 50 < 70, so not direct)
-research worker → accept, result         → tx  acceptJob, submitResult
-MAIN: schema check + LLM judge           → accept → approve → tx  RELEASE + FEEDBACK
+MAIN → hire                              → tx  create_job 0.02 mUSDC (score 50 < 70, so escrow)
+research worker → accept, result         → tx  accept_job, submit_result
+MAIN: schema check + LLM judge           → accept → approve → tx  settled + reviews
 MAIN → discover(trade-analysis)          → trading worker (0.05)
-MAIN → hire                              → tx  ESCROW 0.05 USDC (createJob)
-trading worker → accept                  → tx  acceptJob
-trading worker → result                  → tx  submitResult(keccak256(output))
-MAIN: schema check + LLM judge           → accept → approve → tx  RELEASE + FEEDBACK
-MAIN → USER: synthesised answer + per-step receipts and explorer links
+MAIN → hire                              → tx  create_job 0.05 mUSDC
+trading worker → accept                  → tx  accept_job
+trading worker → result                  → tx  submit_result(sha256(output))
+MAIN: schema check + LLM judge           → accept → approve → tx  settled + reviews
+MAIN → USER: synthesised answer + per-step receipts and transaction hashes
 ```
 
-This is `pnpm demo` (`scripts/demo.mjs`). Timings are omitted because they
-depend on the model. The run has been completed on Monad testnet with local
-Ollama. The demo registers fresh agents each run, so every worker starts at
-the unproven score of 50, below `fastPathMinScore`, and **every step goes
-through escrow**. A worker the judge rejects is disputed on the escrow path
-and reported `unrecoverable` on the fast path.
+This is the first part of `pnpm demo:local` (`scripts/demo.mjs` in
+`pactora-backend-near`). The demo registers fresh agents each run, so every
+worker starts at the unproven score of 50, below `fastPathMinScore`. A
+worker the judge rejects is disputed on the escrow path.
 
 A worker that goes silent is retried once, with a different agent. An offer
 not accepted within 45 s is cancelled (an immediate on-chain refund) and the
-step is re-hired; an accepted job that never delivers is abandoned at the step
-timeout and re-hired with the budget reduced by what is still locked, and the
-keeper refunds the abandoned job at its work deadline. If the cancel fails,
-the worker accepted in the gap, and the step is not hired again. The trace
-shows a `retrying` event. `DEMO_CHAOS=no-accept` or `DEMO_CHAOS=mid-job`
-adds a broken worker to exercise this.
+step is re-hired; an accepted job that never delivers is abandoned at the
+step timeout and re-hired, and the keeper refunds the abandoned job at its
+work deadline. The trace shows a `retrying` event.
 
 Total human input: one sentence. Everything after it is agents paying agents.

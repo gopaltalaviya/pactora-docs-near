@@ -1,8 +1,11 @@
 # 03 — Technology Stack
 
-Chosen for one constraint above all others: **a working end-to-end demo in
-three weeks, by a small team.** Every pick below is boring on purpose. Novelty
-belongs in the product, not in the toolchain.
+Chosen for one constraint above all others: **a working end-to-end demo on a
+real NEAR node, by a small team, inside a hackathon window.** Every pick
+below is boring on purpose. Novelty belongs in the product, not in the
+toolchain. Exact versions are in each repo's `Cargo.lock`,
+`pnpm-lock.yaml` and `package.json`; the contracts README lists every
+library it builds with (hackathon rule Q-005).
 
 ---
 
@@ -10,269 +13,179 @@ belongs in the product, not in the toolchain.
 
 | Layer | Technology | Why this one |
 |---|---|---|
-| Chain | **Monad** (EVM) | Settlement layer. EVM equivalence means the whole Solidity/Foundry/viem toolchain works unchanged. |
-| Contracts | **Solidity 0.8.26**, **Foundry** | Fast tests, fuzzing and invariants built in, no JS in the test loop. |
-| Contract libs | **OpenZeppelin 5.0.2** | `SafeERC20`, `AccessControl`, `ReentrancyGuard`, `Pausable`, `Clones` (ERC-1167), `Initializable`. Do not hand-roll these. |
-| Chain reads/writes | **viem 2.x** | Typed ABIs, lighter and stricter than ethers, first-class with TypeScript. |
-| Backend | **TypeScript + Fastify 5** | Same language as the agents and the frontend. Fastify gives routes and SSE without ceremony. Request bodies are validated with **zod**. |
-| Database | **PostgreSQL 16** + **Drizzle ORM** | Relational job/ledger data with real constraints. Drizzle keeps migrations in SQL you can read. |
-| Queue / cache | **None, deliberately.** | Redis was planned and removed: nothing imported a client. Idempotency is a `UNIQUE` constraint in Postgres (`signer_txs` for transactions, `jobs.idempotency_key` per client for hires). The signer's nonce lock is a Postgres advisory lock. The indexer cursor is a table. Rate limiting is `@fastify/rate-limit`, in memory and per process, so N replicas allow N times the limit. Workers poll for jobs; there is no offer queue. |
-| Indexer | Custom **viem `getLogs` polling** loop | Contracts are few and events are few. Polls in ranges capped by the chain's `maxLogRange` (Monad's RPC rejects `eth_getLogs` over 100 blocks), trailing the head by `confirmations`. A hosted indexer is more setup than it saves at this size. |
-| Agent runtime | **TypeScript**, ordinary Node processes | A provider chain of **Claude**, **Gemini**, **Groq** and local **Ollama**, with automatic fallback along it, plus a recorded-replay backstop. `AGENT_MODE=cached` (the default) spends no tokens. The demo has run end to end on local Ollama, so no hosted key is required. The hosted deployment runs **Google Gemini** (flash-lite models first, free tier) with a **Groq** fallback (`openai/gpt-oss-120b`) when Gemini's quota is exhausted; the site says so plainly when the model is rate-limited. |
-| Agent interface | **MCP server** (`@modelcontextprotocol/sdk`, stdio) | Exposes `get_network`, `my_budget`, `discover_agents`, `hire_agent`, `get_job`, `await_result`, `approve_job`, `dispute_job` as tools, so any MCP-capable agent can transact. |
-| Frontend | **Next.js 15** (App Router) + **React 19** | Marketplace, agent profile, registration, live run trace. |
-| Styling | **Tailwind CSS 4** | Demo-quality UI without a design phase. No component library. |
-| Wallet UI | **viem + EIP-1193** directly (injected wallets) | The owner connects on one page to send the ERC-8004 registration. wagmi + RainbowKit were dropped: RainbowKit needs a WalletConnect project id, and one page does not need shared reactive state. |
-| Keys | **Encrypted keystore** (Web3 Secret Storage) in an env var, passphrase in a second one | Decision C1. A raw dev key is allowed on testnet only. AWS KMS is not built; the `KeySource` interface is where it would slot in. |
-| Observability | **Pino** logs, `x-trace-id` on every response | The request id is stored on the job row (`trace_id`). There is no OpenTelemetry. |
-| CI | **GitHub Actions**, one workflow per repo | contracts: `forge fmt --check`, `build`, `test`, `coverage`, `snapshot --check`, config and secrets checks, `verify-erc8004`. backend: `tsc -b`, lint, format, secrets check, migrations and `vitest` against a real Postgres. interface: `tsc --noEmit`, lint, format, `vitest`, `next build`, Playwright. Runners pinned to `ubuntu-24.04`, actions on their Node 24 majors. |
-| Deploy | **One Vultr VPS** — Docker Compose behind **Caddy** (API, signer, indexer, hosted orchestrator + 3 workers, Postgres), **Vercel** (interface) | Live since 2026-10-07: API at `https://api.64-177-41-175.sslip.io`, site at `https://agentx-interface-iota.vercel.app` (auto-deploys from `master`). Railway was the first choice; its trial expired and it is no longer used. |
+| Chain | **NEAR** (testnet; a local `near-sandbox` 2.14 node for development and the demo) | Function-call access keys, named accounts, one synchronous contract call for every hiring rule ([01 §4](01-idea.md#4-why-near)) |
+| Contract | **Rust**, **near-sdk 5.30.0**, near-contract-standards 5.30.0; toolchain 1.99.1, `wasm32-unknown-unknown` | One contract, `pactora`: registry, purses and caps, stake, escrow, reputation, NEP-297 events. `FungibleTokenReceiver` for funding by `ft_transfer_call` |
+| Contract build | **cargo-near 0.22.0** in the pinned `sourcescan/cargo-near` image | The only valid wasm build; NEP-330 source metadata and the ABI. The committed wasm and its sha256 are what `deploy.mjs` deploys |
+| Contract tests | Unit tests on the mocked runtime, **proptest** property and model-based fuzz tests, **near-workspaces 0.24.0** sandbox and adversarial suites against the compiled wasm | The escrow holds other people's money: invariant I1 (the contract holds exactly what its buckets say) is checked after every step of random call sequences |
+| Payment token | **mUSDC**, NEP-141 / NEP-145 / NEP-148, 6 decimals (`contracts/mock-usdc`) | Testnet-only; only its owner mints. The contract takes the token account as a parameter, so a real token needs no code change |
+| Arbiter | **Sputnik DAO v2**, 2-of-3 council | The wasm the testnet factory deploys, fetched and hash-checked by `create-dao.mjs`; the contract just names its account as arbiter |
+| Chain access (scripts, backend) | **near-api-js 7.4.0** (`@pactora/near` wraps it) | RPC, function calls, NEP-413 signatures, access keys |
+| Backend | **TypeScript + Fastify 5**, request bodies validated with **zod 4** | Same language as the agents and the frontend. Routes, SSE and OpenAPI without ceremony |
+| Database | **PostgreSQL 16** + **Drizzle ORM** (0.45) | Relational job/ledger data with real constraints; migrations in SQL you can read |
+| Object storage | **MinIO** (S3 API, `@aws-sdk/client-s3`) | Evidence photos and files, encrypted at rest ([docs/26](26-human-work-integration-plan.md)) |
+| Queue / cache | **None, deliberately.** | Idempotency is a `UNIQUE` constraint in Postgres; the signer's per-wallet lock and the indexer cursor are tables; rate limiting is `@fastify/rate-limit` in memory, per process. Workers poll for jobs |
+| Indexer | Custom loop over **final blocks** (`packages/near/src/blocks.ts`) | Reads each final block's chunks and transactions, keeps the contract's `EVENT_JSON:` logs and the token's NEP-141 transfers. Contracts and events are few; a hosted indexer is more setup than it saves |
+| Agent runtime | **TypeScript**, ordinary Node processes | A provider chain of **Claude**, **Gemini**, **Groq** and local **Ollama** with fallback, plus a recorded-replay backstop. `AGENT_MODE=cached` (the default) spends no tokens. Optional judge on **NEAR AI Cloud** (`JUDGE_PROVIDER=near-ai`, off by default) |
+| Agent interface | **MCP server** (`@modelcontextprotocol/sdk`) | 25 tools, so any MCP-capable agent can discover, check trust, hire, approve and dispute |
+| Notifications | `apps/notifier` (signed webhooks), `apps/channels` (Telegram, email) | People hear about bids, deliveries and rulings without polling |
+| Frontend | **Next.js 15** (App Router) + **React 19** | Marketplace, agent and people profiles, jobs and listings, runs, admin console with the DAO dispute desk |
+| Wallet UI | **@hot-labs/near-connect** | Sign-in with NEP-413 and transactions from the user's own NEAR wallet |
+| Styling | **Tailwind CSS 4** | No component library |
+| Keys | Agent wallet keys generated by the signer, stored encrypted in Postgres under `SIGNER_KEY_PASSPHRASE`; optional **AWS KMS** ed25519 signing (`SIGNER_KMS_KEYS`) | The key never needs to leave the signer, or with KMS never exists in process memory |
+| Observability | **Pino** logs, `x-trace-id` on every response, Prometheus metrics (`prom-client`) | The request id is stored on the job row |
+| CI | **GitHub Actions**, one workflow per repo | contracts: fmt, clippy, unit + property tests, reproducible wasm build, sandbox and adversarial suites, `deploy.mjs` + `verify-near.mjs` on a fresh sandbox, secret scan. backend: typecheck, lint, format, migrations and Vitest against a real Postgres. interface: typecheck, lint, format, Vitest, `next build`, Playwright |
+| Hosting | One VPS with Docker Compose behind **Caddy** for the backend; **Vercel** for the interface | The recipe is `pactora-backend-near/deploy/vps/README.md`; nothing is hosted today ([13](13-deploy.md)) |
 
 ---
 
 ## 2. Repository layout
 
-> ⚠️ **Superseded 2026-09-22 by [06 — Repository Structure](06-repo-structure.md).**
-> The project uses **three separate repositories** so that contracts never
-> enter a Vercel or Railway build container. The technology choices in this
-> document are unchanged; only the layout differs. The single-monorepo layout
-> below is kept for reference on how the pieces relate.
-
-A pnpm monorepo. One install, one typecheck, shared types between contracts,
-backend, agents and web.
+Four repositories ([06 — Repository Structure](06-repo-structure.md)):
 
 ```
-agentx/
-├── contracts/               Foundry project
-│   ├── src/
-│   │   ├── StakeVault.sol
-│   │   ├── TaskEscrow.sol
-│   │   ├── fallback/            # only if ERC-8004 verification fails
-│   │   ├── AgentAccount.sol
-│   │   ├── AgentAccountFactory.sol
-│   │   └── mocks/MockUSDC.sol
-│   ├── test/                unit · fuzz · invariant
-│   ├── script/Deploy.s.sol
-│   └── foundry.toml
-│
-├── packages/
-│   ├── contracts-types/     generated ABIs + viem typed clients
-│   ├── sdk/                 @pactora/sdk — the client any agent imports
-│   └── shared/              zod schemas, job spec types, error codes
-│
-├── apps/
-│   ├── api/                 Fastify: REST + SSE + auth
-│   ├── indexer/             chain events → Postgres
-│   ├── signer/              policy-checked transaction signing
-│   ├── mcp/                 MCP server for agent-facing tools
-│   ├── agents/
-│   │   ├── orchestrator/    the "main agent"
-│   │   ├── research-bot/
-│   │   ├── trading-bot/
-│   │   └── execution-bot/
-│   └── web/                 Next.js marketplace + live demo view
-│
-├── docs/                    these files
-└── docker-compose.yml       postgres for local dev
+pactora-contracts-near/
+├── contracts/pactora/       the protocol (src/lib.rs, types.rs, budget.rs, events.rs, tests.rs, fuzz.rs; tests/)
+├── contracts/mock-usdc/     testnet NEP-141 token
+├── wasm/                    the deployed bytes + SHA256SUMS
+├── config/                  networks.json, params.<network>.json
+└── scripts/                 create-dao, deploy, verify-near, sweep-*, check-no-secrets
+
+pactora-backend-near/
+├── apps/                    api, signer, indexer, notifier, channels, mcp, agents
+├── packages/                near, config, db, sdk, agent-core, shared, compliance, storage, service
+├── chain/                   chain facts synced from the contracts repo
+└── scripts/                 demo.mjs, local-up.mjs (pnpm demo:local), sync-chain-facts.mjs, ops scripts
+
+pactora-interface-near/      Next.js app (app/**), components, e2e and e2e-live Playwright suites
+pactora-docs-near/           this specification
 ```
 
 ---
 
-## 3. Chain configuration
+## 3. Network configuration
 
-Verified 2026-09-22 against the official Monad documentation and Chainlist.
-Re-check before deploying — a chain config is worth confirming with your own
-eyes.
+Network facts live in `pactora-contracts-near/config/networks.json`, keyed
+by CAIP-2 strings (`near:testnet`, `near:sandbox`), and are synced into the
+backend's `chain/` by `scripts/sync-chain-facts.mjs`
+([08 — Configuration](08-configuration.md)). The network is configuration,
+never a code path. Every script refuses mainnet.
 
-| | Testnet | Mainnet |
-|---|---|---|
-| Chain ID | **10143** | **143** |
-| RPC | `https://testnet-rpc.monad.xyz` | `https://rpc.monad.xyz` (+ `rpc1`–`rpc3`) |
-| Explorer | `https://testnet.monadexplorer.com` | `https://monadvision.com`, `https://monadscan.com` |
-| Faucet | `https://faucet.monad.xyz` | — |
-| Currency | MON (18 decimals) | MON (18 decimals) |
+**Payment token.** The protocol takes the NEP-141 token account as an `new`
+parameter; it is not hard-coded to any one token. On testnet and the sandbox
+it is mUSDC (6 decimals), so demos are not faucet-limited.
 
-**Decision (2026-09-22): testnet first, both supported by the same code.**
-The network is configuration, never a code path — there is no
-`if (isMainnet)` anywhere in the application.
-
-```ts
-import { loadConfig } from '@pactora/config'
-
-const config = loadConfig()                   // validated + frozen at boot
-const chain  = config.chains[chainId]         // never "the" chain
-```
-
-The chain registry, the per-network protocol parameters, the generated
-deployment addresses and the env split are all specified in
-**[08 — Configuration Architecture](08-configuration.md)**. Do not define a
-chain object anywhere else; `config.chains[id].viemChain` is the only one.
-
-**Payment token.** The protocol takes the ERC-20 address as a deploy
-parameter; it is not hard-coded to any one stablecoin. On testnet we deploy
-`MockUSDC` (6 decimals, public `mint`) so demos are not faucet-limited. If a
-canonical bridged USDC exists on the target network, point the same parameter
-at it — no code change.
-
-**ERC-8004.** Deployed on mainnet, absent on testnet (verified 2026-09-22).
-`Deploy.s.sol` deploys our own minimal registries on a testnet, and refuses to
-on a non-testnet. On mainnet it adopts the canonical `0x8004…` addresses from
-`config/networks.json`.
-
-**Gas.** Agents pay their own gas in MON. The signer refuses to sign when the
-agent's balance is below a floor (0.01 MON) rather than emitting a failing
-transaction, and names the address to fund. **It does not top wallets up.**
-Wallets are funded by hand from `DEPLOYER`/`FUNDER` (the faucet has
-bot-detection and cannot be scripted).
+**Gas and storage.** NEAR gas is paid by the signing account. Agent wallets
+are funded with a little NEAR when created; a function-call key carries a
+gas allowance. Contract storage for an agent's jobs is prepaid by its owner
+(`storage_deposit`) and billed when a job is created, including what the job
+may grow by later.
 
 ---
 
 ## 4. Why these choices, where it actually matters
 
-**Foundry over Hardhat.** The escrow is a state machine holding other people's
-money. Foundry's invariant testing lets us assert the property that matters —
-*contract token balance always equals the sum of locked job amounts* — against
-randomised call sequences. That is worth more than any number of hand-written
-unit tests.
+**One contract, Rust, property tests.** The escrow is a state machine holding
+other people's money. The model-based fuzz suite drives random call
+sequences from every kind of caller, predicts each refusal and the whole
+post-state, and checks the invariants after every step. That is worth more
+than any number of hand-written unit tests.
 
-**viem over ethers.** ABIs are typed from the Foundry artifacts, so a changed
-function signature is a compile error in the backend, not a runtime revert
-during the demo.
+**The committed wasm.** Only a cargo-near build is valid on a real node, and
+the deployed bytes are committed with their hash, so a judge can deploy
+without a Rust toolchain and anyone can check what runs.
 
 **Postgres, not "everything on-chain".** On-chain state is the minimum needed
 for trustlessness: who owns what, how much is locked, what the outcome was, the
-result hash. Job descriptions, result payloads, search indexes and analytics
-live in Postgres, which is cheaper, queryable and mutable. The chain is the
-ledger; the database is the cache and the catalogue.
+result hash, the records. Job descriptions, result payloads, search indexes,
+evidence and analytics live in Postgres and object storage, which are cheaper,
+queryable and mutable. The chain is the ledger; the database is the cache and
+the catalogue.
 
-**MCP as the agent interface.** Exposing hire/discover/settle as MCP tools is
+**MCP as the agent interface.** Exposing discover/hire/settle as MCP tools is
 the difference between "a dApp with an AI theme" and "infrastructure any agent
-can plug into". The server is a **stdio** process (`apps/mcp`). A judge runs it
-locally with `PACTORA_API_URL` and an agent's `PACTORA_API_KEY`, points their
-own agent at it, and hires a bot. That is the strongest possible proof of the
-thesis.
+can plug into". A judge runs `apps/mcp` with `PACTORA_API_URL` and an agent's
+`PACTORA_API_KEY`, points their own agent at it, and hires a bot.
 
-**Separate signer service.** Key material lives in exactly one process, with
-one job: check the spending policy, then sign. The API never touches a private
-key. It encodes the call and sends it to the signer's `POST /sign`. The design
-pairs this with the on-chain `AgentAccount` policy for defence in depth.
-
-As built (2026-09-29):
+**Separate signer service.** Agent key material lives in exactly one
+process, with one job: sign the allowed `pactora` methods for the wallet
+that asked. The API never touches a private key.
 
 - **Caller authentication** is a shared secret, `SIGNER_TOKEN`, which the API
-  presents as a bearer token and the signer compares in constant time.
-  Without a token configured, the signer binds to `127.0.0.1` only and
-  refuses a wider `SIGNER_HOST`.
-- **Caps.** Where the wallet is an `AgentAccount` — in the demo, the
-  orchestrator's, the only agent that spends — the signer reads the caps from
-  the contract to refuse early with a clear error, then sends the call to the
-  account as `execute(target, data)`, signed by a live session key (the
-  owner's key as fallback). The contract enforces the caps and allowlist;
-  the signer keeps no off-chain reservation for it. Since 2026-09-30 the
-  three demo workers act through `AgentAccount`s too (zero caps, only
-  `acceptJob` and `submitResult` on the escrow). For an agent with a plain
-  EOA wallet — one registered by someone else, e.g. through `/register` —
-  the signer enforces the agent's `spend_policies` row itself: it checks and reserves the spend in one `UPDATE` under the
-  per-agent lock (rolling 24-hour window) and refuses an agent with no
-  policy. That is enforcement outside the model, but not on-chain. See
-  [04 §3.2](04-how-it-works.md#32-signer-service).
-- The signer process also runs the **keeper** (`KEEPER_PRIVATE_KEY`, its own
-  key), which sends the escrow's permissionless exits when they fall due.
+  presents as a bearer token. Without a token configured, the signer binds
+  to loopback only.
+- **Caps.** The contract's purse caps bound every wallet; the signer reads
+  `purse_of` under the wallet's lock to refuse early with a clear error, but
+  enforcement is on chain. A function-call key cannot attach a deposit, so
+  even the signer cannot withdraw for an agent.
+- The signer process also runs the **keeper** (`KEEPER_ACCOUNT_ID`, its own
+  account), which sends the contract's permissionless exits when they fall
+  due, and the testnet **faucet**.
 
 ---
 
 ## 5. Versions to pin
 
 ```
-node            >= 22 (engines)
+node            >= 22.12 (engines); CI uses 24
 pnpm            9.12.0 (packageManager)
-solc            0.8.26, via_ir = true (required: ERC-8004's 11-argument
-                NewFeedback event overflows the stack without it)
-foundry         stable (CI prints `forge --version`)
-openzeppelin    5.0.2
-viem            2.x
+rust            1.99.1 (rust-toolchain.toml)
+near-sdk        5.30.0
+cargo-near      0.22.0
+near-workspaces 0.24.0
+near-sandbox    2.14 (nearcore sandbox, via the npm package)
+near-api-js     7.4.0
 fastify         5.x
+drizzle-orm     0.45
+zod             4.x
 next            15.5.x
 react           19.x
 tailwindcss     4.x
-drizzle-orm     0.36
 postgres        16 (postgres:16-alpine in docker-compose)
 ```
 
-Pin exact versions in the lockfile and in `foundry.toml`. A dependency that
-moves under you the night before a deadline is a self-inflicted outage.
+Pin exact versions in the lockfiles. A dependency that moves under you the
+night before a deadline is a self-inflicted outage.
 
 ---
 
 ## 6. Local development
 
 ```bash
-# contracts (separate repo)
-cd agentx-contracts
-make test                            # forge test -vvv
-anvil                                # local chain, in another terminal
-make deploy-local                    # writes deployments/31337.json
-
-# backend
-cd ../agentx-backend
+# the whole loop, one command (backend; the contracts repo cloned beside it)
+cd pactora-backend-near
 pnpm install
-docker compose up -d                 # postgres only, on host port 5442
-pnpm -r build                        # services and scripts run from dist/
-pnpm db:migrate
-pnpm --filter @pactora/api start      # likewise signer, indexer, apps/agents/*
+pnpm demo:local          # Postgres + MinIO + a fresh NEAR sandbox, deploy, migrate, build, demo → "Demo passed."
 
-# the whole loop, unattended
-pnpm e2e                             # scripted hire → settle
-pnpm demo                            # orchestrator + three workers
+# the backend alone
+docker compose up -d     # dev Postgres on 127.0.0.1:5443, MinIO
+pnpm db:migrate
+pnpm check               # typecheck, lint, format, tests
+
+# the interface
+cd ../pactora-interface-near
+pnpm dev -p 3001
+
+# the contracts (Linux or WSL)
+cd ../pactora-contracts-near
+cargo test --workspace --lib -- --test-threads=1
 ```
 
-There is no `pnpm dev` that starts the stack. The root `dev` script runs each
-package's `dev` script, and only the indexer has one (`tsc --watch`). Each
-service starts from its own `start` script, and `pnpm demo` boots what it
-needs itself.
-
-There is no seed of historical jobs. `pnpm db:seed` was removed on Sep 29: it
-pointed at a `packages/db/bin/seed.mjs` that never existed. Demo agents are
-registered fresh by `scripts/demo.mjs` and start at the unproven score of 50.
+On Windows, run pnpm as `corepack pnpm` (STATUS "How to resume"). Demo
+agents are registered fresh by `scripts/demo.mjs` and start at the unproven
+score of 50.
 
 ---
 
 ## 7. Environment variables
 
-**Secrets and wiring only.** Chain facts, protocol parameters and contract
-addresses are versioned config, not env vars — see
-[08 §5](08-configuration.md#5-environment-variables--secrets-and-wiring-only)
-for the complete list and the reasoning.
+**Secrets and wiring only.** Network facts, protocol parameters and contract
+accounts are versioned config, not env vars — see
+[08 §5](08-configuration.md) for the complete list, kept complete by
+`pnpm check:env` in this repo. `.env.example` in each repo is the commented
+list for that repo, and ships with empty values only.
 
-```
-# agentx-backend/.env
-ENABLED_CHAIN_IDS=10143       DEFAULT_CHAIN_ID=10143
-PACTORA_CONTRACTS_ROOT=../agentx-contracts
-RPC_URL_10143=                RPC_URL_143=          # optional overrides
-
-DATABASE_URL=                 SIGNER_URL=
-SIGNER_TOKEN=                 SIGNER_HOST=          # API ↔ signer secret; bind address
-SIGNER_KEYSTORE_JSON=         SIGNER_KEYSTORE_PASSPHRASE=
-SIGNER_DEV_PRIVATE_KEY=                             # testnet only
-KEEPER_PRIVATE_KEY=           KEEPER_INTERVAL_MS=15000   # keeper; testnet only as a raw key
-
-AGENT_MODE=cached             BRAIN_CHAIN=          BRAIN_CHAIN_ORCHESTRATOR=
-OLLAMA_HOST=                  OLLAMA_MODEL=         # local, no key needed
-GEMINI_API_KEY=               GROQ_API_KEY=         ANTHROPIC_API_KEY=   # all optional
-PACTORA_API_URL=               PACTORA_API_KEY=       PACTORA_CHAIN_ID=     # agent processes
-
-# agentx-contracts/.env
-EXPLORER_API_KEY=                                   # source verification only
-```
-
-`.env.example` in each repo is the complete, commented list.
-
-There is no `REDIS_URL` (nothing uses Redis) and no `API_JWT_SECRET`.
 Authentication is a per-agent API key (`Authorization: Bearer ax_…`), stored
-only as a salted scrypt hash.
+only as a salted hash, or a 7-day session from a NEP-413 sign-in for people.
 
-**No contract address is ever an env var.** That is the single most common
+**No contract account is ever an env var.** That is the single most common
 cause of "works locally, points at the wrong contract in production".
-
-No private key ever appears in `.env` outside local development, and
-`.env.example` ships with empty values only.
