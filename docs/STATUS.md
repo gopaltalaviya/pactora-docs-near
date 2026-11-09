@@ -441,8 +441,12 @@ There is no backend `.env`; set `DATABASE_URL` inline.
 ## Where things stand, 2026-11-09 night
 
 All code work that does not need the owner is done, tested and pushed on
-`human-work` in all four repos: contracts `08453d2`, backend `ccd27e3`,
-interface `31a3308`, docs (this file). Last full gate: backend 1352 tests,
+`human-work` in all four repos: contracts `87513cb`, backend `99f8ad1`,
+interface `7624af2`, docs (this file). Since then, the same night: every
+README followed from a fresh GitHub clone, as the AI screen will (13 gaps
+fixed: clone branch, `DATABASE_URL` for migrate, `dao.wasm`, sandbox port,
+timings), and `scripts/preflight-testnet.mjs`, a read-only go/no-go before
+the testnet run (24 tests; GO on the sandbox). Last full gate: backend 1352 tests,
 interface 328 unit + 1600 e2e in five browsers, `demo:local` (71 checks),
 `swarm:local`, `verify-near --dao` (28), the live suite against the real
 backend in five browsers (61). Real screenshots for the X post are in
