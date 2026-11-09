@@ -16,8 +16,30 @@ property cases. Re-check them against the testnet run before submitting.
 
 ## 1. Form
 
-**Tracks:** Agent Economy (primary), AI Security & Defense. Add Open Innovation
-too: it can be entered alongside any other track.
+**Tracks** (nearhackathon.com: "Select every track your project fits"; still
+one submission):
+
+| Track | Why it fits (the site's track text, then ours) |
+|---|---|
+| Agent Economy (primary) | "agents that earn, spend, negotiate, hire other agents and pay": the orchestrator hires, checks and pays workers through escrow |
+| AI Security & Defense | "spending limits, policy engines, sandboxed wallets": per-task and daily caps in the contract, function-call keys that cannot move NEAR, the trust check before a hire |
+| AI Swarms | "coordination markets, bidding": listings with bids, one listing filled by many workers |
+| Social Money | "reputation-based access built on Sputnik DAO": on-chain reputation from settled jobs, disputes ruled by a 2-of-3 Sputnik DAO |
+
+Only tick a track whose text the product meets; Open Innovation is for ideas
+that fit no category, so it is left out.
+
+**Repository link (one field, four repos).** The form takes one repository
+link. Submit `pactora-backend-near`: its README holds the one-command demo
+(`pnpm demo:local`), the disclosure, and links to the other three. The form
+link opens the repo's **default branch**, so before submitting either make
+`human-work` the default branch of all four repos (GitHub → Settings →
+Branches) or merge it into `master`; otherwise judges and the AI screen see
+the older `master`. Alternatively submit
+`https://github.com/gopaltalaviya/pactora-backend-near/tree/hackathon-submission`.
+
+**Counted work (Q-001):** work from the 2026-10-19 announcement onward counts;
+earlier commits are baseline. The `pre-hackathon` tag marks that baseline.
 
 **Website field:** leave it **empty**. It is a spam trap.
 

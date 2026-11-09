@@ -89,6 +89,13 @@ Two checks keep the docs honest:
   `process.env` read in their source, and the compose files, and fails on
   any name §5 does not document.
 
+## Libraries used (Q-005)
+
+This repository is Markdown plus one Node script (`scripts/check-env-docs.mjs`,
+Node's standard library only, no npm dependencies). The libraries the product
+uses are listed in each code repo's README: contracts (near-sdk-rs,
+near-api-js), backend, interface.
+
 ## License
 
 [MIT](LICENSE)
