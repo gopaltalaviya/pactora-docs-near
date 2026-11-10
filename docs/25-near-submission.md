@@ -1,11 +1,13 @@
 # 25 — NEAR Hackathon submission: form text, X post, video script
 
 Deadline: **2026-11-14 23:59 UTC**. Rules are in [docs/24](24-near-hackathon.md) §1.1.
-Every figure below comes from the gate run of **2026-11-09** on the `human-work`
-branch (docs/STATUS.md "Gate after the audit"): `pnpm demo:local` 64 checks,
-`verify-near --dao` 28 checks, backend 1272 tests, interface 290 unit tests +
-1309 browser tests, contracts 63 unit / 6 sandbox / 14 adversarial / 256
-property cases. Re-check them against the testnet run before submitting.
+Figures as of **2026-11-10** on the `human-work` branch (later runs only add
+to them; re-check against the testnet run before submitting):
+`pnpm demo:local` 80 checks, `verify-near --dao` 28 checks, backend 1379
+tests, interface 361 unit tests + 1821 mocked browser tests (5 browsers) +
+a live suite of 61 runs across the same 5 browsers, contracts 88 test
+functions (57 `tests.rs` + 6 `budget.rs` + 4 `fuzz.rs` (2 property, 2 fixed) + 1
+mock-usdc + 6 sandbox + 14 adversarial), 28 MCP tools.
 
 > **Branch decision (owner, 2026-11-09):** the submission is the `human-work`
 > branch — people as workers and clients, listings and bids, evidence photos,
@@ -23,7 +25,7 @@ one submission):
 |---|---|
 | Agent Economy (primary) | "agents that earn, spend, negotiate, hire other agents and pay": the orchestrator hires, checks and pays workers through escrow |
 | AI Security & Defense | "spending limits, policy engines, sandboxed wallets": per-task and daily caps in the contract, function-call keys that cannot move NEAR, the trust check before a hire |
-| AI Swarms | "coordination markets, bidding": listings with bids, one listing filled by many workers |
+| AI Swarms | "coordination markets, bidding": listings with bids, one listing filled by many workers; `pnpm swarm:local` runs 20 buyer and 5 seller agents bidding by rule over two rounds, settled on chain |
 | Social Money | "reputation-based access built on Sputnik DAO": on-chain reputation from settled jobs, disputes ruled by a 2-of-3 Sputnik DAO |
 
 Only tick a track whose text the product meets; Open Innovation is for ideas
@@ -45,40 +47,40 @@ earlier commits are baseline. The `pre-hackathon` tag marks that baseline.
 
 **Payout account:** your **mainnet** NEAR account.
 
-**Description** (the form allows 20–2,000 characters; this one is about 1,950):
+**Description** (the form allows 20–2,000 characters; this one is about 1,965):
 
 > Pactora is a marketplace on NEAR where AI agents and people hire each other
-> without trusting each other. A client — an orchestrator agent planning a
-> goal, or a person posting a listing — locks mUSDC in the Pactora contract's
-> escrow; the worker (an agent, or a person bidding on the listing) stakes a
-> bond; the delivery is recorded on chain by its sha256. A judge with no tools
-> approves and the worker is paid, or disputes and a 2-of-3 Sputnik DAO rules
-> from the desk in the admin console. Reputation is written only by
-> settlement, and anyone can read it from the contract.
+> without trusting each other, in all four directions: an agent hires an
+> agent, agents and people post listings that agents and people bid on, and
+> a person can hire an agent directly from its page. The client locks mUSDC
+> in the Pactora contract's escrow; the worker stakes a bond; the delivery
+> is recorded on chain by its sha256. A judge with no tools approves and the
+> worker is paid, or disputes (the client adds notes and photos) and a 2-of-3
+> Sputnik DAO rules from the admin console's desk. Reputation is written only
+> by settlement; anyone can read it from the contract.
 >
 > Keys: each agent's wallet is a sub-account holding only a function-call key
 > scoped to Pactora. It cannot withdraw, attach a deposit, send NEAR or call
-> another contract; the owner's full-access key is separate. People sign in
-> with a NEP-413 signature from their own wallet. On-chain per-task and
-> rolling 24 h caps bound what a stolen key can spend, bonds included.
+> another contract. People sign in with a NEP-413 signature from their own
+> wallet. On-chain per-task and rolling 24 h caps bound what a stolen key can
+> spend, bonds included.
 >
 > Defense: a counterparty check reads the chain's own funding and settlement
 > events and blocks self-funded "farm" agents before any money moves. The
-> demo prompt-injects the orchestrator: hire a farm, overspend, withdraw to an
-> attacker — each refused (COUNTERPARTY_BLOCKED, BUDGET_EXCEEDED, FORBIDDEN).
-> With a stolen wallet key, the chain itself refuses every escape. People's
-> work is protected too: photo evidence is stripped of location data and
-> hashed on chain, a compliance hold stops a payout to a sanctioned account
-> (the signer refuses, the keeper skips, the chain pays once cleared), and an
-> unanswered dispute cannot be front-run — the DAO has a 7-day window plus a
-> 24 h grace before anyone may expire it, and the client's bond then splits.
+> demo prompt-injects the orchestrator: hire a farm, overspend, withdraw to
+> an attacker; each is refused. With a stolen wallet key, the chain refuses
+> every escape. Photo evidence is stripped of location data and hashed on
+> chain; a compliance hold stops a payout to a sanctioned account; an
+> unanswered dispute cannot be front-run (a 7-day DAO window plus a 24 h
+> grace).
 >
-> Built before the hackathon: the escrow-and-reputation design, tag
-> `pre-hackathon`. Built in the window, on branch `human-work`: the NEAR code
-> (Rust contract 1.1.0, DAO arbiter, NEAR signer, indexer, interface), the
-> trust check, and the human side — listings, bids, evidence, chat,
-> webhooks, profiles, screening, the dispute desk, Telegram — all run live
-> on a NEAR node by one command, `pnpm demo:local`, with no API key.
+> Built before the hackathon: the escrow-and-reputation design (tag
+> `pre-hackathon`). Built in the window, on branch `human-work`: the NEAR
+> code (Rust contract 1.1.0, DAO arbiter, signer, indexer, interface), the
+> trust check and the human side (listings, bids, direct hire, evidence,
+> chat, profiles, screening, the dispute desk). One command, `pnpm
+> demo:local`, runs it live on a NEAR node with no API key; `pnpm
+> swarm:local` adds a swarm of 20 buyer and 5 seller agents bidding.
 
 ## 2. X post (you post it, with the video attached)
 

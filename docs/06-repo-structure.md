@@ -89,7 +89,7 @@ pactora-backend-near/
 │   ├── notifier/     webhooks, email, in-app notifications
 │   ├── channels/     Telegram
 │   ├── agents/       orchestrator/, research-bot/, trading-bot/, execution-bot/
-│   └── mcp/          stdio MCP server, 25 tools (src/tools.ts)
+│   └── mcp/          MCP server, 28 tools (src/tools.ts): stdio, and streamable HTTP when MCP_HTTP_PORT is set (src/http.ts)
 ├── packages/
 │   ├── agent-core/   brains, prompts, judge, worker loop, orchestrator
 │   ├── compliance/   sanctions lists and name matching
@@ -126,7 +126,7 @@ network only and is never published.
 ## 3. `pactora-interface-near`
 
 Next.js (App Router). Every route is a `page.tsx` under `app/`; the list
-below is the tree as of 2026-11-09. The interface never holds a protocol key:
+below is the tree as of 2026-11-10. The interface never holds a protocol key:
 people sign with their own NEAR wallet (NEP-413 for sign-in, a transaction
 for on-chain actions), agents act through the API.
 
@@ -135,7 +135,7 @@ pactora-interface-near/
 ├── app/
 │   ├── page.tsx                      home: start a run, live run trace
 │   ├── about/  contact/  fees/  privacy/  terms/  risks/
-│   ├── docs/                         docs, api, build-an-agent, concepts, faq, guides, mcp, people, quickstart, security
+│   ├── docs/                         docs (index), api, build-an-agent, concepts, faq, mcp, people, quickstart, security
 │   ├── agents/                       marketplace; agents/[id] profile; agents/[id]/manage
 │   ├── people/                       public profiles; people/[id]
 │   ├── jobs/                         jobs list; jobs/[id]; jobs/new; jobs/listing/[id]
@@ -150,7 +150,7 @@ pactora-interface-near/
 │   ├── RunTrace.tsx, StepList.tsx, TrustCard.tsx, ReviewProof.tsx, NetworkBadge.tsx, SiteHeader.tsx, ModelNotice.tsx, RouteFocus.tsx
 │   └── brand/  docs/  info/  landing/  market/  search/  ui/
 ├── lib/                              api.ts (typed client), api-routes.ts, near.ts, wallet.ts, session.tsx, csp.mjs, market.ts, search.ts, review.ts, evidence.ts, kyc.ts, notifications.ts, profiles.ts, fees.ts, … with their unit tests beside them
-├── e2e/                              Playwright against mock-api.mjs: a11y, admin, audit, channels, connect, delivery, edge, guides, identity, jobs, notifications, people, profiles, search, smoke, user-agents
+├── e2e/                              Playwright against mock-api.mjs: a11y, account, admin, audit, audit-export, channels, connect, csp, delivery, edge, feed, history, home, identity, job-page, jobs, join, keys, layout, notifications, people, people-faq, profile-round2, profiles, register, reports, search, search-q, smoke, status-stalled, templates, user-agents
 ├── e2e-live/                         live.spec.ts against the real stack
 ├── scripts/                          check-api-contract.mjs, screenshots.mjs, brand.mjs
 ├── public/  assets/  docs/
@@ -161,12 +161,12 @@ pactora-interface-near/
 
 Routes: `/`, `/about`, `/admin`, `/agents`, `/agents/[id]`,
 `/agents/[id]/manage`, `/contact`, `/demo`, `/docs`, `/docs/api`,
-`/docs/build-an-agent`, `/docs/concepts`, `/docs/faq`, `/docs/guides`,
+`/docs/build-an-agent`, `/docs/concepts`, `/docs/faq`,
 `/docs/mcp`, `/docs/people`, `/docs/quickstart`, `/docs/security`, `/fees`,
 `/jobs`, `/jobs/[id]`, `/jobs/listing/[id]`, `/jobs/new`, `/join`,
 `/kyc/simulated`, `/me`, `/notifications`, `/people`, `/people/[id]`,
 `/privacy`, `/register`, `/risks`, `/runs`, `/runs/[id]`, `/signin`,
-`/status`, `/terms` — 37 pages.
+`/status`, `/terms` — 36 pages (`app/**/page.tsx`).
 
 ---
 

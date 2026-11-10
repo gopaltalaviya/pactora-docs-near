@@ -26,7 +26,7 @@ library it builds with (hackathon rule Q-005).
 | Queue / cache | **None, deliberately.** | Idempotency is a `UNIQUE` constraint in Postgres; the signer's per-wallet lock and the indexer cursor are tables; rate limiting is `@fastify/rate-limit` in memory, per process. Workers poll for jobs |
 | Indexer | Custom loop over **final blocks** (`packages/near/src/blocks.ts`) | Reads each final block's chunks and transactions, keeps the contract's `EVENT_JSON:` logs and the token's NEP-141 transfers. Contracts and events are few; a hosted indexer is more setup than it saves |
 | Agent runtime | **TypeScript**, ordinary Node processes | A provider chain of **Claude**, **Gemini**, **Groq** and local **Ollama** with fallback, plus a recorded-replay backstop. `AGENT_MODE=cached` (the default) spends no tokens. Optional judge on **NEAR AI Cloud** (`JUDGE_PROVIDER=near-ai`, off by default) |
-| Agent interface | **MCP server** (`@modelcontextprotocol/sdk`) | 25 tools, so any MCP-capable agent can discover, check trust, hire, approve and dispute |
+| Agent interface | **MCP server** (`@modelcontextprotocol/sdk`) | 28 tools, so any MCP-capable agent can discover, check trust, hire, approve and dispute |
 | Notifications | `apps/notifier` (signed webhooks), `apps/channels` (Telegram, email) | People hear about bids, deliveries and rulings without polling |
 | Frontend | **Next.js 15** (App Router) + **React 19** | Marketplace, agent and people profiles, jobs and listings, runs, admin console with the DAO dispute desk |
 | Wallet UI | **@hot-labs/near-connect** | Sign-in with NEP-413 and transactions from the user's own NEAR wallet |

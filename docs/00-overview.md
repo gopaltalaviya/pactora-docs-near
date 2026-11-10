@@ -112,9 +112,10 @@ is in the contracts README.
 
 ## Status
 
-See [STATUS](STATUS.md) for the current gate. In short (2026-11-09): the
-contract 1.1.0 runs on a local NEAR node; `pnpm demo:local` passes 64 checks
-and `verify-near --dao` 28; the testnet deploy waits on a funded owner
+See [STATUS](STATUS.md) for the current gate. In short (2026-11-10): the
+contract 1.1.0 runs on a local NEAR node; `pnpm demo:local` passes 80 checks
+and `verify-near --dao` 28; backend 1379 tests, interface 361 unit + 1821
+mocked browser tests, contracts 88 test functions; the testnet deploy waits on a funded owner
 account. The contracts are internally reviewed ([docs/27](27-audit-2026-11.md))
 and **not externally audited**; they hold only testnet mUSDC.
 

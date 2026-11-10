@@ -406,7 +406,13 @@ Resume after a crash: `git status` in all four repos, then Docker Desktop, then
 `DATABASE_URL=postgres://pactora:pactora@127.0.0.1:5443/pactora_near pnpm db:migrate`.
 There is no backend `.env`; set `DATABASE_URL` inline.
 
-## Current state: local gate, all run on 2026-11-07/08
+## Historical snapshot: local gate of 2026-11-07/08
+
+Kept as a dated record, not the current state; the numbers below are
+superseded. Current state: "Where things stand" below. Figures on
+2026-11-10: `demo:local` 80 checks, backend 1379 tests, interface 361 unit +
+1821 mocked browser tests (5 browsers) + 61 live runs, contracts 88
+test functions, 28 MCP tools.
 
 | Check | Result |
 |---|---|
@@ -459,7 +465,21 @@ specs 375/375, live suite 61, unit 328. Then (`574ab7c`) a modern visual refresh
 the shared design layer and a copy pass that puts every new feature on the landing
 page and in the docs and fixes 11 stale claims (184 -> 88 contract tests, pinned to
 the source by a test); mocked e2e 1608 in five browsers, live suite in five browsers,
-unit 329, README screenshots re-taken. What remains is the owner's.
+unit 329, README screenshots re-taken.
+
+**2026-11-10.** A three-way audit (backend routes vs UI, every persona's journey,
+docs and tests per feature) found 6 bugs, broken journeys and a missing direction.
+Built: person -> agent direct hire (`POST /v1/jobs/hire`, the person signs
+`create_job`; "Hire this agent" on an agent's page), `GET /v1/me/agents` with
+Manage links, bid/claim gated on `hireable`, job `deadlines`, unselect, admin and
+session error states, 28 MCP tools (agents can bid on people's listings), a
+"Four ways to deal" home section, and docs/15, docs/14 and docs/28 brought back
+in line with the code. Heads: backend `2ffa24b`, interface `3f13e04`, contracts
+`87513cb`, docs (this file). Gate: backend 1379 tests, `demo:local` 80 checks
+(direct hire settled on chain), `swarm:local` passed; interface 361 unit, mocked
+e2e 1821 in five browsers; docs/28 citations 0 failed. Next: live-chain tests
+for the new flows, the rules/sync audit, the hosted testnet site for judges
+(owner: testnet account, VPS, Vercel login), and two captioned videos.
 
 **Plan to the deadline (2026-11-14 23:59 UTC):**
 

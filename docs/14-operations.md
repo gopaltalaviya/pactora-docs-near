@@ -293,8 +293,8 @@ Backfill, reindex and repair procedures: [16 R3–R4](16-runbooks.md#r3-indexer-
 | `0004_sweet_tusk` | nullable `api_keys.key_id` + unique index | as 0002 |
 | `0005_numerous_falcon` | `public_id uuid DEFAULT gen_random_uuid() NOT NULL` on `jobs` and `runs` + unique indexes | a **volatile default rewrites the table** under ACCESS EXCLUSIVE — seconds at thousands of rows; would need a batched backfill at millions |
 
-  The table reviews the first seven files. `packages/db/migrations/` now holds **35** `.sql` files,
-  numbered `0000` through **`0022_sanctions_uk_source.sql`** (generated and
+  The table reviews the first seven files. `packages/db/migrations/` now holds **45** `.sql` files,
+  numbered `0000` through **`0032_indexer_state.sql`** (generated and
   hand-written files share numbers on purpose — `README.md` there). `0011_near_network_keys.sql` types every `chain_id` as text
   (`near:<network>`, CHECKed) and `0012_near_receipt_ids.sql` re-keys
   `job_events` on `receipt_id`; `0009_events_notify.sql` adds the live-event
@@ -317,9 +317,22 @@ Backfill, reindex and repair procedures: [16 R3–R4](16-runbooks.md#r3-indexer-
   composite FKs, `no_self_dealing`, `amount_positive`, `fee_within_amount`,
   `score_in_range`, kebab-case capabilities, unique idempotency keys, and the
   append-only trigger (tested in `packages/db/test/constraints.test.ts`).
-- **Retention:** nothing is ever deleted. `job_events`, `run_events` and
-  `signer_txs` grow without bound. Fine for a hackathon; a retention policy is
-  an owner decision.
+- **Retention** (`apps/api/src/retention.ts`; timer in `apps/api/src/app.ts:541-569`;
+  env in `apps/api/src/main.ts:65-78`, documented in
+  [08 §5](08-configuration.md)): the API runs a purge every
+  `RETENTION_INTERVAL_MS` (default 1 h; `0` = never). Clocks start when a job
+  settles or is refunded. Evidence and dispute photos lose their bytes after
+  `RETENTION_EVIDENCE_DAYS` (180; the row and its sha256 stay under a
+  `purged/` key); chat words become `[purged]` after `RETENTION_CHAT_DAYS`
+  (180); draft snapshots become `{purged: true}` after `RETENTION_DRAFTS_DAYS`
+  (90; the hash stays); a finished job's per-agent event copies
+  (`agent_events`) go after `RETENTION_JOB_EVENTS_DAYS` (365); agent events a
+  person has read go after `RETENTION_AGENT_EVENTS_READ_DAYS` (90).
+  `RETENTION_DRY_RUN=1` only counts and logs; real purges are counted in
+  `retention_purged_total{kind}`. Never touched: jobs, payments,
+  `token_transfers`, ratings, the compliance audit, the append-only
+  `job_events` log (its trigger refuses deletes), `run_events`,
+  `signer_txs`, anything on chain — those still grow without bound.
 
 ## 8. Backup and disaster recovery
 
