@@ -29,7 +29,7 @@ the **`human-work`** branch of all four repos (owner, 2026-11-09).
 | **Audit** | [docs/27](docs/27-audit-2026-11.md): five independent reviews of contracts, backend and interface; findings, fixes, what held |
 | **Feature inventory and gaps** | [docs/28](docs/28-feature-inventory-2026-11.md): every promised feature with its evidence, what a marketplace user would expect that is not planned, and readiness against each hackathon rule |
 | **Human work** | [docs/26](docs/26-human-work-integration-plan.md): people as workers and clients — listings, bids, evidence, disputes, compliance (F1–F33) |
-| **Demo video** | to be recorded by the owner over `pnpm demo:local` or the testnet run; script in docs/25 §3, see [`docs/video/`](docs/video/README.md) |
+| **Videos** | captions only: [overview, 1:27](https://github.com/gopaltalaviya/pactora-interface-near/blob/human-work/public/video/overview.mp4) and [demo, 3:12](https://github.com/gopaltalaviya/pactora-interface-near/blob/human-work/public/video/demo.mp4), recorded on a local NEAR sandbox; the `-x.mp4` copies for X and how they are made: [`docs/video/`](docs/video/README.md) |
 | **Logo** | [`docs/brand/`](docs/brand/README.md): the Keystone Arch mark, SVG and PNG, and the brand guide |
 
 ## The code

@@ -96,7 +96,10 @@ the worker's payout, the DAO dispute desk, home, jobs board, people).
 > A person's held payout waits for a compliance check; a 2-of-3 Sputnik DAO
 > rules the disputes. Wallet keys are function-call only.
 > Built at NEAR HACKATHON. @NEARProtocol #NEARHackathon
-> github.com/gopaltalaviya/pactora-backend-near [video link: add after recording]
+> github.com/gopaltalaviya/pactora-backend-near
+
+Attach `pactora-interface-near/public/video/demo-x.mp4` (3:12, captions burned in)
+or `overview-x.mp4` (1:27). Both are recorded; see [docs/video](video/README.md).
 
 ## 3. Video script (about 3½ minutes; recorded over `pnpm demo:local`, or the testnet run)
 
@@ -151,7 +154,8 @@ must carry:
 - [ ] Put the testnet account ids in the READMEs and in docs/STATUS.md.
 - [ ] **Owner:** tag `hackathon-submission` on `human-work` in all four repos and push (no merge to `master` is needed for the submission).
 - [ ] **Owner:** make all four repos **public** (D6, the rights, first: docs/26 §4).
-- [ ] **Owner:** record the video (§3) and post on X (§2), tagging @NEARProtocol with #NEARHackathon.
+- [x] Videos recorded (2026-11-10, local NEAR sandbox, captions only): `pactora-interface-near/public/video/`, overview 1:27 and demo 3:12; see [docs/video](video/README.md).
+- [ ] **Owner:** post on X (§2) with `demo-x.mp4` or `overview-x.mp4`, tagging @NEARProtocol with #NEARHackathon.
 - [ ] **Owner:** submit the form: §1 text, mainnet payout account, `website` empty.
 - [ ] Keep any hosted demo up until 2026-11-18 at least (Q-012); local-only is acceptable with the public repo, the README and the video.
 - [ ] Re-check every figure above against the testnet run; update docs/STATUS.md and docs/28 (the feature inventory) with what was deployed.
