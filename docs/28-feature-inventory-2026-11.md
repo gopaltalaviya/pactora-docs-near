@@ -104,7 +104,7 @@ cited (its line numbers move with every edit; it was last changed in §5.1b for 
 | §5.1g moderation hides a review, kept and audited | done with test | `pactora-backend-near apps/api/src/routes/admin.ts:501`; `pactora-backend-near apps/api/test/admin.test.ts:339`; `pactora-backend-near apps/api/test/profiles.test.ts:288` | — | built |
 | §5.1h sanctions lists OFAC, UN, UK with refresh guards; Jaro-Winkler two-pass matcher | done with test | `pactora-backend-near packages/compliance/src/lists.ts:61`; `pactora-backend-near packages/compliance/src/lists.ts:148`; `pactora-backend-near packages/compliance/src/lists.ts:184`; `pactora-backend-near packages/compliance/src/match.ts:24`; `pactora-backend-near packages/compliance/test/compliance.test.ts:98`; `pactora-backend-near packages/compliance/test/compliance.test.ts:103`; `pactora-backend-near apps/api/test/kyc.test.ts:126`; `pactora-backend-near apps/api/test/kyc.test.ts:141`; `pactora-backend-near scripts/sanctions-refresh.mjs:1` | the EU list (its file needs a token) | owner-blocked |
 | §5.1h NEAR wallet screening | missing, stated as not available | `pactora-docs-near docs/26-human-work-integration-plan.md:18` (no list names a NEAR address) | a provider that screens NEAR accounts (TRM Labs claims it); the API says `walletScreening: "not available"` | future |
-| §5.1h the 0.92 threshold misses "Erik"/"Eric" | owner-blocked | `pactora-backend-near packages/compliance/test/compliance.test.ts:98` (pins the behaviour); `pactora-docs-near docs/STATUS.md:97` | a decision on the trade-off | owner |
+| §5.1h the 0.92 threshold misses "Erik"/"Eric" | owner-blocked | `pactora-backend-near packages/compliance/test/compliance.test.ts:98` (pins the behaviour); `pactora-docs-near docs/STATUS.md:98` | a decision on the trade-off | owner |
 | §5.1h identity checks behind `IdentityProvider`; webhook only triggers a re-read; sweep polls | done with test (simulated provider only) | `pactora-backend-near apps/api/src/routes/kyc.ts:212`; `pactora-backend-near apps/api/src/routes/kyc.ts:317`; `pactora-backend-near apps/api/test/kyc.test.ts:181`; `pactora-backend-near apps/api/test/kyc.test.ts:280`; `pactora-backend-near apps/api/test/kyc.test.ts:309`; `pactora-backend-near apps/api/test/kyc.test.ts:334`; `pactora-interface-near e2e/identity.spec.ts:20` | a vendor adapter (docs/26 D3) | owner-blocked |
 | §5.1h compliance cases: two reviewers clear a strong match, nobody decides their own case, `confirm` blocks | done with test | `pactora-backend-near apps/api/src/routes/kyc.ts:385`; `pactora-backend-near apps/api/test/kyc.test.ts:241`; `pactora-backend-near apps/api/test/kyc.test.ts:381`; `pactora-interface-near e2e-live/live.spec.ts:516` | — | built |
 | §5.1h standing is a soft gate: API refuses post/apply/claim/accept/select, keeper skips, signer refuses `approve` | done with test | `pactora-backend-near apps/api/src/compliance.ts:185`; `pactora-backend-near apps/api/src/routes/listings.ts:514`; `pactora-backend-near apps/api/src/routes/jobs.ts:168`; `pactora-backend-near apps/api/src/routes/jobs.ts:355`; `pactora-backend-near apps/signer/src/keeper.ts:252`; `pactora-backend-near apps/signer/src/signer.ts:808`; `pactora-backend-near apps/api/test/roles.test.ts:1230`; `pactora-backend-near scripts/demo.mjs:1233` (8h, live) | a hard hold: `auto_approve` is permissionless on chain; needs a contract change | future (contract frozen at 1.1.0) |
@@ -177,7 +177,7 @@ against the code.
 | Pauser role: stops new jobs, never an exit | done with test | `pactora-contracts-near contracts/pactora/src/lib.rs:263`; `pactora-contracts-near contracts/pactora/src/lib.rs:293`; `pactora-contracts-near contracts/pactora/src/tests.rs:610` | — | built |
 | No hot key holds a role off testnet (arbiter = DAO) | done with test | `pactora-contracts-near contracts/pactora/src/lib.rs:255`; `pactora-contracts-near contracts/pactora/tests/adversarial.rs:1732` | the contract account's full-access key still governs upgrades (docs/27 C8); remove or DAO-gate before mainnet | owner |
 | Keys in KMS | done with test | `pactora-backend-near apps/signer/src/kms.ts:1`; `pactora-backend-near apps/signer/test/kms.test.ts:50` | a KMS account | owner |
-| Config guards with a refuse-to-start suite | done with test | `pactora-backend-near scripts/test-startup.mjs:56`; `pactora-docs-near docs/STATUS.md:341` (40 refused after the audit; 42 in round 3, `pactora-backend-near PROGRESS.md:178`) | — | built |
+| Config guards with a refuse-to-start suite | done with test | `pactora-backend-near scripts/test-startup.mjs:56`; `pactora-docs-near docs/STATUS.md:342` (40 refused after the audit; 42 in round 3, `pactora-backend-near PROGRESS.md:178`) | — | built |
 | An upgrade path | done with test | `pactora-contracts-near contracts/pactora/src/lib.rs:184` (`migrate`); `pactora-contracts-near contracts/pactora/tests/adversarial.rs:2198` | — | built |
 | Dependencies audited | done | `pactora-docs-near docs/27-audit-2026-11.md:299` | vitest 5 (dev-only advisories) | future |
 | External audit before mainnet | owner-blocked | `pactora-docs-near docs/27-audit-2026-11.md:436` | the auditor | owner |
@@ -221,12 +221,12 @@ any mainnet action needs the owner's explicit confirmation, per action.
 
 | Feature | Status | Evidence (repo file:line) | What is missing | Who |
 |---|---|---|---|---|
-| Run on testnet: `create-dao`, `deploy`, `verify-near` (`pactora-docs-near docs/25-near-submission.md:153`) | owner-blocked | `pactora-contracts-near scripts/verify-near.mjs:291`; `pactora-docs-near docs/STATUS.md:535` | the funded account in `.env` | owner |
+| Run on testnet: `create-dao`, `deploy`, `verify-near` (`pactora-docs-near docs/25-near-submission.md:153`) | owner-blocked | `pactora-contracts-near scripts/verify-near.mjs:291`; `pactora-docs-near docs/STATUS.md:550` | the funded account in `.env` | owner |
 | Testnet addresses in the READMEs, tag `hackathon-submission` on `human-work`, push (`pactora-docs-near docs/25-near-submission.md:154`, `pactora-docs-near docs/25-near-submission.md:155`) | owner-blocked | `pactora-docs-near docs/25-near-submission.md:155` | follows the deploy | owner |
-| Make all four repos public (`pactora-docs-near docs/25-near-submission.md:156`) | owner-blocked (not verifiable from here) | `pactora-docs-near docs/25-near-submission.md:156` | D6 rights confirmation first (`pactora-docs-near docs/STATUS.md:100`) | owner |
+| Make all four repos public (`pactora-docs-near docs/25-near-submission.md:156`) | owner-blocked (not verifiable from here) | `pactora-docs-near docs/25-near-submission.md:156` | D6 rights confirmation first (`pactora-docs-near docs/STATUS.md:101`) | owner |
 | Video and X post (`pactora-docs-near docs/25-near-submission.md:157`, `pactora-docs-near docs/25-near-submission.md:158`) | videos done 2026-11-10; X post owner-blocked | `pactora-interface-near video/encode.mjs:1`; `pactora-docs-near docs/video/README.md:1` | the X post | owner |
 | Form: mainnet payout account, `website` empty (`pactora-docs-near docs/25-near-submission.md:159`) | owner-blocked | `pactora-docs-near docs/25-near-submission.md:51` (the description text) | re-check figures against the testnet run | owner |
-| Hosted demo up until 2026-11-18 (`pactora-docs-near docs/25-near-submission.md:160`) | owner-blocked | `pactora-backend-near deploy/vps/Caddyfile:8` (the overlay is ready) | the server and `.env` (`pactora-docs-near docs/STATUS.md:538`) | owner |
+| Hosted demo up until 2026-11-18 (`pactora-docs-near docs/25-near-submission.md:160`) | owner-blocked | `pactora-backend-near deploy/vps/Caddyfile:8` (the overlay is ready) | the server and `.env` (`pactora-docs-near docs/STATUS.md:553`) | owner |
 
 ## 9. docs/26-human-work-integration-plan.md, F1–F33 and §4
 
@@ -271,10 +271,10 @@ The plan's own status table is at `pactora-docs-near docs/26-human-work-integrat
 | §4 D0 build before 14 Nov (`pactora-docs-near docs/26-human-work-integration-plan.md:1046`) | decided: built on `human-work` | `pactora-docs-near docs/26-human-work-integration-plan.md:3` | — | owner (done) |
 | §4 D1 stake and bond for people = (a) `set_params` (`pactora-docs-near docs/26-human-work-integration-plan.md:1047`) | done | `pactora-contracts-near contracts/pactora/src/lib.rs:281` (`set_params`); `pactora-contracts-near config/params.testnet.json:12` | the testnet params the owner wants for people | owner |
 | §4 D2 revisions = (a) off chain (`pactora-docs-near docs/26-human-work-integration-plan.md:1048`) | done | `pactora-backend-near apps/api/src/routes/drafts.ts:127` | — | built |
-| §4 D3 KYC vendor (`pactora-docs-near docs/26-human-work-integration-plan.md:1049`) | open | `pactora-docs-near docs/STATUS.md:96` | the vendor | owner |
+| §4 D3 KYC vendor (`pactora-docs-near docs/26-human-work-integration-plan.md:1049`) | open | `pactora-docs-near docs/STATUS.md:97` | the vendor | owner |
 | §4 D4 evidence storage provider (`pactora-docs-near docs/26-human-work-integration-plan.md:1050`) | done (S3-compatible, SSE) | `pactora-backend-near packages/storage/src/index.ts:114` | the production bucket | owner |
 | §4 D5 Telegram (`pactora-docs-near docs/26-human-work-integration-plan.md:1051`) | built, off without a token | `pactora-backend-near apps/channels/src/channels.ts:102` | yes/no and a token | owner |
-| §4 D6 rights to reuse the reference's ideas (`pactora-docs-near docs/26-human-work-integration-plan.md:1052`) | open | `pactora-docs-near docs/STATUS.md:100` | confirmation before the repos go public | owner |
+| §4 D6 rights to reuse the reference's ideas (`pactora-docs-near docs/26-human-work-integration-plan.md:1052`) | open | `pactora-docs-near docs/STATUS.md:101` | confirmation before the repos go public | owner |
 
 ## 10. docs/27-audit-2026-11.md, "not covered" and documented-not-fixed
 
@@ -298,16 +298,16 @@ lines below are the new ones.
 
 | Feature | Status | Evidence (repo file:line) | What is missing | Who |
 |---|---|---|---|---|
-| Left 2: the testnet run, the tag, the default branch, public repos, video, X post, form (`pactora-docs-near docs/STATUS.md:87`) | owner-blocked | `pactora-backend-near scripts/live-ui-stack.mjs:1` (the local stack is scripted); `pactora-contracts-near scripts/verify-near.mjs:291` | the funded account; then the steps in §14 | owner |
-| Left 3: D3 vendor, threshold, bot token, email provider, D6, `job_events` retention, deletion and the event log, Q-015 and the tracks (`pactora-docs-near docs/STATUS.md:95`) | owner-blocked | `pactora-backend-near PROGRESS.md:62` (the backend's list of pending decisions) | the decisions (§15) | owner |
-| Left 4: everything built on 2026-11-09, and what was not and why (`pactora-docs-near docs/STATUS.md:105`; `pactora-docs-near docs/STATUS.md:117`) | done | the rows of §2–§12 | the not-built items are §13 rows and contract changes | future |
-| Left 5: the deadlock between the API's event writes and the indexer's batch, found by `swarm:local` (`pactora-docs-near docs/STATUS.md:125`) | done with test (backend `cb19e32`, committed while this was checked) | `pactora-backend-near packages/db/src/event-locks.ts:20` (`lockAgentEventSeqs`, agent-id order); `pactora-backend-near apps/indexer/src/indexer.ts:737`; `pactora-backend-near apps/indexer/test/lock-order.test.ts:71`; `pactora-backend-near apps/api/test/lock-order.test.ts:58`; `pactora-backend-near PROGRESS.md:156` | — | built |
-| Known: faucet standing; 403 before 409 (`pactora-docs-near docs/STATUS.md:290`; `pactora-docs-near docs/STATUS.md:291`) | done with test | `pactora-backend-near apps/api/src/routes/faucet.ts:103`; `pactora-backend-near apps/api/test/decline-and-guards.test.ts:250`; `pactora-backend-near apps/api/test/decline-and-guards.test.ts:188` | — | built |
-| Known: indexer on a garbage-collected start block (`pactora-docs-near docs/STATUS.md:293`) | done with test (stalls loudly; not self-healing) | `pactora-backend-near apps/indexer/src/indexer.ts:81`; `pactora-backend-near apps/indexer/test/pruned.test.ts:62`; `pactora-interface-near e2e/status-stalled.spec.ts:5` | an observation on a real non-archival testnet RPC | owner (testnet) |
-| Blocked: testnet account (`pactora-docs-near docs/STATUS.md:535`) | owner-blocked | `pactora-contracts-near deployments/sandbox.json:1` (the only deployment file) | `.env` with `DEPLOYER_ACCOUNT_ID` / `DEPLOYER_SECRET_KEY` | owner |
-| Blocked: the server `.env` for Vultr (`pactora-docs-near docs/STATUS.md:538`) | owner-blocked | `pactora-backend-near packages/shared/test/compose-env.test.ts:89` (compose passes every setting a service reads) | the values, on the server only | owner |
-| Blocked: `NEAR_AI_API_KEY` for one live call (`pactora-docs-near docs/STATUS.md:541`) | owner-blocked | `pactora-backend-near packages/shared/src/judge-env.ts:25`; `pactora-backend-near packages/agent-core/test/attestation.test.ts:95` (fixtures only) | the key, and the owner's OK to spend the quota | owner |
-| Blocked: the submission itself and the open decisions (`pactora-docs-near docs/STATUS.md:545`) | owner-blocked | §14 | §14, §15 | owner |
+| Left 2: the testnet run, the tag, the default branch, public repos, video, X post, form (`pactora-docs-near docs/STATUS.md:88`) | owner-blocked | `pactora-backend-near scripts/live-ui-stack.mjs:1` (the local stack is scripted); `pactora-contracts-near scripts/verify-near.mjs:291` | the funded account; then the steps in §14 | owner |
+| Left 3: D3 vendor, threshold, bot token, email provider, D6, `job_events` retention, deletion and the event log, Q-015 and the tracks (`pactora-docs-near docs/STATUS.md:96`) | owner-blocked | `pactora-backend-near PROGRESS.md:62` (the backend's list of pending decisions) | the decisions (§15) | owner |
+| Left 4: everything built on 2026-11-09, and what was not and why (`pactora-docs-near docs/STATUS.md:106`; `pactora-docs-near docs/STATUS.md:118`) | done | the rows of §2–§12 | the not-built items are §13 rows and contract changes | future |
+| Left 5: the deadlock between the API's event writes and the indexer's batch, found by `swarm:local` (`pactora-docs-near docs/STATUS.md:126`) | done with test (backend `cb19e32`, committed while this was checked) | `pactora-backend-near packages/db/src/event-locks.ts:20` (`lockAgentEventSeqs`, agent-id order); `pactora-backend-near apps/indexer/src/indexer.ts:737`; `pactora-backend-near apps/indexer/test/lock-order.test.ts:71`; `pactora-backend-near apps/api/test/lock-order.test.ts:58`; `pactora-backend-near PROGRESS.md:156` | — | built |
+| Known: faucet standing; 403 before 409 (`pactora-docs-near docs/STATUS.md:291`; `pactora-docs-near docs/STATUS.md:292`) | done with test | `pactora-backend-near apps/api/src/routes/faucet.ts:103`; `pactora-backend-near apps/api/test/decline-and-guards.test.ts:250`; `pactora-backend-near apps/api/test/decline-and-guards.test.ts:188` | — | built |
+| Known: indexer on a garbage-collected start block (`pactora-docs-near docs/STATUS.md:294`) | done with test (stalls loudly; not self-healing) | `pactora-backend-near apps/indexer/src/indexer.ts:81`; `pactora-backend-near apps/indexer/test/pruned.test.ts:62`; `pactora-interface-near e2e/status-stalled.spec.ts:5` | an observation on a real non-archival testnet RPC | owner (testnet) |
+| Blocked: testnet account (`pactora-docs-near docs/STATUS.md:550`) | owner-blocked | `pactora-contracts-near deployments/sandbox.json:1` (the only deployment file) | `.env` with `DEPLOYER_ACCOUNT_ID` / `DEPLOYER_SECRET_KEY` | owner |
+| Blocked: the server `.env` for Vultr (`pactora-docs-near docs/STATUS.md:553`) | owner-blocked | `pactora-backend-near packages/shared/test/compose-env.test.ts:89` (compose passes every setting a service reads) | the values, on the server only | owner |
+| Blocked: `NEAR_AI_API_KEY` for one live call (`pactora-docs-near docs/STATUS.md:556`) | owner-blocked | `pactora-backend-near packages/shared/src/judge-env.ts:25`; `pactora-backend-near packages/agent-core/test/attestation.test.ts:95` (fixtures only) | the key, and the owner's OK to spend the quota | owner |
+| Blocked: the submission itself and the open decisions (`pactora-docs-near docs/STATUS.md:560`) | owner-blocked | §14 | §14, §15 | owner |
 
 ## 12. pactora-backend-near/PROGRESS.md, entries dated 2026-11
 
@@ -385,28 +385,29 @@ Checked on 2026-11-09 against the official site, `https://nearhackathon.com/`
 403). A submission is made once and cannot be edited; corrections go through
 `https://nearhackathon.com/request-changes`. Checked from here: all four
 GitHub URLs answer 404 to an anonymous request (still private), the remote
-default branch of all four is `master`, and only the `pre-hackathon` tag
-exists.
+default branch of all four is `master`, which is the same commit as
+`human-work` since 2026-11-10 (a fast-forward merge), and only the
+`pre-hackathon` tag exists.
 
 **The repository link opens the default branch.** The form takes one
 repository link (unique per repository, at most 300 characters), and a
 GitHub repository link opens its default branch, which is `master` in all
-four repos. The submission is `human-work`. So either make `human-work` the
-default branch of all four repos (GitHub → Settings → Branches) before
-submitting, or submit
+four repos. The submission is `human-work`, and since 2026-11-10 `master` is
+the same commit, so the link shows the submission as long as both stay
+level. The tag link also works:
 `https://github.com/gopaltalaviya/pactora-backend-near/tree/hackathon-submission`
-once the tag exists (`pactora-docs-near docs/25-near-submission.md:35`).
-Otherwise the judges and the AI screen read `master`, which has none of the
-2026-11-09 work.
+once the tag exists (`pactora-docs-near docs/25-near-submission.md:36`).
+Before the merge, the judges and the AI screen would have read a `master`
+without the 2026-11-09 work.
 
 | Requirement (source) | What it requires | Status | Evidence (repo file:line) | Who acts |
 |---|---|---|---|---|
-| Public repository (site §06; HACKATHON.md "Make the repository public before development ends") | judges cannot open a private repo; public through judging (Q-014) | not met: all four answer 404 anonymously | `pactora-docs-near docs/25-near-submission.md:156` | owner (D6 first: `pactora-docs-near docs/STATUS.md:100`) |
-| Repository link, one field (form `projectUrl`) | one public repo link, unique per repository; it opens the default branch | ready to decide: submit `pactora-backend-near` (README has the one command, the disclosure, links to the other three); default branch is `master` today | `pactora-docs-near docs/25-near-submission.md:35`; `pactora-backend-near README.md:41` | owner (default branch or the `/tree/hackathon-submission` link) |
+| Public repository (site §06; HACKATHON.md "Make the repository public before development ends") | judges cannot open a private repo; public through judging (Q-014) | not met: all four answer 404 anonymously | `pactora-docs-near docs/25-near-submission.md:156` | owner (D6 first: `pactora-docs-near docs/STATUS.md:101`) |
+| Repository link, one field (form `projectUrl`) | one public repo link, unique per repository; it opens the default branch | ready to decide: submit `pactora-backend-near` (README has the one command, the disclosure, links to the other three); default branch is `master` today | `pactora-docs-near docs/25-near-submission.md:36`; `pactora-backend-near README.md:41` | owner (default branch or the `/tree/hackathon-submission` link) |
 | Demo post link (form `demoUrl`, required) | a public X post: built at NEAR HACKATHON, tags @NEARProtocol and #NEARHackathon, a demo video or screenshots attached | text drafted; no video, no post | `pactora-docs-near docs/25-near-submission.md:86` (post text); `pactora-docs-near docs/25-near-submission.md:104` (video script) | owner (record, post; the drafted text says "Built at NEAR HACKATHON") |
 | Payout account (form `nearAddress`) | a **mainnet** NEAR account, lowercase, 2–64 characters | owner's | `pactora-docs-near docs/25-near-submission.md:51` | owner |
 | Description (form `idea`) | 20–2,000 characters: the problem, the product, how NEAR fits | ready (about 1,950 characters); re-check figures after the testnet run | `pactora-docs-near docs/25-near-submission.md:51` | owner submits; agent re-checks figures |
-| Tracks (form `tracks`, one or more of 13) | select every track the project fits | proposed: Agent Economy, AI Security & Defense, AI Swarms (now backed by `pnpm swarm:local`), Social Money; Open Innovation left out | `pactora-docs-near docs/25-near-submission.md:25`; `pactora-backend-near scripts/swarm.mjs:65` | owner ticks them |
+| Tracks (form `tracks`, one or more of 13) | select every track the project fits | proposed: Agent Economy, AI Security & Defense, AI Swarms (now backed by `pnpm swarm:local`), Social Money; Open Innovation left out | `pactora-docs-near docs/25-near-submission.md:26`; `pactora-backend-near scripts/swarm.mjs:65` | owner ticks them |
 | Other form fields (`projectName`, `leadName`, `email`, `size`, `consent`; `website` optional) | name 2–80, email ≤ 160 (2 submissions per email at most), team size, consent | owner's | `pactora-docs-near docs/25-near-submission.md:47` (`website` left empty) | owner |
 | Deadline (HACKATHON.md key dates) | 2026-11-14T23:59:00Z; once; no edits | open | `pactora-docs-near docs/24-near-hackathon.md:15` | owner |
 | Q-001 code before Nov 1 | work from the 2026-10-19 announcement counts; earlier commits are baseline | met: `pre-hackathon` marks the baseline | `pactora-docs-near docs/25-near-submission.md:44` | — |
@@ -416,16 +417,16 @@ Otherwise the judges and the AI screen read `master`, which has none of the
 | Q-005 libraries and boilerplate, AI-generated code | list them in the README | met in all four | `pactora-backend-near README.md:251`; `pactora-backend-near README.md:262` (AI assistance); `pactora-contracts-near README.md:375`; `pactora-contracts-near README.md:398` (AI assistance); `pactora-interface-near README.md:154`; `pactora-interface-near README.md:163` (AI assistance); `pactora-docs-near README.md:94`; `pactora-docs-near README.md:101` (AI assistance) | — |
 | Q-006 1Click JWT | not required (0.2% fee without) | n/a (Intents not used) | `pactora-docs-near docs/24-near-hackathon.md:71` | — |
 | Q-007 Intents testnet | none exists; mainnet with dev accounts and `dry: true` | n/a (Intents not used) | `pactora-docs-near docs/24-near-hackathon.md:24` | owner, optional (mainnet needs per-action OK) |
-| Q-008 test funds | testnet NEAR is free; mainnet costs not reimbursed | the testnet run needs about 25 NEAR of testnet funds | `pactora-docs-near docs/STATUS.md:535` | owner |
+| Q-008 test funds | testnet NEAR is free; mainnet costs not reimbursed | the testnet run needs about 25 NEAR of testnet funds | `pactora-docs-near docs/STATUS.md:550` | owner |
 | Q-009 RPC and hosting | public RPC providers are free | met: public testnet RPCs checked | `pactora-docs-near docs/24-near-hackathon.md:126` | — |
-| Q-010 testnet-only projects | eligible for all tracks | not met yet: sandbox only, no `deployments/testnet.json` | `pactora-contracts-near deployments/sandbox.json:1`; `pactora-docs-near docs/STATUS.md:87` | owner (deploy); agent (`sync-chain-facts`, READMEs after) |
+| Q-010 testnet-only projects | eligible for all tracks | not met yet: sandbox only, no `deployments/testnet.json` | `pactora-contracts-near deployments/sandbox.json:1`; `pactora-docs-near docs/STATUS.md:88` | owner (deploy); agent (`sync-chain-facts`, READMEs after) |
 | Q-011 mandatory integrations | none; own NEAR contract that fits the track | met | `pactora-contracts-near contracts/pactora/src/lib.rs:645`; `pactora-contracts-near wasm/SHA256SUMS:1` | — |
 | Q-012 local-only demo | public repo, reproducible README, X video; hosted demo a plus, up to 2026-11-18 (ideally 25 Nov) | partly: README and the one command exist; public repo, video and hosting are the owner's | `pactora-backend-near README.md:62`; `pactora-docs-near docs/25-near-submission.md:160` | owner |
-| Q-013 code rights | the team keeps all rights; organisers get promotional rights | n/a; D6 (rights to the reference's ideas) is separate and open | `pactora-docs-near docs/STATUS.md:100` | owner (D6) |
+| Q-013 code rights | the team keeps all rights; organisers get promotional rights | n/a; D6 (rights to the reference's ideas) is separate and open | `pactora-docs-near docs/STATUS.md:101` | owner (D6) |
 | Q-014 licence | any; a LICENSE file; public through judging | met (MIT in all four); public: not yet | `pactora-contracts-near LICENSE:1`; `pactora-backend-near LICENSE:1`; `pactora-interface-near LICENSE:1`; `pactora-docs-near LICENSE:1` | owner (public) |
 | Q-015 multiple projects | at most 2 per person; each README names the other | n/a unless a second project is entered | `pactora-docs-near docs/24-near-hackathon.md:27` | owner decides; agent adds the line |
 | Q-016 payout | one payment in NEAR within 30 days of results | needs the mainnet payout account above | `pactora-docs-near docs/25-near-submission.md:51` | owner |
-| Q-017 AI screen ("Claude Code & Codex screen every project first: they check that it runs and does what the README says") | reproducibility from the README; no step needing a key or quota | met on `human-work`: `pnpm demo:local` with `AGENT_MODE=cached`, no key, ends `Demo passed.`; `pnpm swarm:local` ends `Swarm passed.`. On `master` (the default branch) the 2026-11-09 work is absent | `pactora-backend-near README.md:41`; `pactora-backend-near README.md:42`; `pactora-backend-near scripts/demo.mjs:1670` | owner (default branch); agent re-runs both on the final commit |
+| Q-017 AI screen ("Claude Code & Codex screen every project first: they check that it runs and does what the README says") | reproducibility from the README; no step needing a key or quota | met on `human-work`: `pnpm demo:local` with `AGENT_MODE=cached`, no key, ends `Demo passed.`; `pnpm swarm:local` ends `Swarm passed.`. `master` (the default branch) is the same commit since 2026-11-10 | `pactora-backend-near README.md:41`; `pactora-backend-near README.md:42`; `pactora-backend-near scripts/demo.mjs:1670` | agent re-runs both on the final commit |
 | README standard (HACKATHON.md: "for a machine reader as well as a human one", "do X - see Y", no marketing, libraries, disclosure) | the product, the problem, how to try it | met: each README has a "do X, see Y" table or steps; the backend README names 28 MCP tools and both transports | `pactora-backend-near README.md:41`; `pactora-backend-near README.md:138`; `pactora-contracts-near README.md:139`; `pactora-interface-near README.md:122`; `pactora-docs-near README.md:24` | — (re-check once the testnet ids are in) |
 
 ---
@@ -435,22 +436,22 @@ Otherwise the judges and the AI screen read `master`, which has none of the
 From docs/26 §4, STATUS "Blocked on the owner", backend PROGRESS "Owner
 decisions pending", and what this inventory found.
 
-1. **Testnet deploy** — a funded account (about 25 NEAR) in `pactora-contracts-near/.env`, then `create-dao`, `deploy`, `verify-near --network testnet`, `sync-chain-facts` (`pactora-docs-near docs/STATUS.md:535`). §14 Q-003, Q-010 and Q-012 wait on this.
-2. **The `hackathon-submission` tag, the default branch and public repos**, after the deploy (`pactora-docs-near docs/25-near-submission.md:155`); the form's repository link opens the default branch, which is `master` today (§14).
+1. **Testnet deploy** — a funded account (about 25 NEAR) in `pactora-contracts-near/.env`, then `create-dao`, `deploy`, `verify-near --network testnet`, `sync-chain-facts` (`pactora-docs-near docs/STATUS.md:550`). §14 Q-003, Q-010 and Q-012 wait on this.
+2. **The `hackathon-submission` tag, the default branch and public repos**, after the deploy (`pactora-docs-near docs/25-near-submission.md:155`); the form's repository link opens the default branch, `master`, level with `human-work` since 2026-11-10 (§14).
 3. **D6 rights** to reuse the reference product's ideas, before the repos go public (`pactora-docs-near docs/26-human-work-integration-plan.md:1052`).
 4. **Video, X post, form** with a mainnet payout account and the tracks (`pactora-docs-near docs/25-near-submission.md:158`).
-5. **Hosting**: the Vultr server `.env` (`SIGNER_TOKEN`, `SIGNER_KEY_PASSPHRASE`, `API_HOST`, `CORS_ORIGINS`, `MINIO_KMS_SECRET_KEY`, `BACKUP_REMOTE`, `ALERT_WEBHOOK_URL`, optional keeper account) and Vercel for the interface (`pactora-docs-near docs/STATUS.md:538`).
-6. **`NEAR_AI_API_KEY`** for one live judge call to capture real fixtures; whether to switch `JUDGE_PROVIDER=near-ai` on for the demo (`pactora-docs-near docs/STATUS.md:541`).
-7. **D3 KYC vendor**, and whether KYC runs on testnet at all (simulated and labelled today) (`pactora-docs-near docs/STATUS.md:96`).
-8. **Sanctions matching threshold**: keep 0.92 per word (misses "Erik"/"Eric") or lower it and accept more false alarms (`pactora-docs-near docs/STATUS.md:97`).
-9. **EU sanctions list**: a token for its file, or stay with OFAC, UN and UK (`pactora-docs-near docs/STATUS.md:117`).
-10. **Telegram bot token** (D5) and an **email provider** (`pactora-docs-near docs/STATUS.md:98`, `pactora-docs-near docs/STATUS.md:99`).
+5. **Hosting**: the Vultr server `.env` (`SIGNER_TOKEN`, `SIGNER_KEY_PASSPHRASE`, `API_HOST`, `CORS_ORIGINS`, `MINIO_KMS_SECRET_KEY`, `BACKUP_REMOTE`, `ALERT_WEBHOOK_URL`, optional keeper account) and Vercel for the interface (`pactora-docs-near docs/STATUS.md:553`).
+6. **`NEAR_AI_API_KEY`** for one live judge call to capture real fixtures; whether to switch `JUDGE_PROVIDER=near-ai` on for the demo (`pactora-docs-near docs/STATUS.md:556`).
+7. **D3 KYC vendor**, and whether KYC runs on testnet at all (simulated and labelled today) (`pactora-docs-near docs/STATUS.md:97`).
+8. **Sanctions matching threshold**: keep 0.92 per word (misses "Erik"/"Eric") or lower it and accept more false alarms (`pactora-docs-near docs/STATUS.md:98`).
+9. **EU sanctions list**: a token for its file, or stay with OFAC, UN and UK (`pactora-docs-near docs/STATUS.md:118`).
+10. **Telegram bot token** (D5) and an **email provider** (`pactora-docs-near docs/STATUS.md:99`, `pactora-docs-near docs/STATUS.md:100`).
 11. **`job_events` retention**: purge the append-only audit log after 365 days (dropping its guard for old rows) or keep it; and whether a deleted account's dispute reasons in event payloads are scrubbed (`pactora-backend-near PROGRESS.md:64`, `pactora-backend-near PROGRESS.md:69`).
 12. **Contract 1.2.0 scope**, after the hackathon: deadline extension, worker-side dispute, hard compliance hold, an on-chain verdict hash, D1(b) person kind, D2(b) `request_revision`, storage refund on `cancel` (§13 rows 1–3, 14, 18, 27; docs/26 §3 says to batch them into one release).
 13. **Q-015**: is a second project entered in the NEAR hackathon? If so each README names the other.
 14. **Legal**: trademark search, terms and privacy review, retention periods sign-off (§6).
 15. **Operations**: uptime monitor, `METRICS_TOKEN`, release tags, RPO/RTO, retention for `run_events` / `signer_txs` (§4).
 16. **A real wallet pass** (Meteor or Intear) on testnet, since only the scripted wallet was driven (`pactora-docs-near docs/27-audit-2026-11.md:427`).
-17. **The leftover local branch** `verify-2026-11-07`: keep or delete (`pactora-docs-near docs/STATUS.md:557`).
+17. **The leftover local branch** `verify-2026-11-07`: keep or delete (`pactora-docs-near docs/STATUS.md:572`).
 
 **Citation check.** Last run 2026-11-10, after the backend's direct-hire commit (`2ffa24b`) and the interface's `3f13e04`, over this file: 891 citations (660 distinct `repo path:line`), every file present and every cited line non-blank, 0 failed. Before it, 14 citations sat on a blank line and 116 more had moved; each was re-pointed by reading the cited line in the repo as it was when this file was last committed (2026-11-09) and finding the same line now, and the rest by hand (the I1 wallet guard now cites its unit test, the refundable x402 scheme `x402.test.ts:422`). A non-blank line is not proof the line is the right one; the re-pointing is. Links: the four repos' tracked Markdown, 185 relative links, 0 broken.

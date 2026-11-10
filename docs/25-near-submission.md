@@ -13,9 +13,10 @@ mock-usdc + 6 sandbox + 14 adversarial), 28 MCP tools.
 > **Branch decision (owner, 2026-11-09):** the submission is the `human-work`
 > branch — people as workers and clients, listings and bids, evidence photos,
 > the DAO dispute desk, held payouts, the 1.1.0 contract — not `master`. The
-> tag `hackathon-submission` goes on `human-work` after the testnet run; a
-> merge to `master` is the owner's later choice. The texts below describe
-> that branch.
+> tag `hackathon-submission` goes on `human-work` after the testnet run.
+> On 2026-11-10 `human-work` was merged into `master` (a fast-forward), so
+> the two are the same commit in all four repos; keep them level. The texts
+> below describe that branch.
 
 ## 1. Form
 
@@ -35,10 +36,9 @@ that fit no category, so it is left out.
 **Repository link (one field, four repos).** The form takes one repository
 link. Submit `pactora-backend-near`: its README holds the one-command demo
 (`pnpm demo:local`), the disclosure, and links to the other three. The form
-link opens the repo's **default branch**, so before submitting either make
-`human-work` the default branch of all four repos (GitHub → Settings →
-Branches) or merge it into `master`; otherwise judges and the AI screen see
-the older `master`. Alternatively submit
+link opens the repo's **default branch**, `master`, which since 2026-11-10
+is the same commit as `human-work` in all four repos: push every later
+commit to both. Alternatively submit
 `https://github.com/gopaltalaviya/pactora-backend-near/tree/hackathon-submission`.
 
 **Counted work (Q-001):** work from the 2026-10-19 announcement onward counts;
@@ -152,7 +152,7 @@ must carry:
 
 - [ ] **Owner:** run on testnet. Your own account in `pactora-contracts-near/.env`, then `create-dao`, `deploy` and `verify-near --network testnet --dao`; the commands are in that README's "Testnet" section. Then in the backend `node scripts/sync-chain-facts.mjs`, commit `chain/`, and `DEMO_NETWORK=testnet pnpm demo`.
 - [ ] Put the testnet account ids in the READMEs and in docs/STATUS.md.
-- [ ] **Owner:** tag `hackathon-submission` on `human-work` in all four repos and push (no merge to `master` is needed for the submission).
+- [ ] **Owner:** tag `hackathon-submission` on `human-work` in all four repos and push (`master` already equals `human-work`; push the tag only).
 - [ ] **Owner:** make all four repos **public** (D6, the rights, first: docs/26 §4).
 - [x] Videos recorded (2026-11-10, local NEAR sandbox, captions only): `pactora-interface-near/public/video/`, overview 1:27 and demo 3:12; see [docs/video](video/README.md).
 - [ ] **Owner:** post on X (§2) with `demo-x.mp4` or `overview-x.mp4`, tagging @NEARProtocol with #NEARHackathon.

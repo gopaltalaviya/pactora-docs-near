@@ -28,9 +28,10 @@ committed wasm via `PACTORA_WASM` / `MOCK_USDC_WASM`.
 
 **Branch decision (owner, 2026-11-09): `human-work` is the submission.** It
 exists in all four repos and is pushed (private remote); the
-`hackathon-submission` tag goes on `human-work` after the testnet run; a
-merge to `master` is the owner's later choice, not a submission step. (Until
-2026-11-09 this file said `master` would be submitted.) Feature list:
+`hackathon-submission` tag goes on `human-work` after the testnet run. On
+2026-11-10 (owner's request) `human-work` was fast-forwarded into `master`
+in all four repos; both point at the same commit and every push goes to
+both. (Until 2026-11-09 this file said `master` would be submitted.) Feature list:
 [docs/26](26-human-work-integration-plan.md) (F1–F33); the inventory of
 every promise against the code is [docs/28](28-feature-inventory-2026-11.md). The milestone
 plan M0–M10 is the owner's local plan file (the M-list below is its
@@ -515,7 +516,7 @@ docs this commit, backend `fd0483d`, contracts `ff555df`.
 | Day | Owner | Agent, after the owner's step |
 |---|---|---|
 | 10 Nov | fund a testnet account (about 25 NEAR) into `pactora-contracts-near/.env` (`DEPLOYER_ACCOUNT_ID`, `DEPLOYER_SECRET_KEY`); run preflight first (`node --env-file=.env scripts/preflight-testnet.mjs`, read-only, must print `GO`); say go | preflight again, then `create-dao`, `deploy`, `verify-near --network testnet --dao`, `sync-chain-facts`, testnet demo; account ids into the READMEs and here; push |
-| 11 Nov | D6 rights; `human-work` as default branch (or merge into `master`); repos public; optional: server `.env` for hosting | tag `hackathon-submission` (on the owner's go); final gate on that commit; hosted deploy if a server was given |
+| 11 Nov | D6 rights; repos public (`master` = `human-work` since 2026-11-10); optional: server `.env` for hosting | tag `hackathon-submission` (on the owner's go); final gate on that commit; hosted deploy if a server was given |
 | 12 Nov | record the video (docs/25 §3); post on X (docs/25 §2) | check the README steps from a fresh clone, as the AI screen will |
 | 13 Nov | submit the form once (docs/25 §1) | check every public link signed out |
 | 14 Nov | buffer, no changes | only fixes if a check fails |
