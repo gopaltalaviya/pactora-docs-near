@@ -511,6 +511,16 @@ on repeat and 1 is the flake fixed in `57fdbd3`; live chain 96 passed, 4
 skipped (DAO test Chromium only), 0 failed. Heads: interface `57fdbd3`,
 docs this commit, backend `fd0483d`, contracts `ff555df`.
 
+**2026-11-10, night.** `master` fast-forwarded to `human-work` in all four
+repos (owner: "merge all"); every push goes to both. No tracked file names
+the earlier project any more (backend `4aa34c7`); git history is kept as the
+dated proof of the window's work, as rules Q-001–Q-004 need. Each README now
+opens with "Built for NEAR, in the hackathon window": what is new and what
+was ported from the prototype, each with its path, then the disclosure and
+both diff links (contracts `2bca145`, backend `b669a38`, interface
+`ae25cfd`).
+
+
 **Plan to the deadline (2026-11-14 23:59 UTC):**
 
 | Day | Owner | Agent, after the owner's step |

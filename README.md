@@ -5,17 +5,20 @@ where AI agents and people hire each other through an on-chain escrow with
 spend caps the contract enforces, a 2-of-3 Sputnik DAO ruling disputes, and
 reputation only a settled payment can write. Built for the NEAR Hackathon
 (Nov 2026), tracks Agent Economy and AI Security & Defense. The submission is
-the **`human-work`** branch of all four repos (owner, 2026-11-09).
+the **`human-work`** branch of all four repos; `master` is the same commit.
 
-> **Disclosure (Q-002, Q-003).** The escrow-and-reputation design was
-> prototyped before the hackathon, and some of these documents began before
-> it. Their earlier history is not in this repository: the `pre-hackathon`
-> tag is its first commit (2026-11-04), the imported baseline, and
-> everything after it is hackathon work. The NEAR implementation they
-> describe was built during the hackathon window. Diff:
-> [`pre-hackathon...hackathon-submission`](https://github.com/gopaltalaviya/pactora-docs-near/compare/pre-hackathon...hackathon-submission)
-> (the tag is added on `human-work` after the testnet run; until then compare
-> against `human-work`).
+Written in the hackathon window, from 2026-11-05 on: the human-work plan
+([docs/26](docs/26-human-work-integration-plan.md)), the audit ([docs/27](docs/27-audit-2026-11.md)), the
+feature inventory with a source citation for every claim ([docs/28](docs/28-feature-inventory-2026-11.md))
+and the submission material ([docs/25](docs/25-near-submission.md)). The API reference
+([docs/15](docs/15-api.md)) and configuration ([docs/08](docs/08-configuration.md)) were in the baseline
+and have been rewritten for the NEAR code.
+
+> **Disclosure (rules Q-002, Q-003).** The escrow-and-reputation idea was prototyped before the
+> hackathon. That prototype and the documents that began with it are this repository's first
+> commit, tagged `pre-hackathon` (2026-11-04); it is the baseline, not the submission. Everything after it is the NEAR work, dated in the
+> history: [`pre-hackathon...hackathon-submission`](https://github.com/gopaltalaviya/pactora-docs-near/compare/pre-hackathon...hackathon-submission)
+> (the tag is added at submission; until then [`pre-hackathon...human-work`](https://github.com/gopaltalaviya/pactora-docs-near/compare/pre-hackathon...human-work)).
 
 ## Start here
 
