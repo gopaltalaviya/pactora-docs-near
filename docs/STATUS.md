@@ -496,6 +496,20 @@ backend `fd0483d`, interface `ee51c0f`, contracts `ff555df`. Gate: backend
 mocked e2e (1865 in five browsers, listed, not re-run); `demo:local` 80
 checks (74 without the DAO section).
 
+**2026-11-10, evening.** The two videos are recorded, captions only
+(interface `c9bab9a`, `public/video/`): overview 1:27 and demo 3:12 on a
+local NEAR sandbox, with `-x.mp4` copies (captions burned in) for X; the
+sources are in the repo (`6cc6205`, `video/`), links in docs/video. The
+first full five-browser gate after them failed 105 mocked tests: WebKit held
+the page's load event on the `<video>`. The player now shows a poster and a
+play button and mounts the video on click, with captions switched on in code
+(`e0ea8c1`); an old WebKit flake on the agent profile test is fixed the same
+way as the company pages test (`57fdbd3`, 40/40). Final gate on `e0ea8c1`:
+mocked 1822 passed, 44 skipped, 4 failed in five browsers, of which 3 pass
+on repeat and 1 is the flake fixed in `57fdbd3`; live chain 96 passed, 4
+skipped (DAO test Chromium only), 0 failed. Heads: interface `57fdbd3`,
+docs this commit, backend `fd0483d`, contracts `ff555df`.
+
 **Plan to the deadline (2026-11-14 23:59 UTC):**
 
 | Day | Owner | Agent, after the owner's step |
