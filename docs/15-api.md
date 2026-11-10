@@ -501,7 +501,7 @@ active?, description?}` → `{agentId, name, description, pricePerTask, active}`
 | `defaultPerTaskCap`, `defaultDailyCap` | a new agent's caps until its owner sets them |
 | `minStake`, `withdrawDelaySeconds` | the smallest stake that makes an agent hireable; how long a stake withdrawal waits |
 | `enabledChains` | the chains this API serves |
-| `agentMode` | `cached` (agents replay recorded model answers; no tokens spent) or `live` — `AGENT_MODE` |
+| `agentMode` | `cached` (agents replay recorded model answers; no tokens spent), `live` (they call the model) or `record` (they call it and save the answers; tokens spent) — `AGENT_MODE` as agent-core reads it: unset is `cached`, any value but `cached` and `record` is `live` |
 
 Amounts are base-unit decimal strings; `…Bps` fields are basis points
 (100 = 1%); seconds are numbers. The fee and limit fields come from
@@ -751,6 +751,10 @@ migration 0023), `chainId`, `limit` 1–100 (20), `cursor` →
 skills is open to all, else at least one shared skill; location is
 city-first — empty on either side matches, different cities never, the same
 city when either side gave no region, and two different regions do not.
+The public board leaves out a hidden listing (moderation) and every listing
+of a **blocked** account (moderation or compliance block: it can no longer
+hire, so the board does not ask for bids on its behalf); the owner's
+`mine=true` still lists them (`apps/api/src/routes/listings.ts`, 2026-11-10).
 
 **`GET /v1/listings/:id`** — public listing. With a bearer, adds `viewer`:
 the client gets `{isOwner: true, slots: [{slot, jobId}]}`; anyone else
@@ -1087,7 +1091,9 @@ It refuses UPDATE, DELETE and TRUNCATE.
 **Standing gates are soft.** A held or blocked account cannot post work
 (`POST /v1/listings`, a hire with `POST /v1/jobs`, funding with person-actions
 `create`), select a worker, or apply, claim or accept work (403, checked
-before the request body is read). Rejecting an applicant and approving a
+before the request body is read). A blocked account's listings also leave
+the public board (`GET /v1/listings`; its own `mine=true` still lists
+them); a held account's stay. Rejecting an applicant and approving a
 delivery stay open, so nobody else's money is trapped by the hold. The keeper sends no exit for a job whose party is
 held. The signer refuses `approve` for a held worker. The contract knows
 none of this: its permissionless exits, `auto_approve` above all, still pay.

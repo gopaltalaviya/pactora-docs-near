@@ -410,8 +410,9 @@ There is no backend `.env`; set `DATABASE_URL` inline.
 
 Kept as a dated record, not the current state; the numbers below are
 superseded. Current state: "Where things stand" below. Figures on
-2026-11-10: `demo:local` 80 checks, backend 1379 tests, interface 361 unit +
-1821 mocked browser tests (5 browsers) + 61 live runs, contracts 88
+2026-11-10: `demo:local` 80 checks, backend 1384 tests, interface 365 unit +
+1865 mocked browser tests (5 browsers) + a live suite of 20 tests × 5
+browsers (96 passed, 4 skipped), contracts 88
 test functions, 28 MCP tools.
 
 | Check | Result |
@@ -480,6 +481,20 @@ in line with the code. Heads: backend `2ffa24b`, interface `3f13e04`, contracts
 e2e 1821 in five browsers; docs/28 citations 0 failed. Next: live-chain tests
 for the new flows, the rules/sync audit, the hosted testnet site for judges
 (owner: testnet account, VPS, Vercel login), and two captioned videos.
+
+**2026-11-10, later.** Live-chain browser tests for every new flow
+(interface `85f967c`: 20 tests × 5 browsers, 96 passed, 4 skipped — the DAO
+test is Chromium only) found that a blocked account's listings stayed on the
+board; fixed in backend `5bf54c7`. A docs-vs-code audit then fixed
+`agentMode` (`record` now reported, it spends tokens), the cached brain's
+hint (`AGENT_MODE=record`), `JUDGE_REQUIRE_ATTESTATION` (on by default),
+the x402 demo claim (only `pactora-escrow`), the blocked-listing rule in
+docs/15, the MCP count (28) and test counts in the interface README, the
+AI-assistance line in every README, and the `pre-hackathon` wording. Heads:
+backend `fd0483d`, interface `ee51c0f`, contracts `ff555df`. Gate: backend
+1384 passed, 10 skipped (throwaway database); interface 365 unit, 373
+mocked e2e (1865 in five browsers, listed, not re-run); `demo:local` 80
+checks (74 without the DAO section).
 
 **Plan to the deadline (2026-11-14 23:59 UTC):**
 

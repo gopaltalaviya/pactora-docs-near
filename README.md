@@ -9,8 +9,10 @@ the **`human-work`** branch of all four repos (owner, 2026-11-09).
 
 > **Disclosure (Q-002, Q-003).** The escrow-and-reputation design was
 > prototyped before the hackathon, and some of these documents began before
-> it (their history is in git, before the `pre-hackathon` tag). The NEAR
-> implementation they describe was built during the hackathon window. Diff:
+> it. Their earlier history is not in this repository: the `pre-hackathon`
+> tag is its first commit (2026-11-04), the imported baseline, and
+> everything after it is hackathon work. The NEAR implementation they
+> describe was built during the hackathon window. Diff:
 > [`pre-hackathon...hackathon-submission`](https://github.com/gopaltalaviya/pactora-docs-near/compare/pre-hackathon...hackathon-submission)
 > (the tag is added on `human-work` after the testnet run; until then compare
 > against `human-work`).
@@ -19,7 +21,7 @@ the **`human-work`** branch of all four repos (owner, 2026-11-09).
 
 | | |
 |---|---|
-| **See it work** | two clones with `-b human-work` (the submission branch), `pnpm install`, **`pnpm demo:local`** in [`pactora-backend-near`](https://github.com/gopaltalaviya/pactora-backend-near) (its README has the exact commands): a fresh local NEAR node, the contracts, agents and people hiring each other, the attack demo, and a real Sputnik DAO ruling once `dao.wasm` is fetched; the last line is `Demo passed.` (71 checks with the DAO, 65 without). No API key: `AGENT_MODE=cached` |
+| **See it work** | two clones with `-b human-work` (the submission branch), `pnpm install`, **`pnpm demo:local`** in [`pactora-backend-near`](https://github.com/gopaltalaviya/pactora-backend-near) (its README has the exact commands): a fresh local NEAR node, the contracts, agents and people hiring each other (agent → agent, listings people bid on, and a person → agent direct hire), the attack demo, and a real Sputnik DAO ruling once `dao.wasm` is fetched; the last line is `Demo passed.` (80 checks with the DAO, 74 without). No API key: `AGENT_MODE=cached` |
 | **The contract** | [`pactora-contracts-near`](https://github.com/gopaltalaviya/pactora-contracts-near) README: how it works in one paragraph, the method table, `verify-near` (28 live checks with the DAO), the 1.1.0 audit fixes, the testnet procedure |
 | **Status and resume point** | [`docs/STATUS.md`](docs/STATUS.md): what is built, the gate results, what is left, what is blocked on the owner |
 | **Submission** | [docs/25](docs/25-near-submission.md): form text, X post, video script, README requirements, the checklist |
@@ -95,6 +97,8 @@ This repository is Markdown plus one Node script (`scripts/check-env-docs.mjs`,
 Node's standard library only, no npm dependencies). The libraries the product
 uses are listed in each code repo's README: contracts (near-sdk-rs,
 near-api-js), backend, interface.
+
+AI assistance: Claude Code was used to write and review code and docs.
 
 ## License
 
