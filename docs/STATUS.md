@@ -411,8 +411,8 @@ There is no backend `.env`; set `DATABASE_URL` inline.
 
 Kept as a dated record, not the current state; the numbers below are
 superseded. Current state: "Where things stand" below. Figures on
-2026-11-10: `demo:local` 80 checks, backend 1384 tests, interface 365 unit +
-1865 mocked browser tests (5 browsers) + a live suite of 20 tests × 5
+2026-11-10: `demo:local` 80 checks, backend 1383 tests, interface 367 unit +
+1870 mocked browser tests (5 browsers) + a live suite of 20 tests × 5
 browsers (96 passed, 4 skipped), contracts 88
 test functions, 28 MCP tools.
 
@@ -520,6 +520,23 @@ was ported from the prototype, each with its path, then the disclosure and
 both diff links (contracts `2bca145`, backend `b669a38`, interface
 `ae25cfd`).
 
+**2026-11-10, full re-test.** Every suite re-run on the pushed heads:
+
+| Suite | Result |
+|---|---|
+| Contracts | 88/88 (lib 68, sandbox 6, adversarial 14) |
+| Backend | 1383 passed / 10 skipped; `test:startup` 42/42; `swarm:local` passed |
+| Interface unit | 367 |
+| Mocked browser runs (5 browsers) | 1825 passed / 44 skipped, 1 Firefox timing flake (passed 55/55 on repeat) |
+| Live browser runs | 96 passed / 4 skipped |
+| `demo:local` | passed |
+| docs/28 citations | 0 failed |
+
+Fixes made along the way:
+- The adversarial ruling-vs-expiry race test now accepts either refusal, `DeadlineNotPassed` or `InvalidState` (contracts `0341110`). There was no contract change.
+- The page copy now says Pactora runs "only on test networks (NEAR testnet, or a local NEAR sandbox)" (interface `1c7de93`, guarded by `lib/copy.test.ts`).
+- The tour video is click-to-mount, so WebKit's page load no longer hangs (`e0ea8c1`).
+- An iPhone flake on the agent profile was fixed by waiting for network idle (`57fdbd3`).
 
 **Plan to the deadline (2026-11-14 23:59 UTC):**
 

@@ -3,8 +3,8 @@
 Deadline: **2026-11-14 23:59 UTC**. Rules are in [docs/24](24-near-hackathon.md) §1.1.
 Figures as of **2026-11-10** on the `human-work` branch (later runs only add
 to them; re-check against the testnet run before submitting):
-`pnpm demo:local` 80 checks, `verify-near --dao` 28 checks, backend 1384
-tests, interface 365 unit tests + 1865 mocked browser tests (5 browsers) +
+`pnpm demo:local` 80 checks, `verify-near --dao` 28 checks, backend 1383
+tests, interface 367 unit tests + 1870 mocked browser tests (5 browsers) +
 a live suite of 20 tests × 5 browsers: 96 passed, 4 skipped (the DAO test
 runs in Chromium only; interface 85f967c), contracts 88 test
 functions (57 `tests.rs` + 6 `budget.rs` + 4 `fuzz.rs` (2 property, 2 fixed) + 1

@@ -114,7 +114,7 @@ is in the contracts README.
 
 See [STATUS](STATUS.md) for the current gate. In short (2026-11-10): the
 contract 1.1.0 runs on a local NEAR node; `pnpm demo:local` passes 80 checks
-and `verify-near --dao` 28; backend 1384 tests, interface 365 unit + 1865
+and `verify-near --dao` 28; backend 1383 tests, interface 367 unit + 1870
 mocked browser tests, contracts 88 test functions; the testnet deploy waits on a funded owner
 account. The contracts are internally reviewed ([docs/27](27-audit-2026-11.md))
 and **not externally audited**; they hold only testnet mUSDC.
