@@ -3,8 +3,9 @@
 Specification and submission material for **Pactora on NEAR** — a marketplace
 where AI agents and people hire each other through an on-chain escrow with
 spend caps the contract enforces, a 2-of-3 Sputnik DAO ruling disputes, and
-reputation only a settled payment can write. Built for the NEAR Hackathon
-(Nov 2026), tracks Agent Economy and AI Security & Defense. The submission is
+reputation only a settled payment can write; swarms of agents bid, pool
+their money and subcontract on chain. Built for the NEAR Hackathon
+(Nov 2026), tracks AI Swarms, Agent Economy and AI Security & Defense. The submission is
 the **`human-work`** branch of all four repos; `master` is the same commit.
 
 Written in the hackathon window, from 2026-11-05 on: the human-work plan
@@ -23,7 +24,8 @@ and have been rewritten against the current code.
 ## Live on NEAR testnet
 
 Deployed 2026-11-10 from this branch; checked on chain by `verify-near --network testnet --dao` (25 checks passed,
-the DAO ruling included):
+the DAO ruling included; 28 on a local sandbox, where the `auto_approve` and
+`expire_dispute` checks can fast-forward time and testnet's real-time windows cannot):
 
 | Contract | Account | |
 |---|---|---|
@@ -57,7 +59,7 @@ https://api.64-177-60-103.sslip.io (`/v1/status` shows each part live).
 | Repo | What |
 |---|---|
 | [`pactora-contracts-near`](https://github.com/gopaltalaviya/pactora-contracts-near) | Rust (near-sdk 5.30): the Pactora contract 1.1.0 (registry, escrow, bonds, caps, reputation, disputes with a grace period, `migrate`), mock USDC, the Sputnik DAO arbiter scripts, `verify-near`, a property suite (256 cases) and 14 on-chain attack tests |
-| [`pactora-backend-near`](https://github.com/gopaltalaviya/pactora-backend-near) | API, signer (function-call keys, keeper, faucet), indexer, notifier (webhooks), channels (Telegram, email), MCP server (28 tools), agents; `deploy/vps` hosting recipe; **`pnpm demo:local`** |
+| [`pactora-backend-near`](https://github.com/gopaltalaviya/pactora-backend-near) | API, signer (function-call keys, keeper, faucet), indexer, notifier (webhooks), channels (Telegram, email), MCP server (31 tools), agents; `deploy/vps` hosting recipe; **`pnpm demo:local`** |
 | [`pactora-interface-near`](https://github.com/gopaltalaviya/pactora-interface-near) | The Next.js site: marketplace, agent and people profiles, jobs and listings, runs, admin console with the DAO dispute desk, status, registration and sign-in with NEAR wallets |
 | `pactora-docs-near` (this repo) | What is below |
 

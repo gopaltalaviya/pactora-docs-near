@@ -66,7 +66,7 @@ M4 gate, run 2026-11-08 on this machine:
 | Docs `check:env` | OK |
 | Secret scan | clean |
 | Contracts | untouched; wasm hash unchanged |
-| Live testnet run | not possible yet: no funded testnet account (owner) |
+| Live testnet run | done 2026-11-11: 72 checks, "Demo passed." (later entries below) |
 
 **Final gate (M10), run 2026-11-08, all in one sequence on this machine:**
 
@@ -700,7 +700,7 @@ Gate for the wording pass, 2026-11-10 evening:
   workspace). All four README disclosures now name it, without links (the
   owner's choice). The docs/25 description says so too: 1,994 of 2,000
   characters.
-- **Tracks (owner):** `agents`, `security`, `swarms`, `social`.
+- **Tracks (owner):** `agents`, `security`, `swarms` (`social` dropped 2026-11-11, owner).
 - docs/25 §1 now lists every form field and both ways to submit. The API
   route is `POST /api/applications`, sent only after the owner's yes on the
   printed payload; the payload is never committed.
@@ -878,6 +878,97 @@ audit and a NEAR mainnet procedure (docs/28 §6).
 
 ## Next up (ordered)
 
+**Win round, started 2026-11-11 (owner: build all four, test at production
+level, drop Social Money; no tag or final submission until the owner says).**
+Review findings fixed in the working tree (uncommitted): two overclaims in
+docs/25, "trustless" wording, README command and count fixes, site snippets
+on the live contract and API, the empty `/people` message. Then, in order:
+1. Orchestrator: an approve whose retry finds the job already settled counts
+   as settled (the live seed broke on this over a slow link).
+2. Receipts: a public list of settled jobs (`GET /v1/receipts`), a
+   `/receipts` page, and a receipt panel on each job page (spec hash, result
+   hash, verdict, every transaction). Linked from home and `/demo`, so a
+   judge sees agent-to-agent work without an API key.
+3. Swarms: `RULES.md`, and `swarm.mjs` on testnet at a small scale with
+   transaction links.
+4. Seed the live board on testnet (people, listings, settled jobs, agent
+   descriptions).
+5. Production-level tests of every change, deploy (Vultr + Vercel), crawl.
+
+Progress (2026-11-11, all uncommitted):
+- 1 done: `packages/agent-core` (approve already landed counts as settled);
+  orchestrator tests 54/54, the new one red on the old code.
+- 2 done: `GET /v1/receipts` (`apps/api/src/routes/receipts.ts`, agents
+  only, never a person; 6 tests, the privacy one red without the filter),
+  `/receipts` page, Receipt card on the job page, links from home and
+  `/demo`; interface unit 370/370, mocked e2e 80/80 (Chromium, touched specs).
+- 3 done: `RULES.md`; `SWARM_NETWORK=testnet` in `scripts/swarm.mjs`.
+  **Swarm passed on NEAR testnet** (6 buyers, 3 sellers, 6 settled, jobs
+  49–54, links in RULES.md); `swarm:local` still passes (20 settled).
+  Needs `RPC_URL_TESTNET=https://test.rpc.fastnear.com` on the command line:
+  the contracts `.env` still names the deprecated near.org RPC (owner may
+  change that line).
+- 4 waiting on the owner's OK: demo gained agent descriptions and
+  `DEMO_OPEN_LISTINGS=n`; **sandbox run passed** (81 checks, 3 listings left
+  open). Server DB backed up 13:53 UTC. Pausing the server's indexer and
+  signer and replacing the live DB was refused by the tool guard, so it needs
+  the owner's explicit yes. Seed plan: stop the server indexer and signer,
+  tunnel to the postgres container (172.18.0.3:5432),
+  `DEMO_NETWORK=testnet DEMO_OPEN_LISTINGS=3`, restart them.
+- 5 tests (2026-11-11 evening): interface `pnpm check` green (370 unit,
+  typecheck, lint, format); `check:contract` against the held sandbox API
+  "Contract holds." (now also checks `/v1/receipts`); backend `pnpm check`
+  1413 tests: 1247 + 271 re-run pass; the 156 first-run failures were the
+  signer/indexer tests' default DBs (`pactora_near_signer`/`_indexer`) not
+  existing locally; CI sets `DATABASE_URL=…/pactora_near` for all, and with
+  it they pass. Real find: `roles.test.ts` needed a `GET /v1/receipts` row in
+  the authorization matrix (added; 12/12). Mocked e2e (people, receipts,
+  smoke, a11y) 83/83 in each of Chromium, Firefox, WebKit, iPhone, Android
+  (a first run failed 15 sign-in tests only because the reused `.next` was
+  built without `NEXT_PUBLIC_E2E_WALLET=1`; rebuild as `test:e2e` does).
+- **Stand-out round (owner, 2026-11-11 night; submit on 11-13):** the
+  Security (274) and Agent Economy (260) tracks are crowded, Swarms has 55.
+  In order: (1) collective purchasing: pools, several buyers each funding
+  an escrow share for one job; (2) subcontracting (swarm round 4); (3)
+  public `/swarm` page from the testnet run; (4) live NEAR AI judge, with
+  its attestation shown on receipts (owner adds `NEAR_AI_API_KEY`); (5) a
+  plain-words pitch everywhere; (6) a 20 s video opener; (7) testnet swarm
+  plus live seed (owner adds ~20 testnet NEAR); (8) full gates, then ask
+  the owner to commit, push and deploy. The contract stays frozen.
+- **Stand-out progress (2026-11-11 night, all uncommitted):**
+  - (1) Pools done:
+    - code: `apps/api/src/routes/pools.ts`, migration `0033_pools.sql`,
+      SDK `openPool`/`joinPool`/`getPool`, OpenAPI entries and rows in the
+      roles test;
+    - `apps/api/test/pools.test.ts`, 15 tests;
+    - an independent review found 4 bugs, all fixed: join re-checks the
+      worker, a stale slot is freed after 10 min, the lead's rollback never
+      orphans a funded job, and `poolState` handles disputed and partly
+      refunded pools. The tests for them fail on the code before the fixes.
+  - (2) Subcontracting done (swarm round 4).
+  - **Testnet swarm with all four rounds passed:**
+    - chain jobs 55–65;
+    - pool jobs 61–63 read back from the contract: each `Settled`, with one
+      `result_hash`;
+    - links are in `RULES.md`; `swarm:local` also passes.
+  - (3) `/swarm` page done (`app/swarm`, data `lib/swarm-run.json` from the
+    testnet run, `e2e/swarm.spec.ts`).
+  - (4) `GET /v1/receipts` has a `judged` flag, and `/receipts` shows a
+    "Judged on NEAR AI" badge. The job page already shows the judge card.
+    The live judge call still needs `NEAR_AI_API_KEY` (no backend `.env`
+    yet).
+  - (5) New pitch on the home page, in 3 READMEs and in the docs/25
+    description (1,723 characters) and X post (269 of 280 characters).
+  - (6) Video: `public/video/hook-x.mp4` (0:20) and `demo-hook-x.mp4`
+    (3:33), rendered by `video/render-hook.mjs` and encoded with the local
+    `linuxserver/ffmpeg` Docker image (ffmpeg is no longer on the PATH).
+  - The deployer holds 131 testnet NEAR, so no more is needed.
+- HACKATHON.md re-read 2026-11-11 22:00: no mandatory integrations; Privy
+  is not mentioned. Backend README now maps our tracks' hints (function-call
+  keys, TEE attestation, sub-accounts, multi-agent) to code, and says NEAR
+  Intents / Chain Signatures are not used.
+
+
 As of 2026-11-11. Contracts live on testnet, backend hosted on Vultr, site on
 Vercel. The deadline is **2026-11-14 23:59 UTC**.
 
@@ -896,14 +987,37 @@ Vercel. The deadline is **2026-11-14 23:59 UTC**.
    - make the four repos **public**;
    - post on X: docs/25 §2, the 272-character post, with `demo-x.mp4`;
    - submit the form once: docs/25 §1, tracks `agents`, `security`,
-     `swarms`, `social`, the **mainnet** payout account, `website` empty.
+     `swarms` (not `social`), the **mainnet** payout account, `website` empty.
 5. Keep the server and the site up until 2026-11-25. Then destroy the Vultr
    instance to stop billing.
 
 ## Uncommitted work
 
-**2026-11-11: nothing is uncommitted**; all four repos are pushed (`master` =
-`human-work`). Earlier the same day, everything since the last push was
+**2026-11-12: the stand-out round is uncommitted in all four repos too**
+(backend 20 files, interface 29, contracts 1, docs 5). It is finished and
+tested, and is waiting for the owner's go to commit, push, deploy the API
+(migration `0033_pools.sql` runs through compose) and seed the live board.
+- Pools: the API, the migration, the SDK, 3 MCP tools (31 in all) and docs/15.
+- Swarm rounds 3 and 4, and the testnet run (chain jobs 55–65) in `RULES.md`.
+- The `/swarm` page and the receipts `judged` flag and badge.
+- The new pitch, the 20 s opener and `demo-hook-x.mp4`.
+
+Gates run on the final code:
+- backend `pnpm check`: 1418 passed, plus `status.test` 24/24 after the docs/15 fix;
+- MCP 40/40;
+- interface `pnpm check` (370 unit);
+- e2e 95/95 in each of 5 browsers;
+- `swarm:local` and the testnet swarm;
+- the docs env check;
+- the secret scan, which is clean (its one hit is the `NEAR_AI_API_KEY=...` placeholder in the backend README).
+
+**2026-11-11 evening: the win round is uncommitted in all four repos**,
+finished and tested, waiting for the owner's go: receipts (API, page, job
+card, tests), the orchestrator approve fix, the testnet swarm and `RULES.md`,
+demo descriptions and open listings, the `roles.test.ts` receipts row, the
+contract check's receipts block, README/doc wording fixes, docs/25 and this
+file. Before it, everything had been pushed (`master` = `human-work`).
+Earlier the same day, everything since the last push was
 uncommitted in all four repos. It is finished and tested, waiting for the owner's go:
 - the wording pass;
 - the skippable identity check;
@@ -923,7 +1037,9 @@ The secret scan of every changed and new file is clean. Commits use the owner's 
 
 - The commit and push (above), then the `hackathon-submission` tag, the
   public repos, the X post and the form.
-- ~20 testnet NEAR for `gopalt.testnet`.
+- The API deploy and the live-board seed (the seed stops the server's
+  indexer and signer, so it needs the owner's explicit OK).
+- (No more testnet NEAR is needed: `gopalt.testnet` holds ~131 NEAR.)
 - Optional:
   - `BACKUP_REMOTE` (an off-host backup copy) and `ALERT_WEBHOOK_URL` on the
     server;

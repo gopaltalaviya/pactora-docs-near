@@ -1,14 +1,16 @@
 # 25 — NEAR Hackathon submission: form text, X post, video script
 
 Deadline: **2026-11-14 23:59 UTC**. Rules are in [docs/24](24-near-hackathon.md) §1.1.
-Figures as of **2026-11-10** on the `human-work` branch (later runs only add
+Figures as of **2026-11-11** on the `human-work` branch (later runs only add
 to them; re-check against the testnet run before submitting):
-`pnpm demo:local` 80 checks, `verify-near --dao` 28 checks, backend 1383
-tests, interface 367 unit tests + 1870 mocked browser tests (5 browsers) +
-a live suite of 20 tests × 5 browsers: 96 passed, 4 skipped (the DAO test
-runs in Chromium only; interface 85f967c), contracts 88 test
+`pnpm demo:local` 80 checks, `verify-near --dao` 28 checks, backend 1401
+tests, interface 370 unit tests + 1833 mocked browser tests (5 browsers) +
+a live suite of 20 tests × 5 browsers on a local NEAR node: 96 passed,
+4 skipped (the DAO test runs in Chromium only; interface 85f967c, 2026-11-10);
+re-run 2026-11-11 on the final code: Chromium 20/20, Firefox, Android and
+WebKit 19 + 1 skipped, iPhone 14 of 20 before low memory stopped the run, contracts 88 test
 functions (57 `tests.rs` + 6 `budget.rs` + 4 `fuzz.rs` (2 property, 2 fixed) + 1
-mock-usdc + 6 sandbox + 14 adversarial), 28 MCP tools.
+mock-usdc + 6 sandbox + 14 adversarial), 31 MCP tools.
 
 > **Branch decision (owner, 2026-11-09):** the submission is the `human-work`
 > branch — people as workers and clients, listings and bids, evidence photos,
@@ -27,11 +29,17 @@ one submission):
 |---|---|
 | Agent Economy (primary) | "agents that earn, spend, negotiate, hire other agents and pay": the orchestrator hires, checks and pays workers through escrow |
 | AI Security & Defense | "spending limits, policy engines, sandboxed wallets": per-task and daily caps in the contract, function-call keys that cannot move NEAR, the trust check before a hire |
-| AI Swarms | "coordination markets, bidding": listings with bids, one listing filled by many workers; `pnpm swarm:local` runs 20 buyer and 5 seller agents bidding by rule over two rounds, settled on chain |
-| Social Money | "reputation-based access built on Sputnik DAO": on-chain reputation from settled jobs, disputes ruled by a 2-of-3 Sputnik DAO |
+| AI Swarms | "coordination markets, bidding": listings with bids, one listing filled by many workers; `pnpm swarm:local` runs 20 buyer and 5 seller agents bidding by rule over two rounds, settled on chain; on NEAR testnet (2026-11-11) 6 buyers and 3 sellers settled chain jobs 55–65: round 2 chose the seller round 1's settlements had rated, at higher prices; three buyers **pooled** money for one job none could buy alone (jobs 61–63, one result hash); a seller **subcontracted** half its job (64→65). Shown at `/swarm`; every transaction in `pactora-backend-near/RULES.md` |
+
+Settled agent-to-agent jobs are public at `/receipts` on the site (and
+`GET /v1/receipts`), each with its spec and result hashes, its transactions
+and a read-only `near` CLI call that reads the job from the contract, so a
+judge sees the work without an API key.
 
 Only tick a track whose text the product meets; Open Innovation is for ideas
-that fit no category, so it is left out.
+that fit no category, so it is left out. Social Money was dropped on
+2026-11-11 (owner): the DAO is a dispute arbiter, not reputation-gated
+access, and its testnet council is the operator's own three accounts.
 
 **Repository link (one field, four repos).** The form takes one repository
 link. Submit `pactora-backend-near`: its README holds the one-command demo
@@ -55,7 +63,7 @@ earlier commits are baseline. The `pre-hackathon` tag marks that baseline.
 | Project name (2–80) | Pactora |
 | Team lead's name (2–80) · contact email (≤160) | the owner's; never committed to any repo |
 | Team size | `1` |
-| Tracks | `agents`, `security`, `swarms`, `social` (owner, 2026-11-11) |
+| Tracks | `agents`, `security`, `swarms` (owner, 2026-11-11; `social` dropped) |
 | NEAR payout account | the owner's mainnet account |
 | Public repository link | `https://github.com/gopaltalaviya/pactora-backend-near` |
 | Public demo post link | the X post (§2) |
@@ -71,40 +79,17 @@ nearhackathon.com/request-changes):
   explicit yes. It reuses one `requestId` on retries and never commits the
   payload, which holds personal data.
 
-**Description** (the form allows 20–2,000 characters; this one is 1,994, counted 2026-11-11):
+**Description** (the form allows 20–2,000 characters; this one is 1,723, counted 2026-11-11 evening; plain words first, swarm forward, caps in one line):
 
-> Pactora is a marketplace on NEAR where AI agents and people hire each other
-> without trusting each other, in all four directions: an agent hires an
-> agent, agents and people post listings that agents and people bid on, and
-> a person can hire an agent directly from its page. The client locks mUSDC
-> in the Pactora contract's escrow; the worker stakes a bond; the delivery
-> is recorded on chain by its sha256. A judge with no tools approves and the
-> worker is paid, or disputes (the client adds notes and photos) and a 2-of-3
-> Sputnik DAO rules from the admin console's desk. Reputation is written only
-> by settlement; anyone can read it from the contract.
+> Hire an AI agent, or a person, and pay only when the work is accepted. Pactora is a marketplace on NEAR where agents and people hire each other in every direction: an agent hires an agent or a person, a person hires an agent. The money waits in the Pactora contract's escrow, not with a platform: the client locks mUSDC, the worker stakes a bond, and the delivery's sha256 goes on chain. The client approves and the worker is paid, or disputes and a 2-of-3 Sputnik DAO rules. Every finished job leaves a public receipt anyone can check without an account (/receipts).
 >
-> Keys: each agent's wallet is a sub-account holding only a function-call key
-> scoped to Pactora. It cannot withdraw, attach a deposit, send NEAR or call
-> another contract. People sign in with a NEP-413 signature from their own
-> wallet. On-chain per-task and rolling 24 h caps bound what a stolen key can
-> spend, bonds included.
+> Swarms: agents following a few rules make a market no one runs. Sellers bid by rule; buyers weigh price against reputation that only on-chain settlements write. Three buyers pool their money to buy one job none could buy alone: each share is its own escrow job under its own caps, and all three settle with one result hash. A seller subcontracts half its job to another agent: agent hires agent hires agent. On NEAR testnet the swarm settled chain jobs 55 to 65, each linked at /swarm.
 >
-> Defense: a counterparty check reads the chain's own funding and settlement
-> events and blocks self-funded "farm" agents before any money moves. The
-> demo prompt-injects the orchestrator: hire a farm, overspend, withdraw to
-> an attacker; each is refused. With a stolen wallet key, the chain refuses
-> every escape. Photo evidence is stripped of location data and hashed on
-> chain; a compliance hold stops a payout to a sanctioned account; an
-> unanswered dispute cannot be front-run (a 7-day DAO window plus a 24 h
-> grace).
+> Unlike NEAR Agent Market, which holds the payment itself, Pactora settles in a contract with no custody, and any app can read the reputation.
 >
-> Built before the hackathon, as an EVM product on Monad (formerly AGENTX,
-> Solidity; tag `pre-hackathon`): the escrow-and-reputation design. Built in
-> the window, on branch `human-work`: the NEAR code (Rust contract 1.1.0,
-> DAO arbiter, signer, indexer, interface), the trust check and the human
-> side (listings, bids, direct hire, evidence, chat, profiles, screening,
-> the dispute desk). Live on NEAR testnet: pactora.gopalt.testnet. One
-> command, `pnpm demo:local`, runs it on a local NEAR node with no API key.
+> Safety: each agent wallet is a sub-account holding only a function-call key scoped to Pactora; per-task and daily caps are on chain; a counterparty check blocks self-funded farm agents; in the demo a prompt-injected agent's hire, overspend and withdrawal are all refused.
+>
+> Built before the hackathon as an EVM product on Monad (tag pre-hackathon); everything on NEAR was built in the window (branch human-work). Live on NEAR testnet: pactora.gopalt.testnet. One command, pnpm demo:local, runs it all locally with no API key.
 
 ## 2. X post (you post it, with the video attached)
 
@@ -113,13 +98,13 @@ it exists, real screenshots from the live suite are in
 `pactora-interface-near/docs/screenshots/` (listing with a bid, settled job,
 the worker's payout, the DAO dispute desk, home, jobs board, people).
 
-**The post** (fits a standard account: 272 of 280 characters, each link counted as
+**The post** (fits a standard account: 269 of 280 characters, each link counted as
 23 the way X does; lead with the problem, one moment, NEAR's role, a next step,
 as HACKATHON.md advises):
 
-> AI agents can hire agents and people without trusting anyone. Pactora locks the payment in a NEAR escrow, caps what any agent key can spend, and lets a 2-of-3 Sputnik DAO rule disputes.
+> Hire an AI agent or a person, pay only when the work is accepted. On NEAR, swarms of agents bid, pool money for one job and subcontract, and every job settles on chain with a public receipt.
 >
-> Try it: https://pactora-interface-near.vercel.app
+> https://pactora-interface-near.vercel.app/swarm
 >
 > Built at NEAR HACKATHON @NEARProtocol #NEARHackathon
 
@@ -134,8 +119,9 @@ With X Premium (longer posts), this fuller version can replace it:
 > github.com/gopaltalaviya/pactora-backend-near
 > Live: https://pactora-interface-near.vercel.app
 
-Attach `pactora-interface-near/public/video/demo-x.mp4` (3:12, captions burned in)
-or `overview-x.mp4` (1:27). Both are recorded; see [docs/video](video/README.md).
+Attach `pactora-interface-near/public/video/demo-hook-x.mp4` (3:33: a 20 s opener from the
+testnet swarm run, then the 3:12 demo, captions burned in), or `hook-x.mp4` (0:20) or
+`overview-x.mp4` (1:27). Both are recorded; see [docs/video](video/README.md).
 
 ## 3. Video script (about 3½ minutes; recorded over `pnpm demo:local`, or the testnet run)
 
@@ -186,12 +172,12 @@ must carry:
 
 ## 5. Before you submit (owner items are marked)
 
-- [ ] **Owner:** run on testnet. Your own account in `pactora-contracts-near/.env`, then `create-dao`, `deploy` and `verify-near --network testnet --dao`; the commands are in that README's "Testnet" section. Then in the backend `node scripts/sync-chain-facts.mjs`, commit `chain/`, and `DEMO_NETWORK=testnet pnpm demo`.
-- [ ] Put the testnet account ids in the READMEs and in docs/STATUS.md.
+- [x] Run on testnet (2026-11-10/11): `pactora.gopalt.testnet`, DAO `pactora-arbiter-gopalt.sputnikv2.testnet`, `verify-near` 25/25, the testnet demo (72 checks), the testnet swarm (jobs 49–54, then 55–65 with pools and subcontracting).
+- [x] Testnet account ids in the READMEs and in docs/STATUS.md.
 - [ ] **Owner:** tag `hackathon-submission` on `human-work` in all four repos and push (`master` already equals `human-work`; push the tag only).
 - [ ] **Owner:** make all four repos **public** (D6, the rights, first: docs/26 §4).
 - [x] Videos recorded (2026-11-10, local NEAR sandbox, captions only): `pactora-interface-near/public/video/`, overview 1:27 and demo 3:12; see [docs/video](video/README.md).
-- [ ] **Owner:** post on X (§2) with `demo-x.mp4` or `overview-x.mp4`, tagging @NEARProtocol with #NEARHackathon.
+- [ ] **Owner:** post on X (§2) with `demo-hook-x.mp4` (or `hook-x.mp4` / `overview-x.mp4`), tagging @NEARProtocol with #NEARHackathon.
 - [ ] **Owner:** submit the form: §1 text, mainnet payout account, `website` empty.
 - [ ] Keep any hosted demo up until 2026-11-18 at least (Q-012); local-only is acceptable with the public repo, the README and the video.
 - [ ] Re-check every figure above against the testnet run; update docs/STATUS.md and docs/28 (the feature inventory) with what was deployed.
