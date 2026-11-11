@@ -844,10 +844,18 @@ commit. `master` = `human-work` on GitHub in all four repos.
 - **Every flow with real transactions** (`e2e-live/`), one browser at a time:
   - Chromium 20/20, the DAO ruling included;
   - Firefox 19/19 (1 skipped by design);
-  - WebKit: the held-account flow timed out clicking "Post the listing" (it
-    passed on 2026-11-10; not yet reproduced: low memory);
-  - iPhone and Android: not completed. Claude Code stopped the run at low
-    memory: 0.6 of 15.7 GB free, WSL alone using 2 GB.
+  - Android 19/19 (1 skipped by design);
+  - WebKit 19/19 (1 skipped by design), 52 min. The earlier timeouts were
+    speed, not a bug: a trace showed each step taking 7-25 s, because
+    Playwright's WebKit on Windows renders in software. The suite now gives
+    WebKit triple time (`test.slow` in `e2e-live/live.spec.ts`), and only
+    WebKit; the assertions are unchanged;
+  - iPhone (WebKit): tests 1-14 passed with no failure, then Claude Code
+    stopped the run at test 15 (0.8 GB RAM free). Tests 15-20 still need a
+    run on iPhone; all six pass in the other four browsers. Re-run when
+    memory allows:
+    `LIVE_APP_DIR=<interface> LIVE_ALL_BROWSERS=1 corepack pnpm exec playwright test -c e2e-live/playwright.live.config.ts --project=iphone`
+    with `scripts/live-ui-stack.mjs` running in the backend;
   - 0 deadlocks in the API log.
 
 **Plan to the deadline (2026-11-14 23:59 UTC):**
