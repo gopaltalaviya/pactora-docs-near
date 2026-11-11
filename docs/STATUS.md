@@ -825,6 +825,31 @@ commit. `master` = `human-work` on GitHub in all four repos.
   Scans of the tracked files: no personal email, no local paths, no machine
   names, no keys.
 
+**2026-11-11: final checks on production and per flow.**
+- **Production crawl** of https://pactora-interface-near.vercel.app against the
+  live API: 34 pages at 1280 px and at 375 px. Every page answered 200, with
+  one h1 and a title, no console errors and no sideways scroll. The only
+  "failures" are aborted link prefetches (`?_rsc=`).
+- **Page-text audit:** no `undefined`, `NaN` or `[object]`; no deprecated RPC;
+  no old identity wording; no other-chain mentions. Fixed:
+  - the contact fallback "Email address coming soon" now reads "No email
+    address: please use the GitHub issues below";
+  - `/privacy` names Vultr and FastNEAR instead of `[VPS PROVIDER]` and the
+    old RPC line.
+
+  The other `[...]` markers in `/privacy` and `/terms` are the owner's legal
+  decisions (both pages are labelled drafts).
+- **External links:** nearblocks answers 403 to scripts (bot protection) but
+  opens in a browser. GitHub links answer 404 until the repos are public.
+- **Every flow with real transactions** (`e2e-live/`), one browser at a time:
+  - Chromium 20/20, the DAO ruling included;
+  - Firefox 19/19 (1 skipped by design);
+  - WebKit: the held-account flow timed out clicking "Post the listing" (it
+    passed on 2026-11-10; not yet reproduced: low memory);
+  - iPhone and Android: not completed. Claude Code stopped the run at low
+    memory: 0.6 of 15.7 GB free, WSL alone using 2 GB.
+  - 0 deadlocks in the API log.
+
 **Plan to the deadline (2026-11-14 23:59 UTC):**
 
 | Day | Owner | Agent, after the owner's step |
