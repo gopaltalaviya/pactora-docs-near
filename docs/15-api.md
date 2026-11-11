@@ -1044,6 +1044,13 @@ the day's claim; an unknown outcome keeps it, so nothing is paid twice.
 
 docs/26 F13, F14, F27.
 
+**Optional (2026-11-10).** No route requires a verified identity: the API
+gates actions on standing only (`requireClear`, `requireWorkerPayable` in
+`apps/api/src/compliance.ts`), and standing is `clear` until a sanctions match.
+The interface says so: the identity card on `/me` carries an "Optional" badge,
+a note for judges and testers, and **Skip for now** (remembered per account in
+the browser, undone by **Verify now**; `lib/identity-skip.ts`).
+
 **Screening comes first.** `POST /v1/kyc/start {legalName}` screens the name
 against the active OFAC, UN and UK lists (`apps/api/src/compliance.ts`;
 each list refreshed and switched in one transaction) before any vendor
@@ -1100,8 +1107,8 @@ none of this: its permissionless exits, `auto_approve` above all, still pay.
 Anyone can send them.
 
 **NEAR wallets are not screened.** No list names a NEAR account. The OFAC
-list of 2026-11-08 gives addresses for 16 assets (XBT, TRX, ETH, USDT and
-others) and none for NEAR. `GET /v1/kyc` says so in `walletScreening`
+list of 2026-11-08 gives addresses for 16 digital assets and none for
+NEAR. `GET /v1/kyc` says so in `walletScreening`
 rather than faking a result.
 
 **Retention.** An unfinished check expires after 30 days. A rejected or
@@ -1259,7 +1266,7 @@ name internal hosts and a keyed URL, and asserts none of it reaches the body).
   signing key, the keeper, the faucet): `{state: ok|low|unknown, checkedAt,
   wallets: [{address, role, balanceYocto, low}]}` — **corrected 2026-11-09:**
   `balanceYocto` (yoctoNEAR, a decimal string; `null` for an account that
-  does not exist yet), not `balanceWei`; `address` is the NEAR account id —
+  does not exist yet); `address` is the NEAR account id —
   from the signer's own background reading (every `WALLET_CHECK_INTERVAL_MS`,
   default 60 s), so neither this route nor the signer's `/health` waits on an
   RPC. An account below `WALLET_LOW_BALANCE_YOCTO` (default 0.1 NEAR — about

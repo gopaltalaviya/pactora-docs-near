@@ -633,7 +633,7 @@ Each feature uses the same layout:
     - a joined-name pass at ≥ 0.97;
     - at most one extra word.
   - Wallets and emails matched exactly.
-  - Wallet providers: an on-chain sanctions oracle (Ethereum mainnet) and a
+  - Wallet providers: an on-chain sanctions oracle not available on NEAR and a
     free screening API, with answers cached 24 h and a positive answer kept
     even if a later request fails.
   - Cases: open → cleared or confirmed.
@@ -653,7 +653,7 @@ Each feature uses the same layout:
   - **NEAR-specific work, to research before building:**
     - (1) whether the published lists carry any NEAR account ids;
     - (2) which providers screen NEAR accounts. The reference's oracle is
-      Ethereum-only, so it does not apply;
+      not available on NEAR, so it does not apply;
     - (3) extracting NEAR named and implicit accounts from list text.
 
     Until then wallet screening for NEAR is **not available**, and the docs

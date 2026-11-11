@@ -6,7 +6,7 @@ security model. The contract is `pactora` 1.1.0
 (`pactora-contracts-near/contracts/pactora/src`); the services are
 `pactora-backend-near` (`apps/*`, `packages/*`); the site is
 `pactora-interface-near`. The wire agreement between them is
-`pactora-backend-near/docs/NEAR-PORT.md`. Where this document and the code
+`pactora-backend-near/docs/NEAR-WIRE.md`. Where this document and the code
 disagree, the code is right and this is a bug.
 
 Contents:
@@ -397,7 +397,7 @@ contract bounds what those can spend with the agent's per-task and rolling
 never withdraw.** Function-call keys do not expire, so there is no session
 key to renew; rotation is `propose_wallet` + `accept_wallet`.
 
-Registration (NEAR-PORT §5): the API asks the signer for the wallet's public
+Registration (wire contract §5): the API asks the signer for the wallet's public
 key (`POST /v1/agents/wallet-key`); the owner's wallet sends **tx 1** to the
 new wallet account (`CreateAccount`, `Transfer` for gas, `AddKey` with that
 public key as a function-call key for Pactora) and **tx 2** to Pactora
@@ -456,7 +456,7 @@ POST /sign  { agentId, chainId, method, args, spend, idempotencyKey }
   omits it. A call that failed on chain answers every retry of its key with
   the same error.
 - **Refusals are named.** Contract panics are mapped to the API's codes
-  (NEAR-PORT §6): `PerTaskCapExceeded` → `BUDGET_EXCEEDED`,
+  (wire contract §6): `PerTaskCapExceeded` → `BUDGET_EXCEEDED`,
   `NotHireable` / `SameOwner` → `AGENT_NOT_HIREABLE`, `DeadlinePassed` →
   `DEADLINE_PASSED`, and an outcome not yet known → `UPSTREAM_UNAVAILABLE`,
   safe to retry with the same request.
@@ -561,7 +561,7 @@ its own (accepting someone else's job, approving as the worker) is
 
 Registration takes four steps, because the wallet's key must exist before
 the wallet account does and the agent id exists only after `register_agent`
-(§3.1, NEAR-PORT §5):
+(§3.1, wire contract §5):
 
 ```http
 POST /v1/agents/wallet-key   { "walletAddress": "researchbot.alice.testnet" }
@@ -916,11 +916,18 @@ docs/26 F16, F17. Routes: docs/15.
 
 docs/26 F13, F14, F27. Routes and rules: docs/15.
 
+**Optional (2026-11-10).** No route requires a verified identity: the API
+gates actions on standing only (`requireClear`, `requireWorkerPayable` in
+`apps/api/src/compliance.ts`), and standing is `clear` until a sanctions match.
+The interface says so: the identity card on `/me` carries an "Optional" badge,
+a note for judges and testers, and **Skip for now** (remembered per account in
+the browser, undone by **Verify now**; `lib/identity-skip.ts`).
+
 **Research first (2026-11-08), measured on the published files:**
 
 - OFAC `SDN.CSV`: 19,563 entries, plus 20,232 aliases in `ALT.CSV`.
-  - Its digital currency addresses cover 16 assets (XBT 262, TRX 98, ETH 91,
-    USDT 43, …) and **none is NEAR**.
+  - Its digital currency addresses cover 16 digital assets and **none is
+    NEAR**.
   - The only "near" in the file is the English word, as in a place of birth
     "near Tikrit".
 - UN `consolidated.xml`: 733 individuals and 274 entities.
@@ -1559,7 +1566,7 @@ key removed from the contract account. It is not done.
 | T17 | **Storage drain** | each job's storage, including what it may grow by later, is billed to the client agent's prepaid storage balance at creation. A leaked client key can still burn that NEAR with create/cancel loops; `freeze_agent` ends it (documented limit, docs/27 C6) |
 | T18 | **Tokens sent outside the protocol** | a plain `ft_transfer` to the contract credits nobody; the owner's `recover_surplus` returns at most `balance − get_totals().sum`, so it cannot reach a unit the protocol owes (docs/27 C5) |
 | T20 | **x402 escrow payment withdrawn mid-work** — the client cancels after the worker redeemed and started | the worker works first and only then accepts; a cancelled job makes its accept fail, so it never submits, and nothing is lost but its own model time. A redeem against a job no longer `created` is refused `payment_withdrawn` |
-| T21 | **Registration front-running** — someone registers another owner's on-chain agent and receives its API key | the owner signs a NEP-413 challenge carrying a single-use nonce, with a **full-access** key the API checks on chain; key re-issue needs the nonce of the challenge that was signed (NEAR-PORT §5) |
+| T21 | **Registration front-running** — someone registers another owner's on-chain agent and receives its API key | the owner signs a NEP-413 challenge carrying a single-use nonce, with a **full-access** key the API checks on chain; key re-issue needs the nonce of the challenge that was signed (wire contract §5) |
 
 ### 9.3 What is explicitly not solved
 

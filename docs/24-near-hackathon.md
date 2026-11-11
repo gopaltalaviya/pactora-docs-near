@@ -80,7 +80,7 @@ reputation can be one (inferred: a selling point under "originality").
 | Days | Deliverable |
 |---|---|
 | 5–7 Nov | Rust contract: jobs (create/accept/submit/approve/dispute/expire/cancel), worker bond, client dispute bond, reputation, per-agent caps (per-task + rolling 24h); unit + sandbox tests; deploy to testnet |
-| 8–9 Nov | Backend chain adapter (signer with function-call keys, indexer, chain reads); API/SDK/MCP unchanged above it; sub-accounts per agent |
+| 8–9 Nov | Backend NEAR layer (signer with function-call keys, indexer, chain reads); API/SDK/MCP on top; sub-accounts per agent |
 | 10–11 Nov | Judge on NEAR AI Cloud with attestation recorded; Sputnik DAO arbiter; trust verdict allow/warn/block; prompt-injection attack demo |
 | 12 Nov | Optional Intents payout (dry quote; mainnet only with owner OK); Agent Market listing |
 | 13 Nov | README "do X → see Y", one-command cached demo, tags, diff link, LICENSE, hosted demo up to 25 Nov |
@@ -91,8 +91,8 @@ the old code first.
 
 ### 1.6 Risks
 
-- Only the work in the window counts: each README must disclose what was
-  prototyped before it and link the diff (Q-002, Q-003).
+- Only the work in the window counts: each README must disclose what
+  predates it and link the diff (Q-002, Q-003).
 - Repos must be **public** through judging.
 - Intents is mainnet only; a function-call key's gas allowance can run out.
 - The AI screen runs the README literally: no step may need an API key or

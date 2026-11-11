@@ -27,12 +27,12 @@ bug is first run against the old code, to see it fail.
 
 ## 2. The plan and where it stands
 
-The contract and port (from [docs/24 §1.5](24-near-hackathon.md)):
+The contract and backend (from [docs/24 §1.5](24-near-hackathon.md)):
 
 | Days | Deliverable | State |
 |---|---|---|
 | 5–7 Nov | Rust contract: jobs (create/accept/submit/approve/dispute/expire/cancel), worker bond, client dispute bond, reputation, per-agent caps (per-task + rolling 24 h); unit + sandbox tests | built; 1.1.0 after the audit ([docs/27](27-audit-2026-11.md)) |
-| 8–9 Nov | Backend chain adapter: signer with function-call keys, indexer, chain reads; API/SDK/MCP on top | built |
+| 8–9 Nov | Backend NEAR layer: signer with function-call keys, indexer, chain reads; API/SDK/MCP on top | built |
 | 10–11 Nov | Sputnik DAO arbiter; trust verdict allow/warn/block; prompt-injection attack demo; judge on NEAR AI Cloud | built; the NEAR AI judge is off by default and its live fixtures wait on the owner |
 | 12 Nov | Optional Intents payout; Agent Market listing | not built (Intents is mainnet only) |
 | 13 Nov | README "do X → see Y", one-command cached demo, tags, diff link, LICENSE | built, except the `hackathon-submission` tag (owner, after the testnet run) |

@@ -46,9 +46,32 @@ earlier commits are baseline. The `pre-hackathon` tag marks that baseline.
 
 **Website field:** leave it **empty**. It is a spam trap.
 
-**Payout account:** your **mainnet** NEAR account.
+**Payout account:** your **mainnet** NEAR account (named or 64-hex implicit).
 
-**Description** (the form allows 20–2,000 characters; this one is about 1,965):
+**Every field** (HACKATHON.md, re-read 2026-11-11):
+
+| Field | Value |
+|---|---|
+| Project name (2–80) | Pactora |
+| Team lead's name (2–80) · contact email (≤160) | the owner's; never committed to any repo |
+| Team size | `1` |
+| Tracks | `agents`, `security`, `swarms`, `social` (owner, 2026-11-11) |
+| NEAR payout account | the owner's mainnet account |
+| Public repository link | `https://github.com/gopaltalaviya/pactora-backend-near` |
+| Public demo post link | the X post (§2) |
+| Idea (20–2,000) | the description below |
+| Consent to the contact notice | the owner ticks it |
+| Website | **empty** (a spam trap: any value rejects the submission) |
+
+**How to submit, once** (it cannot be edited; changes go through
+nearhackathon.com/request-changes):
+- by hand, on the form at nearhackathon.com; or
+- through the documented API (`POST https://nearhackathon.com/api/applications`).
+  The coding agent prints the full payload and sends it only after the owner's
+  explicit yes. It reuses one `requestId` on retries and never commits the
+  payload, which holds personal data.
+
+**Description** (the form allows 20–2,000 characters; this one is 1,994, counted 2026-11-11):
 
 > Pactora is a marketplace on NEAR where AI agents and people hire each other
 > without trusting each other, in all four directions: an agent hires an
@@ -75,13 +98,13 @@ earlier commits are baseline. The `pre-hackathon` tag marks that baseline.
 > unanswered dispute cannot be front-run (a 7-day DAO window plus a 24 h
 > grace).
 >
-> Built before the hackathon: the escrow-and-reputation design (tag
-> `pre-hackathon`). Built in the window, on branch `human-work`: the NEAR
-> code (Rust contract 1.1.0, DAO arbiter, signer, indexer, interface), the
-> trust check and the human side (listings, bids, direct hire, evidence,
-> chat, profiles, screening, the dispute desk). One command, `pnpm
-> demo:local`, runs it live on a NEAR node with no API key; `pnpm
-> swarm:local` adds a swarm of 20 buyer and 5 seller agents bidding.
+> Built before the hackathon, as an EVM product on Monad (formerly AGENTX,
+> Solidity; tag `pre-hackathon`): the escrow-and-reputation design. Built in
+> the window, on branch `human-work`: the NEAR code (Rust contract 1.1.0,
+> DAO arbiter, signer, indexer, interface), the trust check and the human
+> side (listings, bids, direct hire, evidence, chat, profiles, screening,
+> the dispute desk). Live on NEAR testnet: pactora.gopalt.testnet. One
+> command, `pnpm demo:local`, runs it on a local NEAR node with no API key.
 
 ## 2. X post (you post it, with the video attached)
 
@@ -90,6 +113,18 @@ it exists, real screenshots from the live suite are in
 `pactora-interface-near/docs/screenshots/` (listing with a bid, settled job,
 the worker's payout, the DAO dispute desk, home, jobs board, people).
 
+**The post** (fits a standard account: 272 of 280 characters, each link counted as
+23 the way X does; lead with the problem, one moment, NEAR's role, a next step,
+as HACKATHON.md advises):
+
+> AI agents can hire agents and people without trusting anyone. Pactora locks the payment in a NEAR escrow, caps what any agent key can spend, and lets a 2-of-3 Sputnik DAO rule disputes.
+>
+> Try it: https://pactora-interface-near.vercel.app
+>
+> Built at NEAR HACKATHON @NEARProtocol #NEARHackathon
+
+With X Premium (longer posts), this fuller version can replace it:
+
 > Pactora: AI agents and people hire each other on NEAR — escrowed, capped,
 > and judged before anyone is paid. A prompt-injected agent tries to pay a
 > farm and withdraw to an attacker; the API and the chain refuse every step.
@@ -97,6 +132,7 @@ the worker's payout, the DAO dispute desk, home, jobs board, people).
 > rules the disputes. Wallet keys are function-call only.
 > Built at NEAR HACKATHON. @NEARProtocol #NEARHackathon
 > github.com/gopaltalaviya/pactora-backend-near
+> Live: https://pactora-interface-near.vercel.app
 
 Attach `pactora-interface-near/public/video/demo-x.mp4` (3:12, captions burned in)
 or `overview-x.mp4` (1:27). Both are recorded; see [docs/video](video/README.md).
@@ -125,7 +161,7 @@ The AI screen (Q-017) runs the README literally, so each of the four READMEs
 must carry:
 
 - **Disclosure (Q-002) and diff (Q-003):** one sentence — "The
-  escrow-and-reputation design was prototyped before the hackathon; the NEAR
+  escrow-and-reputation design predates the hackathon; the NEAR
   implementation in this repository was built during the hackathon window."
   Where a repository's git history starts before the window, say so. — and a `compare/pre-hackathon...hackathon-submission` link
   (`...human-work` until the tag exists); the `hackathon-submission` tag is added after the testnet run.

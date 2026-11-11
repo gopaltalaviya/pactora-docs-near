@@ -12,13 +12,30 @@ Written in the hackathon window, from 2026-11-05 on: the human-work plan
 feature inventory with a source citation for every claim ([docs/28](docs/28-feature-inventory-2026-11.md))
 and the submission material ([docs/25](docs/25-near-submission.md)). The API reference
 ([docs/15](docs/15-api.md)) and configuration ([docs/08](docs/08-configuration.md)) were in the baseline
-and have been rewritten for the NEAR code.
+and have been rewritten against the current code.
 
-> **Disclosure (rules Q-002, Q-003).** The escrow-and-reputation idea was prototyped before the
-> hackathon. That prototype and the documents that began with it are this repository's first
-> commit, tagged `pre-hackathon` (2026-11-04); it is the baseline, not the submission. Everything after it is the NEAR work, dated in the
+> **Disclosure (rules Q-002, Q-003).** Pactora existed before this hackathon as an EVM product on
+> **Monad** (formerly AGENTX: Solidity contracts, built for Monad Metropolis). It and the documents that began with it are this
+> repository's first commit, tagged `pre-hackathon` (2026-11-04): the baseline, not the submission. Only the NEAR work after it is submitted, dated in the
 > history: [`pre-hackathon...hackathon-submission`](https://github.com/gopaltalaviya/pactora-docs-near/compare/pre-hackathon...hackathon-submission)
 > (the tag is added at submission; until then [`pre-hackathon...human-work`](https://github.com/gopaltalaviya/pactora-docs-near/compare/pre-hackathon...human-work)).
+
+## Live on NEAR testnet
+
+Deployed 2026-11-10 from this branch; checked on chain by `verify-near --network testnet --dao` (25 checks passed,
+the DAO ruling included):
+
+| Contract | Account | |
+|---|---|---|
+| Pactora 1.1.0 (escrow, bonds, caps, reputation) | `pactora.gopalt.testnet` | [nearblocks](https://testnet.nearblocks.io/address/pactora.gopalt.testnet) |
+| mUSDC (test token, 6 decimals) | `musdc.gopalt.testnet` | [nearblocks](https://testnet.nearblocks.io/address/musdc.gopalt.testnet) |
+| Arbiter: 2-of-3 Sputnik DAO | `pactora-arbiter-gopalt.sputnikv2.testnet` | [nearblocks](https://testnet.nearblocks.io/address/pactora-arbiter-gopalt.sputnikv2.testnet) |
+
+The deployed code is the committed `wasm/pactora.wasm`, sha256 `e0ed7876…290a` (`wasm/SHA256SUMS` in
+`pactora-contracts-near`). Ids and the indexer's start block: `deployments/testnet.json`. Test tokens only, no real money.
+
+**Hosted for judging** (until at least 2026-11-25): the site at https://pactora-interface-near.vercel.app and the API at
+https://api.64-177-60-103.sslip.io (`/v1/status` shows each part live).
 
 ## Start here
 
@@ -45,7 +62,7 @@ and have been rewritten for the NEAR code.
 | `pactora-docs-near` (this repo) | What is below |
 
 The wire contract between the NEAR services and the chain is
-[`pactora-backend-near/docs/NEAR-PORT.md`](https://github.com/gopaltalaviya/pactora-backend-near/blob/master/docs/NEAR-PORT.md).
+[`pactora-backend-near/docs/NEAR-WIRE.md`](https://github.com/gopaltalaviya/pactora-backend-near/blob/master/docs/NEAR-WIRE.md).
 
 ## The documents
 

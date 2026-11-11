@@ -1,4 +1,4 @@
-# Pactora (NEAR): status, 2026-11-09
+# Pactora (NEAR): status, 2026-11-10
 
 Single resume point for the four `pactora-*-near` repos. Re-verify every
 claim against the code before relying on it. Deadline: **14 Nov 2026 23:59 UTC**.
@@ -538,6 +538,293 @@ Fixes made along the way:
 - The tour video is click-to-mount, so WebKit's page load no longer hangs (`e0ea8c1`).
 - An iPhone flake on the agent profile was fixed by waiting for network idle (`57fdbd3`).
 
+**2026-11-10, wording pass (after a terminal crash).** A pass, uncommitted when
+the terminal closed, that drops the old prototype's names (v3, EVM, TaskEscrow,
+StakeVault …) from code comments, tests and docs in all four repos. Resumed and
+finished:
+- backend `docs/NEAR-PORT.md` → `docs/NEAR-WIRE.md`, `legacy-env` →
+  `unsupported-env` (`assertNoUnsupportedEnv`); every link to them in the docs and
+  interface re-pointed; the terms page no longer names a `StakeVault` contract
+  (the stake is held by the Pactora contract);
+- the disclosure paragraph in all four READMEs is kept as pushed ("prototyped
+  before the hackathon … the baseline, not the submission"); the crashed edit
+  had softened it to "design";
+- contracts: comments only. Doc comments on public methods and types stay as they
+  were, because they are embedded in the ABI and change the wasm. Rebuilt in the
+  pinned image: sha256 `e0ed7876…290a`, same as `wasm/SHA256SUMS`;
+- the recorded demo goal stays "Research ETH/USDC liquidity on NEAR …", and
+  `.agent-cache` stays as committed. The crashed edit had renamed the goal and
+  emptied the cache, which would make the default `AGENT_MODE=cached` run fail
+  with "no recording";
+- docs/28: 41 citations re-pointed through the diff (38 shifted lines, 3 reworded
+  in place); 896 citations, 0 failed.
+
+Gate for the wording pass, 2026-11-10 evening:
+
+| Check | Result |
+|---|---|
+| Contracts wasm (pinned image, direct build) | sha256 `e0ed7876…290a`, matches `SHA256SUMS` |
+| Contracts lib tests (WSL, `cargo test -p pactora --lib`) | 67 passed, 0 failed (property suite included; STATUS earlier said "lib 68", and `--lib` leaves out doc-tests); secret scan clean (46 files); `test:preflight` 24/24 |
+| Interface `pnpm check` | 367 unit, typecheck, lint, format clean |
+| Interface mocked e2e, Chromium | 374 passed; after the demo-goal restore, home-demo + smoke in 5 browsers 169 passed |
+| Backend `pnpm check` | 1370 passed, 10 skipped, **13 failed: environment, not code**. The host clock was 1.8 s behind the Docker VM (the Windows clock is the wrong one, see below) (measured: Postgres `clock_timestamp()` − host `Date.now()` = 1821–1836 ms). Tests that set `expires_at = now() - 1 second` in Postgres and are judged by the API on the host clock (expired challenge ×2, session sweep, audit-log, notifier backoff ×9) then fail. The source diff is comments, prompt text and the `legacy-env` → `unsupported-env` rename, with the logic identical; `apps/notifier` has no diff. To re-run: re-sync the Windows clock first |
+| docs `check:env` | OK, 160 variables |
+| docs/28 citations | 896 (665 distinct), 0 failed |
+| Backend `test:startup`, secret scan | all 42 bad configurations refused; clean (434 files) |
+| Clock, re-measured | Windows clock is **2.85 s behind** `time.windows.com` (`w32tm /stripchart`), and the Windows Time service is stopped; the Docker VM is close to correct. Fix (admin): `net start w32time; w32tm /resync`, then re-run backend `pnpm check` |
+| `demo:local` (fresh sandbox, cached agents) | `Demo passed.`, 80 checks, recorded goal replayed with no tokens spent |
+| Not re-run yet | full five-browser mocked run (Chromium full + the changed specs in five browsers were run) |
+
+**2026-11-10, night: identity check skippable; a rendering fix.** (Uncommitted.)
+- **Identity check optional, with a judge note.** The API never required a
+  verified identity (gates use standing only), but the card said "Some work
+  needs a verified identity". Now `/me` shows an "Optional" badge, a "For judges
+  and testers" note, and **Skip for now** / **Verify now** (per account, in the
+  browser; `lib/identity-skip.ts`). The simulated page carries the same note,
+  under its buttons. Copy fixed in `/docs/people` and `/privacy`; docs/04 §5.1h
+  and docs/15 say so. Tests: `lib/identity-skip.test.ts` (3, including a copy
+  guard) and 2 new e2e in `e2e/identity.spec.ts` (skip, reload, resume, a11y;
+  posting after a skip).
+- **Background orbs re-done as gradients.** WebKit failed `identity.spec`
+  (3/3, and on the committed HEAD too). Measured: `filter: blur(100px)` on the
+  two animated 560 px orbs cost about 880 ms a frame without GPU compositing,
+  against 54 ms with the orbs off, so Playwright's click "stable" check never
+  settled. They are now `radial-gradient` discs with no filter
+  (`app/globals.css`). After that, WebKit `identity.spec` passes 14/14
+  (7 tests × 2 repeats).
+- The first `.env` named a mainnet (`.near`) account. The owner replaced it with
+  `gopalt.testnet` (funded 50 NEAR).
+
+**2026-11-10, night: LIVE ON NEAR TESTNET.**
+- Preflight: GO. `create-dao` made `council-1.gopalt.testnet` and
+  `council-2.gopalt.testnet` (keys in `.env` only) and the DAO
+  `pactora-arbiter-gopalt.sputnikv2.testnet`, 2 of 3.
+- `deploy` created `musdc.gopalt.testnet`, then lost the connection sending the
+  400 KB Pactora wasm. `rpc.testnet.near.org` is **deprecated and rate-limited**
+  (it answered 429 "switch to fastnear").
+  - The chain showed `pactora.gopalt.testnet` created with **no code**, so
+    nothing was half-applied.
+  - New in `scripts/deploy.mjs`: a strict **`--resume`**. It keeps an account
+    that runs the committed wasm (by code hash), finishes an empty one, and
+    refuses anything else. The run through FastNEAR deployed Pactora, and the
+    `get_params`/`get_roles` read-back passed.
+  - `deployments/testnet.json`: start block 277100254; wasm `e0ed…290a` and
+    `de2a…c0d0`, as committed.
+- `verify-near --network testnet --dao`: **25 checks passed**: the escrow, the
+  caps, the stolen-key refusals, the 2-of-3 DAO ruling, the person flows, and
+  I1 (the contract holds exactly what it owes). Two time-window checks are
+  skipped by design (review 600 s, dispute grace 1 day). The sweep returned
+  6.66 NEAR.
+- **Default testnet RPC is now FastNEAR** (`test.rpc.fastnear.com` first,
+  `rpc.testnet.near.org` as fallback):
+  - contracts `config/networks.json`, which `sync-chain-facts` copies to the
+    backend `chain/`;
+  - `create-dao`, `sweep-testnet` and `.env.example`;
+  - the interface's wallet providers and CSP (CSP origins de-duplicated, test
+    updated);
+  - docs/08, NEAR-WIRE, the interface README and the backend live tests.
+  - The owner's own `.env` still names the old RPC: it is the owner's file, so
+    runs override it on the command line.
+- The ids are in all four READMEs ("Live on NEAR testnet"); 36 docs/28 README
+  citations shifted by the 14 new lines, and 896 resolve.
+
+**2026-11-11: the indexer on testnet (owner chose the free path).**
+- The first testnet demo passed 32 checks with real transactions (hire,
+  accept, deliver, judge, settle, each on nearblocks). Then "the indexer
+  recorded no settlement": neardata answered HTTP 429 on every poll.
+- Measured:
+  - neardata without a key: a burst of 32, then ~30–40 blocks a minute;
+  - FastNEAR RPC in block-and-chunks mode: ~4 calls/s, ~22 blocks a minute;
+  - testnet makes ~100 blocks a minute;
+  - FastNEAR keys are a paid plan ($69/month and up).
+- New block source **`accounts`** (`packages/near/src/blocks.ts`
+  `accountsSource`):
+  - FastNEAR's free transactions API, asked only for the transactions touching
+    Pactora and mUSDC;
+  - each receipt is filed under the block it executed in;
+  - the indexer stays 50 blocks behind the API's own indexed head;
+  - 300 blocks of look-back before each range;
+  - a head-hash check against the RPC at start;
+  - the indexer skips per-block parent chaining for a sparse source (documented
+    in docs/08), takes up to 600 blocks a tick, and is polled no faster than
+    every 6 s. The API answered 429 at ~120 calls a minute and was fine at
+    ~40.
+- Testnet's `blockSource` is now `accounts` (contracts `config/networks.json`,
+  synced to the backend `chain/`).
+- `NEARDATA_API_KEY` is needed only if a network goes back to `neardata`.
+- Tests:
+  - `packages/near/test/accounts-source.test.ts` (5);
+  - `apps/indexer/test/sparse-source.test.ts` (3);
+  - `progress.test.ts` still passes.
+- The demo ticks a sparse indexer every 6 s and waits up to 8× longer for what
+  it writes.
+
+**2026-11-11: testnet demo runs 3–5, contract suites, UI fixes.**
+- **Contracts, all green:** `cargo fmt`; clippy `-D warnings`; sandbox 6/6;
+  adversarial 14/14 (races, gas, a real DAO, upgrade from the previous wasm);
+  unit and property 67/67; wasm sha256 as committed.
+- **Testnet demo, real transactions:**
+  - **run 3:** 42 checks. Indexed settlements, the chain events in the feed,
+    reviews after on-chain settlement, the faucet and a person registered on
+    chain all passed. Then the deployer ran out of NEAR: each owner got 3 NEAR.
+  - **run 4** (owners get 1 NEAR on testnet): 61 checks. It failed on the held
+    payout, which expected the sandbox's 10 s review window (testnet's is
+    600 s), and on a FastNEAR RPC 429 in the attack section.
+  - **Fixes:**
+    - on testnet the held-payout step waits out the real review window by the
+      chain clock;
+    - the demo's RPC rotates to dRPC and then near.org, **only on a
+      rate-limit error**, so contract refusals keep the node's own words;
+    - the DAO-desk skip message now says the section is sandbox-only, and that
+      `verify-near --dao` covers testnet.
+  - **run 5:** stopped on my own bug in the rotation (`JSON.stringify` of a
+    BigInt). Fixed with a BigInt-safe serialiser.
+  - **NEAR:** the deployer is at 5.79 NEAR. About 17 sits in the contracts'
+    and DAO's storage; each run leaves agent wallets holding a little NEAR
+    that no key can move, by design. A clean run needs ~21 at peak.
+    **Owner: top up ~25 testnet NEAR.**
+- **Interface, all five browsers:** 1,831 passed, 5 failed, 44 skipped
+  (skips by design).
+  - A **real bug**: `/runs` scrolled sideways by 1 px at 375 px in Firefox. A
+    single implicit grid column sized to the input's min-content. Fixed with
+    `grid-cols-[minmax(0,1fr)]` on `/runs` and the same form on `/demo`.
+  - The iPhone search test pressed Ctrl+K before hydration. It now retries
+    while the palette is closed.
+  - After the fixes: smoke and home-demo 170/170, search 86/86 (×2), in five
+    browsers.
+  - The other 3 failures passed on repeat.
+
+**2026-11-11: hackathon rules re-read (HACKATHON.md) and applied.**
+- **Q-002:** the `pre-hackathon` baseline is the Solidity/Foundry product on
+  **Monad** (formerly AGENTX, built for Monad Metropolis; `monad/` in this
+  workspace). All four README disclosures now name it, without links (the
+  owner's choice). The docs/25 description says so too: 1,994 of 2,000
+  characters.
+- **Tracks (owner):** `agents`, `security`, `swarms`, `social`.
+- docs/25 §1 now lists every form field and both ways to submit. The API
+  route is `POST /api/applications`, sent only after the owner's yes on the
+  printed payload; the payload is never committed.
+- Checked:
+  - MIT LICENSE in all four repos (Q-014);
+  - a libraries section and the AI-assistance line in every README (Q-005);
+  - `pre-hackathon` tags (Q-003).
+- Open, the owner's:
+  - the `hackathon-submission` tag;
+  - public repos by 2026-11-14 23:59 UTC;
+  - the X post with the video;
+  - the form;
+  - Q-015 (a second project by the same person): not applicable; one
+    project is submitted.
+
+**2026-11-11: final backend gate on the finished code.**
+- Run in a Linux `node:22` container (its clock matches Postgres, own database
+  `pactora_ci`):
+  - typecheck, lint and format clean;
+  - **1,389 passed, 10 skipped, 2 failed**: `status.test.ts` (reads the sibling
+    docs repo, which the container lacks) and one `sse-live.test.ts` case (the
+    database goes down and comes back);
+  - both files pass on Windows with the full workspace, 32/32.
+- So all 1,401 backend tests pass (10 skipped by design).
+- Also:
+  - `test:startup`: all 42 refused;
+  - secret scans clean: backend 434 files, contracts 46;
+  - local sandbox `demo:local`: "Demo passed."
+
+**2026-11-11: HOSTED.** Backend on a Vultr `vc2-1c-2gb` (1 vCPU, 2 GB, Atlanta,
+$10/month, the owner's account; Ubuntu 26.10). Site on Vercel (the owner's
+account).
+- **API:** https://api.64-177-60-103.sslip.io, Let's Encrypt certificate.
+  Only 22, 80 and 443 are open (5432, 8080, 9000 and 7000 checked closed);
+  `/metrics` returns 404; the security headers are set; CORS allows only the
+  site.
+- **Site:** https://pactora-interface-near.vercel.app. Its env:
+  `NEXT_PUBLIC_API_URL` set to the API, plus `NEXT_PUBLIC_SITE_URL`.
+  **It serves the old commit until today's work is pushed.**
+- **Server:**
+  - `/root/pactora`, the flat layout from `deploy/vps/README.md`;
+  - `.env` (mode 600) with every secret generated on the server, never shown;
+  - SSH with the owner's `~/.ssh/pactora_vps`;
+  - the reviewers are `council-1/2.gopalt.testnet`;
+  - the identity provider is simulated.
+- **Cron:** a daily backup, alerts every 5 minutes, a monthly restore test, a
+  daily sanctions refresh. OFAC, UN and UK are loaded (19,563, 1,007 and
+  6,420 entries).
+- **Fixed on the way:**
+  - `backup.sh` aborted on Linux before the evidence archive: `pg_restore
+    --list` closed the pipe early. Fixed and run: 56 tables plus the evidence;
+    the restore test passes 56/56;
+  - the sanctions refresh moved into the api image
+    (`apps/api/bin/sanctions-refresh.mjs`), because a server has images, not
+    the repo. `pnpm sanctions:refresh` still works.
+- **Incident:** a `bash -x` trace of `backup.sh` showed the backup HMAC key in
+  the session output. The passphrase was rotated on the server, and the two
+  backups made under it (empty database) were deleted.
+- **Not set (the owner's):** `BACKUP_REMOTE` (an off-host copy) and
+  `ALERT_WEBHOOK_URL`.
+- To stop billing after judging, destroy the instance in Vultr (after
+  2026-11-25).
+
+**2026-11-11: FULL DEMO PASSED ON NEAR TESTNET.** Run 6, after the owner topped
+up `gopalt.testnet` to 55.8 NEAR: `DEMO_NETWORK=testnet node scripts/demo.mjs`
+(RPC FastNEAR; the indexer on the `accounts` source) printed **"Demo passed."**
+with 72 checks and exit 0. The sweep returned 12.87 NEAR; no key appeared in
+the log.
+- Two parts skipped, both expected:
+  - the DAO desk is sandbox-only; the testnet DAO ruling is covered by
+    `verify-near --dao`, 25/25;
+  - the photo step needs `OBJECT_STORE_BUCKET`.
+- Everything else ran with real testnet transactions:
+  - agent hires, settlements and payouts;
+  - listings, bids, claims and person payouts;
+  - indexed settlements, the chain events in the feed;
+  - the blind two-way reviews, the faucet, direct hire;
+  - the held payout, waited out over testnet's real 600 s review window, then
+    paid once cleared;
+  - x402 escrow and refund;
+  - the trust check against farm agents;
+  - the prompt-injection and stolen-key attacks, all refused.
+
+**2026-11-11: PUSHED; final gates.** On the owner's go: contracts `ee85d1c`,
+backend `77a968f`, interface `8b45c99`, docs `9d9686d`, plus this STATUS
+commit. `master` = `human-work` on GitHub in all four repos.
+- **Vercel** redeployed the new interface: the identity docs say "optional",
+  and FastNEAR is the first RPC in its CSP.
+- **Fresh clone** of `human-work` over SSH (the repos are still private), with
+  the README's own steps, then `pnpm demo:local`: **"Demo passed."**, exit 0.
+- **Interface, five browsers, on the final code:** 1,833 passed, 44 skipped
+  by design, 3 failed. All 3 passed on re-run; a fourth intermittent one,
+  Firefox `/admin` signed out, passed 3/3 alone.
+- **Live seed:** the testnet demo was pointed at the server's database through
+  an SSH tunnel, with the server's indexer and signer paused.
+  - It stopped after 17 checks: the cross-ocean latency made an approve retry
+    after the job had already settled.
+  - The live database kept 4 agents and 3 settled jobs, with their reputation.
+  - The live marketplace shows them with "1 settled · 0 failed"; `/status`
+    says all systems operational.
+  - The server's indexer and signer were restarted; the tunnel is closed.
+
+**2026-11-11: live browser suite, two fixes, privacy pass.**
+- **The real-chain browser suite** (`e2e-live/`, five browsers) found:
+  - **a database deadlock.** A listing's decide answered 500 because the
+    `job.created` insert lost a deadlock on the agents' event counters.
+    `recordEvent` now retries only SQLSTATE 40P01, up to 4 tries; the insert
+    is idempotent. Tests: `apps/api/test/record-event-deadlock.test.ts` (3,
+    red on the old code). The next run had 0 deadlocks in the API log;
+  - **a WebKit timeout.** The background orbs still drifted, and without GPU
+    compositing that repaints the fixed layer every frame: 326 ms a frame on
+    `/jobs/new` in WebKit, 18 ms with the orbs still (Chromium 73 -> 12). The
+    orbs now hold still, with the same look.
+- The five-browser live run after the fixes was **stopped by Claude Code at
+  low memory** (0.8 of 15.7 GB free) after 24 tests, none failed. Re-run it
+  one browser at a time when memory allows.
+- **Privacy:** today's 6 commits named the owner's personal email as author,
+  and one STATUS line repeated it. With the owner's go, today's commits were
+  rewritten to the GitHub noreply address that every older commit uses, and
+  force-pushed while the repos were still private. Local backup branches
+  `backup/pre-noreply-2026-11-11` hold the old commits and are not pushed.
+  Scans of the tracked files: no personal email, no local paths, no machine
+  names, no keys.
+
 **Plan to the deadline (2026-11-14 23:59 UTC):**
 
 | Day | Owner | Agent, after the owner's step |
@@ -558,51 +845,58 @@ audit and a NEAR mainnet procedure (docs/28 §6).
 
 ## Next up (ordered)
 
-1. **Owner:** deploy the contracts to NEAR testnet from `human-work`
-   (contracts README "Testnet").
-2. `verify-near --network testnet --dao`; `node scripts/sync-chain-facts.mjs`
-   copies `deployments/testnet.json` into the backend's `chain/`; commit that.
-3. `DEMO_NETWORK=testnet pnpm demo` in the backend.
-4. Optional: host — backend on a VPS (`pactora-backend-near/deploy/vps/README.md`),
-   interface on Vercel with `NEXT_PUBLIC_API_URL=https://$API_HOST`. Local-only
-   is acceptable (Q-012) with the public repo, README and video.
-5. Put the deployed account ids in the READMEs and here; re-check the docs/25
-   figures against the testnet run.
-6. **Owner:** tag `hackathon-submission` on `human-work`; make `human-work`
-   the default branch of all four repos (the form's repository link opens
-   the default branch) or submit the `/tree/hackathon-submission` link; make
-   the repos public before 2026-11-14 23:59 UTC.
-7. **Owner:** record the video; post on X saying it was built at NEAR
-   HACKATHON, tagging @NEARProtocol and #NEARHackathon, with the video or
-   screenshots attached (docs/25 §2).
-8. **Owner:** submit the form once (it cannot be edited; corrections go
-   through nearhackathon.com/request-changes): one repository link, the demo
-   post link, a mainnet payout account, the 20–2,000-character description,
-   the tracks (docs/25 §1). Readiness, item by item: docs/28 §14.
+As of 2026-11-11. Contracts live on testnet, backend hosted on Vultr, site on
+Vercel. The deadline is **2026-11-14 23:59 UTC**.
+
+1. ~~Commit and push~~: done 2026-11-11 (owner: "go for all").
+2. **Owner: ~20 testnet NEAR into `gopalt.testnet`** (5.79 left). A
+   throwaway implicit account in the contracts' `.keys/testnet/` is ready to
+   collect faucet funds, and an hourly faucet retry runs. Then
+   `DEMO_NETWORK=testnet` against the live server, so the hosted board shows
+   real agents, jobs and reputation; then re-check the docs/25 figures.
+3. Agent, after the push:
+   - follow every README from a fresh clone, as the AI screen will (Q-017);
+   - check the live site page by page in Chrome against the live API;
+   - tag `hackathon-submission` (on the owner's go) and re-run the gate on
+     that commit.
+4. **Owner:**
+   - make the four repos **public**;
+   - post on X: docs/25 §2, the 272-character post, with `demo-x.mp4`;
+   - submit the form once: docs/25 §1, tracks `agents`, `security`,
+     `swarms`, `social`, the **mainnet** payout account, `website` empty.
+5. Keep the server and the site up until 2026-11-25. Then destroy the Vultr
+   instance to stop billing.
 
 ## Uncommitted work
 
-On `master`: none. On `human-work`, see the branch table above. 2026-11-08: the Docker/VPS fix is pushed (`pactora-backend-near`
-214dec8), this file too (942dd88). `.env` files are never committed: fill
-`pactora-contracts-near/.env` on the PC you deploy from.
+**2026-11-11: nothing is uncommitted**; all four repos are pushed (`master` =
+`human-work`). Earlier the same day, everything since the last push was
+uncommitted in all four repos. It is finished and tested, waiting for the owner's go:
+- the wording pass;
+- the skippable identity check;
+- the testnet deployment record and `deploy --resume`;
+- the FastNEAR defaults;
+- the free `accounts` indexer source;
+- the demo fixes;
+- the `backup.sh` fix and the sanctions refresh in the api image;
+- the UI fixes;
+- the rules and disclosure updates;
+- docs/25, docs/28 and this file.
+
+The secret scan of every changed and new file is clean. Commits use the owner's GitHub noreply address (2026-11-11).
+`.env` files and `.keys/` are never committed.
 
 ## Blocked on the owner
 
-- A NEAR testnet account with about 25 NEAR: `DEPLOYER_ACCOUNT_ID` /
-  `DEPLOYER_SECRET_KEY` in `pactora-contracts-near/.env`. An empty `.env` is
-  in place and gitignored.
-- For Vultr: the server's `.env` (`SIGNER_TOKEN`, `SIGNER_KEY_PASSPHRASE`,
-  `API_HOST`, `CORS_ORIGINS`, `MINIO_KMS_SECRET_KEY`, `BACKUP_REMOTE`,
-  `ALERT_WEBHOOK_URL`, optional keeper account), on the server only.
-- Optional: a NEAR AI Cloud judge key (`NEAR_AI_API_KEY`). The adapter and
-  its signature check are built and off by default (`JUDGE_PROVIDER=near-ai`,
-  docs/08); the key is needed only for one live call that captures real
-  fixtures and confirms the attestation field naming the signing key.
-- The submission itself: D6 rights before the repos go public; the
-  `hackathon-submission` tag and the default branch; public repos; the
-  video and X post; a mainnet payout account; the form (docs/28 §14).
-- The decisions in "What is left" item 3 (KYC vendor, threshold, bot token,
-  email provider, `job_events` retention, deletion and the event log, Q-015).
+- The commit and push (above), then the `hackathon-submission` tag, the
+  public repos, the X post and the form.
+- ~20 testnet NEAR for `gopalt.testnet`.
+- Optional:
+  - `BACKUP_REMOTE` (an off-host backup copy) and `ALERT_WEBHOOK_URL` on the
+    server;
+  - a NEAR AI Cloud key for one live judge call;
+  - D3 (KYC vendor), the matching threshold, a Telegram bot token, an email
+    provider, `job_events` retention.
 
 ## Working agreements
 

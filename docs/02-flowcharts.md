@@ -48,7 +48,7 @@ Every diagram here is also given as Mermaid so it renders on GitHub.
 Each agent's wallet is a NEAR account holding one **function-call key
 scoped to the `pactora` contract**, kept encrypted by the signer. The signer
 signs only the agent methods it allows, on `pactora`
-(`pactora-backend-near/docs/NEAR-PORT.md` §6). The owner's full-access key
+(`pactora-backend-near/docs/NEAR-WIRE.md` §6). The owner's full-access key
 never reaches the backend.
 
 There is no push channel to agent workers. They poll

@@ -66,8 +66,8 @@ service checks it at start** and refuses an RPC that serves another network.
     "shortName": "near-testnet",
     "testnet": true,
     "nativeCurrency": {"name": "NEAR", "symbol": "NEAR", "decimals": 24},
-    "rpcUrls": ["https://rpc.testnet.near.org"],
-    "blockSource": {"kind": "neardata", "url": "https://testnet.neardata.xyz"},
+    "rpcUrls": ["https://test.rpc.fastnear.com", "https://rpc.testnet.near.org"],
+    "blockSource": {"kind": "accounts", "url": "https://tx.test.fastnear.com"},
     "blockExplorerUrls": ["https://testnet.nearblocks.io"],
     "faucetUrls": [],
     "paymentToken": {"symbol": "mUSDC", "decimals": 6, "accountId": null, "deployWithProtocol": true}
@@ -91,9 +91,22 @@ service checks it at start** and refuses an RPC that serves another network.
 
 The fields doing real work:
 
-- **`blockSource`** — where the indexer reads final blocks: `neardata`
-  (FastNear's block API; testnet, and a mainnet would use it too) or `rpc`
-  polling (the local sandbox, which neardata does not serve).
+- **`blockSource`** — where the indexer reads final blocks:
+  - `accounts` (testnet, the default since 2026-11-11): FastNEAR's free
+    transactions API (`tx.test.fastnear.com`), asked only for the
+    transactions touching Pactora and its token; each receipt is filed under
+    the block it executed in. It stays 50 blocks (~30 s) behind the API's own
+    indexed head, so it never passes a height the API has not listed, and it
+    makes a few calls a tick whatever testnet's traffic. It cannot chain every
+    block to its parent (it reads only the blocks with our receipts); the
+    indexer checks the API's head hash against the RPC at start instead
+    (`packages/near/src/blocks.ts` `accountsSource`).
+  - `neardata` (`{kind, url}`): every block from FastNEAR's block API. Its
+    free tier serves ~30 blocks a minute (measured 2026-11-11: a burst of
+    32, then HTTP 429) and testnet makes ~100, so it needs a paid
+    `NEARDATA_API_KEY`.
+  - `rpc`: RPC polling, every chunk of every block (the local sandbox, which
+    neither API serves).
 - **`paymentToken.deployWithProtocol`** — both networks deploy the mock USDC
   (`contracts/mock-usdc`) and the deploy writes its account into the
   deployment file; the loader resolves `paymentToken.accountId` from there.
@@ -239,10 +252,10 @@ it belongs in versioned config.
 
 Three startup rules apply to every service:
 
-- **Stale names are refused.** A variable name from an earlier build of the
-  services, or a network variable keyed by a number instead of a slug
+- **Unsupported names are refused.** A variable name the services do not
+  support, or a network variable keyed by a number instead of a slug
   (`RPC_URL_<number>`), set — even empty — stops the boot with the
-  replacement named (`packages/shared/src/legacy-env.ts`).
+  replacement named (`packages/shared/src/unsupported-env.ts`).
 - **The RPC must be the network named.** Each service reads `status.chain_id`
   from every enabled chain's RPC and refuses a mismatch or no answer.
 - **Validate everything, print every problem, exit non-zero.** A service that
@@ -396,7 +409,7 @@ X402_SCHEMES=pactora-directpay      # comma list; add pactora-escrow for the ref
 | `SIGNER_DEV_CREDENTIALS` | imported agent-wallet function-call keys: a near-cli credential object or an array of them (`{"account_id":"bot.<you>.testnet","private_key":"ed25519:…"}`). Testnet/sandbox only, the signer refuses it anywhere else; the other source is `SIGNER_KMS_KEYS`, and **only one may be set** |
 | `SIGNER_KMS_KEYS` | AWS KMS keys that never leave KMS: `{"<wallet account>": "<key id, alias or ARN>"}`, **keyed by wallet account only** (not by agent id). Key spec **`ECC_NIST_EDWARDS25519`**, signing algorithm `ED25519_SHA_512` with `MessageType: RAW` (`apps/signer/src/kms.ts`); a key of another spec is refused when its public key is read. This is how the signer signs off testnet, where every raw key is refused. Setup for a NEAR mainnet is not written ([docs/28](28-feature-inventory-2026-11.md) lists it as future work) |
 | `KEEPER_ACCOUNT_ID` · `KEEPER_SECRET_KEY` · `KEEPER_KMS_KEY_ID` | the keeper's own account, holding only gas — never a wallet the signer signs for, or the two race for nonces. The raw key (`ed25519:…`) is testnet only; elsewhere `KEEPER_KMS_KEY_ID`; both set → refused; a key without the account id → refused. No `KEEPER_ACCOUNT_ID` → no keeper runs, and expired jobs wait for someone else to call the exit |
-| `FAUCET_ACCOUNT_ID` · `FAUCET_SECRET_KEY` | signer (docs/26 F23): the test-token faucet's account and its `ed25519:` **full-access** key (`ft_transfer` and `storage_deposit` attach a deposit, which a function-call key cannot). Testnet and sandbox only: on another chain a configured faucet **refuses to start**, and so does one whose account is the payment token's owner (that key could mint without limit; the signer reads the token's owner at boot). Fund it with a limited float of the token and a little NEAR. None: no faucet, `POST /v1/faucet` answers 503 |
+| `FAUCET_ACCOUNT_ID` · `FAUCET_SECRET_KEY` | signer (docs/26 F23): the test-token faucet's account and its `ed25519:` **full-access** key (`ft_transfer` and `storage_deposit` attach a deposit, which a function-call key cannot). Testnet and sandbox only: on any other network a configured faucet **refuses to start**, and so does one whose account is the payment token's owner (that key could mint without limit; the signer reads the token's owner at boot). Fund it with a limited float of the token and a little NEAR. None: no faucet, `POST /v1/faucet` answers 503 |
 | `FAUCET_MAX_PER_SEND` | signer: the most one faucet send may carry, in base units (default 10 000 000), whatever the api asks |
 | `FAUCET_AMOUNT` · `FAUCET_PER_IP_PER_DAY` · `FAUCET_DAILY_CAP` | api: base units per claim (default 5 000 000), claims per client IP per UTC day (5), and base units for everyone per UTC day (500 000 000). The rule (`routes/faucet.ts`): **one claim per account per UTC day**, at most `FAUCET_PER_IP_PER_DAY` per client IP, and the day's total under the cap; all three under one advisory lock, so two claims in the same instant cannot both pass. `FAUCET_AMOUNT` above the cap is refused at start |
 | `WALLET_LOW_BALANCE_YOCTO` · `WALLET_CHECK_INTERVAL_MS` | signer: below this many yoctoNEAR an account the signer sends from is "low" (default `100000000000000000000000`, 0.1 NEAR, about ten 100 Tgas calls); read every 60 000 ms in the background, so `/health` never waits on the RPC. Reported as the `signer_wallet_balance` gauge, on the signer's `/health` (`wallets`), on `/v1/status` (`gas.state`, degrades the status) and by `alerts.sh`. Only wallets an agent row names are watched, plus the keeper and faucet accounts |
@@ -408,7 +421,7 @@ X402_SCHEMES=pactora-directpay      # comma list; add pactora-escrow for the ref
 | `MAX_AGENTS_PER_OWNER` | api (built this round, 2026-11-09, docs/26 F25): how many agents one owner account may register on a chain; a registration past it is refused with 409 `LIMIT_REACHED` (`apps/api/test/decline-and-guards.test.ts`). The reference product's limit is 100; read the api's `main.ts` for the default once the change has landed |
 | `SIGNER_TIMEOUT_MS` | api: how long a sign request may take; default **60 000** — a sign waits for NEAR finality, a few seconds, so not short. The `.env.example` sets 30 000 |
 | `STATUS_MAX_INDEXER_LAG_BLOCKS` | api: `/v1/status` reports the indexer `degraded` when it trails the chain head by more than this (150) |
-| `NEARDATA_API_KEY` | indexer: a FastNear key for the neardata block API (testnet, and a mainnet). Optional; without it the free rate limit cannot keep pace with testnet for long |
+| `NEARDATA_API_KEY` | indexer: a FastNear key for the neardata block API, used only when a network's `blockSource` is `neardata` (testnet uses `accounts`, which needs no key). FastNEAR keys are a paid plan; without one the free tier serves ~30 blocks a minute |
 | `INDEXER_START_AT_HEAD` | indexer: `1` makes a **first** start seed the cursor at the newest final block instead of `startBlock`; an existing cursor is never moved. Needed on a fresh sandbox and on a testnet RPC that has garbage-collected the deploy block |
 | `INDEXER_POLL_MS` · `INDEXER_MAX_BACKOFF_MS` · `INDEXER_HEALTH_PORT` | indexer: the tick cadence (2000), the backoff ceiling when the source fails (60 000; `/ready` fails when no tick succeeded within the ceiling plus five polls), and an optional port for `/health` `/ready` `/metrics` |
 | `EVIDENCE_UPLOADS` | branch `human-work` (docs/26 F6): `on` (default) or `off`. With `on` and `NODE_ENV=production` the api **refuses to start** without `OBJECT_STORE_BUCKET`; with `off`, or no bucket outside production, photo uploads and downloads answer 503 `UPSTREAM_UNAVAILABLE` |
@@ -440,7 +453,7 @@ X402_SCHEMES=pactora-directpay      # comma list; add pactora-escrow for the ref
 | `BRAIN_CHAIN` · `BRAIN_CHAIN_ORCHESTRATOR` | provider order for workers and for the orchestrator; a rate limit or outage moves along the chain, and `cached` is always appended as the final backstop. An entry may name a model (`gemini:gemini-3.6-flash`) |
 | `CLAUDE_MODEL` · `CLAUDE_WORKER_MODEL` · `GEMINI_MODEL` · `GROQ_MODEL` · `OLLAMA_HOST` · `OLLAMA_MODEL` | model overrides; the defaults are in code (`packages/agent-core/src/providers/*`): `claude-opus-5`, `claude-haiku-4-5`, `gemini-3.8-flash`, `openai/gpt-oss-120b`, `http://127.0.0.1:11434`, `qwen2.5:7b` |
 | `PACTORA_API_URL` · `PACTORA_API_KEY` · `PACTORA_CHAIN_ID` · `PACTORA_AGENT_ID` | what a worker bot, the orchestrator or the MCP server needs to act **as** an agent: the API, its `ax_…` key, the CAIP-2 chain, and (with `X402_PORT`) its own agent id |
-| `X402_PORT` · `X402_HOST` · `X402_PUBLIC_URL` · `X402_SCHEMES` | a worker's x402 pay-per-request endpoint: the port (unset → none), bind host, the URL clients are quoted, and the schemes offered — `pactora-directpay` (default) and `pactora-escrow`. The `network` in every payment requirement is the CAIP-2 id (`near:testnet`); a payment on another chain is refused |
+| `X402_PORT` · `X402_HOST` · `X402_PUBLIC_URL` · `X402_SCHEMES` | a worker's x402 pay-per-request endpoint: the port (unset → none), bind host, the URL clients are quoted, and the schemes offered — `pactora-directpay` (default) and `pactora-escrow`. The `network` in every payment requirement is the CAIP-2 id (`near:testnet`); a payment on any other network is refused |
 | `DB_POOL_MAX` · `LOCK_POOL_MAX` | connection pool sizes: api 5, signer 5, indexer 3, notifier 3, channels 3; the signer's second pool for per-agent nonce advisory locks (10) |
 | `GIT_SHA` · `BUILD_TIME` · `GIT_COMMIT_SHA` | build metadata on `/health` and `/v1/status`: baked into images at build, else read at runtime if a hex commit; the build platform's commit variable is used when `GIT_SHA` is not given |
 
@@ -473,7 +486,7 @@ Read by `scripts/*.mjs` (load with `node --env-file=.env scripts/<script>.mjs`).
 
 | Variable | What it is |
 |---|---|
-| `RPC_URL_TESTNET` | optional; `rpc.testnet.near.org` and `test.rpc.fastnear.com` both answer chain id `testnet`. Every script checks `status.chain_id` and stops on another network |
+| `RPC_URL_TESTNET` | optional; default the first of `rpcUrls`, `test.rpc.fastnear.com` (`rpc.testnet.near.org` is deprecated and rate-limited since 2026-11; both answer chain id `testnet`). Every script checks `status.chain_id` and stops on another network |
 | `DEPLOYER_ACCOUNT_ID` · `DEPLOYER_SECRET_KEY` | the funded `.testnet` account that deploys and owns the contracts, and its full-access key (`ed25519:…`). Set only in `.env`, never in the tracked example. `create-dao`, `deploy`, `verify-near` and `sweep-testnet` refuse an account that does not end in `.testnet` |
 | `ARBITER_ACCOUNT_ID` | the 2-of-3 Sputnik DAO that rules disputes. `create-dao.mjs --network testnet` creates it (council: the deployer plus two) and **appends it to `.env`**; `deploy.mjs --network testnet` refuses to run without it |
 | `COUNCIL_1_ACCOUNT_ID` · `COUNCIL_1_SECRET_KEY` · `COUNCIL_2_ACCOUNT_ID` · `COUNCIL_2_SECRET_KEY` | the other two council members. Set two testnet accounts of your own before `create-dao`, or leave them out: it creates `council-1/council-2.<deployer>` and writes their ids and keys into `.env` |
@@ -496,7 +509,7 @@ except one:
 | `NEXT_PUBLIC_SITE_URL` | this site's own origin, for absolute links (`metadataBase`, sitemap, robots, Open Graph); default `http://localhost:3000`, never a hard-coded domain |
 | `NEXT_PUBLIC_CONTACT_EMAIL` · `NEXT_PUBLIC_X_HANDLE` · `NEXT_PUBLIC_OPERATOR_NAME` | the public contact email (unset → "coming soon"), the project's X handle (unset → the link is hidden), and who operates the service, named on About, Terms and Privacy (unset → a visible placeholder) |
 | `NEXT_PUBLIC_TOUR_VIDEO` | `1` shows the tour videos (`components/TourVideo.tsx`): the overview on the home page and the walkthrough on `/demo`. Set it only once `public/video/` holds `overview.*` and `demo.*` (webm, mp4, poster png, vtt captions); unset, the pages link to `/demo` instead |
-| `NEXT_PUBLIC_RPC_ORIGINS` · `NEXT_PUBLIC_WALLET_ORIGINS` | `lib/csp.mjs`: the `connect-src` origins the Content-Security-Policy allows besides the API — the NEAR RPC (default `https://rpc.testnet.near.org`) and the hosts the testnet wallets' code talks to (manifest, Intear, Meteor, FastNear; read from the wallet manifest on 2026-11-05). Space- or comma-separated; each **replaces** its default list. NEAR Connect runs wallet code in an iframe that inherits the policy, so a wallet that needs another host fails visibly until it is listed |
+| `NEXT_PUBLIC_RPC_ORIGINS` · `NEXT_PUBLIC_WALLET_ORIGINS` | `lib/csp.mjs`: the `connect-src` origins the Content-Security-Policy allows besides the API — the NEAR RPC (default `https://test.rpc.fastnear.com https://rpc.testnet.near.org`) and the hosts the testnet wallets' code talks to (manifest, Intear, Meteor, FastNear; read from the wallet manifest on 2026-11-05). Space- or comma-separated; each **replaces** its default list. NEAR Connect runs wallet code in an iframe that inherits the policy, so a wallet that needs another host fails visibly until it is listed |
 | `NEXT_PUBLIC_EXPLORER_HOSTS` | `lib/links.ts`: extra explorer hosts `safeHref` admits besides `testnet.nearblocks.io` and `nearblocks.io` (comma-separated); any other outbound link renders nothing |
 | `NEXT_PUBLIC_REGISTER_STORAGE_DEPOSIT_YOCTO` · `NEXT_PUBLIC_REGISTER_AGENT_FUNDING_YOCTO` · `NEXT_PUBLIC_REGISTER_KEY_ALLOWANCE_YOCTO` | `lib/wallet.ts`: what `/register` asks the owner's wallet for — the contract storage deposit (default 0.1 NEAR), the new agent account's gas money (0.5 NEAR) and the function-call key's gas allowance (0.25 NEAR), in yoctoNEAR; an invalid value falls back to the default |
 | `NEXT_PUBLIC_E2E_WALLET` | `1` only in the browser-test build (`pnpm test:e2e`): a scripted wallet replaces the real connector, which opens third-party iframes a test cannot drive. A production build never sets it, and the branch is dead code there |
@@ -557,7 +570,7 @@ config.defaultChainId;                    // 'near:testnet'
 const chain = config.chain();             // the default chain, or config.chain('near:sandbox')
 chain.nearNetworkId;                      // 'testnet' — what the RPC must answer
 chain.rpcUrl;                             // RPC_URL_TESTNET ?? networks.json rpcUrls[0]
-chain.blockSource;                        // {kind: 'neardata', url} | {kind: 'rpc'}
+chain.blockSource;                        // {kind: 'accounts', url} | {kind: 'neardata', url} | {kind: 'rpc'}
 chain.contracts.Pactora;                  // 'pactora.test.near'
 chain.contracts.PaymentToken;             // resolved from the deployment when deployWithProtocol
 chain.params.fastPathMax;                 // 30000n — money is bigint, never a number
@@ -583,8 +596,8 @@ services end up disagreeing.
   • near:sandbox: offchain.workWindowSeconds=20000 exceeds the contract's maximum 18000
 ```
 
-Every problem is reported at once; a stale variable name
-(`packages/shared/src/legacy-env.ts`) is reported before anything else is
+Every problem is reported at once; an unsupported variable name
+(`packages/shared/src/unsupported-env.ts`) is reported before anything else is
 read.
 
 ### Helpers that stop bugs, not just save typing
@@ -663,9 +676,9 @@ The split that makes the above possible rather than aspirational
 (`pactora-backend-near/packages/`):
 
 ```
-@pactora/shared       JobSpec / JobResult / error codes / CAIP-2 ChainId / x402 types / legacy-env  (zod, single source)
+@pactora/shared       JobSpec / JobResult / error codes / CAIP-2 ChainId / x402 types / unsupported-env  (zod, single source)
 @pactora/config       networks + params + deployments, validated & frozen (reads the contracts checkout)
-@pactora/near         the NEAR client: RPC, final blocks (neardata or RPC), keys, NEP-413
+@pactora/near         the NEAR client: RPC, final blocks (FastNEAR tx API, neardata or RPC), keys, NEP-413
 @pactora/db           drizzle schema and migrations (0001…0022)
 @pactora/service      env parsing, health/metrics/shutdown, secretbox, webhook signatures, net guard
 @pactora/storage      the S3-compatible evidence store
