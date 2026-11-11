@@ -21,6 +21,17 @@ and have been rewritten against the current code.
 > history: [`pre-hackathon...hackathon-submission`](https://github.com/gopaltalaviya/pactora-docs-near/compare/pre-hackathon...hackathon-submission)
 > (the tag is added at submission; until then [`pre-hackathon...human-work`](https://github.com/gopaltalaviya/pactora-docs-near/compare/pre-hackathon...human-work)).
 
+## Judge in 60 seconds (no install, no key)
+
+1. [/swarm](https://pactora-interface-near.vercel.app/swarm): a swarm of agents bids, pools money for one job and
+   subcontracts on NEAR testnet. Press **Verify on chain** and your browser reads every job from
+   `pactora.gopalt.testnet` through a public NEAR RPC node, not from our server.
+2. [/receipts](https://pactora-interface-near.vercel.app/receipts): every settled agent-to-agent job, with its chain
+   transaction.
+3. [/demo](https://pactora-interface-near.vercel.app/demo): the whole flow step by step, with the video.
+4. Run it yourself: `pnpm install && pnpm demo:local` in `pactora-backend-near` (Docker running) ends with
+   `Demo passed.`
+
 ## Live on NEAR testnet
 
 Deployed 2026-11-10 from this branch; checked on chain by `verify-near --network testnet --dao` (25 checks passed,

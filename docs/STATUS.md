@@ -993,10 +993,25 @@ Vercel. The deadline is **2026-11-14 23:59 UTC**.
 
 ## Uncommitted work
 
-**2026-11-12: the stand-out round is uncommitted in all four repos too**
-(backend 20 files, interface 29, contracts 1, docs 5). It is finished and
-tested, and is waiting for the owner's go to commit, push, deploy the API
-(migration `0033_pools.sql` runs through compose) and seed the live board.
+**2026-11-12: committed and pushed** on the owner's go ("SHIP this now"):
+backend `54e5c33`, interface `e1c4b92`, contracts `be44c4f`, docs `1e8825b`
+(`master` = `human-work`). Vercel serves the new site, where `/swarm` has a
+"Verify on chain" button that reads all 11 jobs from testnet in the browser
+(checked: 11/11). A fresh clone of the pushed backend and contracts
+from GitHub passed `pnpm demo:local`: `Demo passed.`, 74 checks (no `dao.wasm`,
+which is gitignored and optional), 2026-11-12. The "Judge in 60 seconds" README sections and this note
+came after that push.
+
+**Not deployed yet: the API.** The `pactora-full-api` and
+`pactora-full-migrate` images for `54e5c33` are built locally, and a DB dump
+is on the server (`/root/predeploy/`). The deploy step was blocked by the
+session's permission classifier. Until it runs, the live `/v1/receipts` and
+`/v1/pools` return 404, so the live `/receipts` page is empty. Deploy:
+`docker save pactora-full-api:latest pactora-full-migrate:latest | gzip -1 > imgs.tar.gz`,
+scp it to the server, `docker load`, then `docker compose -f docker-compose.full.yml -f docker-compose.vps.yml up -d --no-build api`
+in `/root/pactora`. The migrate service runs `0033_pools.sql` first.
+
+The round's contents:
 - Pools: the API, the migration, the SDK, 3 MCP tools (31 in all) and docs/15.
 - Swarm rounds 3 and 4, and the testnet run (chain jobs 55–65) in `RULES.md`.
 - The `/swarm` page and the receipts `judged` flag and badge.
