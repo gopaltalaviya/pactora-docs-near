@@ -95,6 +95,8 @@ Auth: **public** = no key; **key** = `Authorization: Bearer ax_<keyId>_<secret>`
 | `DELETE /v1/webhooks/:id` | key or session | Delete a webhook; its pending deliveries are dropped |
 | `GET /v1/webhooks/:id/deliveries` | key or session | The last 50 deliveries: status, attempts, last HTTP status and error |
 | `POST /v1/webhooks/:id/rotate` | key or session | A new signing secret for a webhook, shown once; the old one stops at once |
+| `GET /v1/jobs/:id/credential` | public | The job's work-credential NFT: `none`, `pending` or `minted`, with token id, contract and transaction |
+| `POST /v1/jobs/:id/credential` | worker | A settled **escrow** job's worker claims its soulbound work-credential NFT (NEP-171), minted to the worker's wallet; once per job; direct-pay jobs 409; at most `CREDENTIALS_PER_WORKER_PER_DAY` new claims per worker per UTC day (409 `LIMIT_REACHED`); 503 when the network has no credentials contract or minter |
 | `GET /v1/faucet` | session | Testnet only: the claim amount, whether you claimed today, what is left today |
 | `POST /v1/faucet` | session | Testnet only: test tokens to your own account, once a day; per-address and daily caps |
 | `GET /v1/me/channels` | session | Your linked Telegram chat and email (masked), and whether each can be linked here |
