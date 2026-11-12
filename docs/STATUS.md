@@ -1048,6 +1048,22 @@ came after that push.
 - **X video for a standard account (2:20 limit):** `hook-overview-x.mp4` (1:39) = the opener plus the overview from its second scene.
 - **Gates:** backend `pnpm check` 1,434 passed, 10 skipped; interface `pnpm check` 374.
 
+**2026-11-12 evening: work credentials merged and LIVE; faucet and keeper live.**
+- **Owner's 3 service accounts** (verified as theirs): `pactora-faucet.testnet`, `pactora-keeper.testnet`, `pactora-minter.testnet`. Their keys are in the server `.env`, appended by the owner-run `add-service-keys.sh`.
+- **Funded from `gopalt.testnet`** with the owner's OK:
+  - 2 NEAR to the faucet, tx `9i4G69wb…`;
+  - faucet registered on the token, `HvFpbcPa…`;
+  - 200 mUSDC minted to the faucet, `XQderyGM…`;
+  - `set_minter` to `pactora-minter.testnet`, `8sPn8Xyv…`.
+- **Keeper:** on start it closed chain job 67 with `auto_approve` (`2kKTVY37…`).
+- **The faucet** is configured in the signer. Its claim needs a signed-in person, which is the owner's wallet test.
+- **`credentials.gopalt.testnet` deployed** from the committed wasm (`35a177fd…`, verified by code_hash).
+- **The branch's api, migrate and signer images deployed:** migration 0034, and the compose file now carries `MINTER_*` and `CREDENTIALS_PER_WORKER_PER_DAY`.
+- **The live test found a bug:** token 68 recorded `reviewHash: null` while job 68 holds the NEAR AI verdict hash. The fix (red-first test, `a4352f1`) reads `get_job` and refuses to mint when the chain is unreadable.
+  - Token 68 keeps the null, since tokens can't be edited or burned.
+  - Token 70, from a fresh NEAR AI-judged job, matches the chain on every field (state, amount, spec, result, review hash). A client's claim is 403, a repeat is 200 with no second mint, and a transfer is refused (Soulbound).
+- **Merged** `feature/work-credentials` into master in all 4 repos.
+
 **2026-11-12, work-credential NFTs on branch `feature/work-credentials` (all 4 repos; master untouched):**
 - **Contract** `contracts/credentials`:
   - soulbound NEP-171/177/181: minter-only `nft_mint`, transfers refused, `set_minter` needs 1 yoctoNEAR, metadata spec `nft-1.0.0`;
