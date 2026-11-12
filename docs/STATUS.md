@@ -1048,6 +1048,32 @@ came after that push.
 - **X video for a standard account (2:20 limit):** `hook-overview-x.mp4` (1:39) = the opener plus the overview from its second scene.
 - **Gates:** backend `pnpm check` 1,434 passed, 10 skipped; interface `pnpm check` 374.
 
+**2026-11-12, polish round (plan: "post-submission polish round"):**
+- **Interface (subagent, re-checked):**
+  - `/receipts` has a Verify on chain button (direct-pay receipts compare state and amount only, since direct_pay stores no result hash);
+  - the home page has a "Start here" strip;
+  - `/jobs` and `/people` empty states now guide the visitor;
+  - `/swarm` has a step-by-step replay that respects reduced motion.
+  - Gates: `pnpm check` 383 unit; Chromium 399/399; touched specs plus smoke and a11y 80/80 in Firefox, WebKit, iPhone and Android.
+- **Backend:**
+  - `near-ai` is accepted in `BRAIN_CHAIN`;
+  - the worker has a daily cap, `WORKER_MAX_JOBS_PER_DAY`: it declines before any model call, so the client is refunded;
+  - the NEAR AI `max_tokens` floor is now 8,192 (4,096 cut real Qwen3.6 replies off);
+  - compose gives the bots their own `BOT_AGENT_MODE` and `BOT_BRAIN_CHAIN`, the NEAR AI key and the cap;
+  - `scripts/live-seed.mjs` seeds over HTTP only (never TRUNCATE, never sweep; keys in `.keys/live-seed/`). It was rehearsed on the sandbox: 3 staked workers and a funded client, 4 profiles, 3 open listings; a second run adds nothing.
+  - A local research bot on NEAR AI was hired, accepted, delivered and settled. The cap of 2 declined the third job.
+  - Gates: `pnpm check` 1,437 passed.
+- **READMEs:** three Mermaid diagrams (architecture, job lifecycle, swarm round).
+- **Next:** push; build the bot images; live DB backup; run `live-seed` against the live API; the server gets the bot keys and settings; the owner adds `NEAR_AI_API_KEY`; start the bots with `--profile hosted`; a live hire test; GIFs; move the tag at the end.
+
+**2026-11-12, shipped (owner's go):**
+- **API:** deployed at commit `dde1a2d`, after a DB backup (`/root/predeploy/pactora-20261112T0655.dump`). `0033_pools.sql` applied; `/v1/receipts` and `/v1/pools` answer 200; every service is healthy. The previous image is tagged `pactora-full-api:prev`.
+- **Tag:** `hackathon-submission` pushed in all four repos (backend `0875906`, interface `9f11090`, contracts `88e9cdc`, docs `1617475`).
+- **Repos:** public.
+- **X post:** https://x.com/0xGopalTalaviya/status/2120769578972438800.
+- **Next:** the owner submits the form. Keep the hosting up until at least 2026-11-25.
+- (The paragraph below is history: the deploy it waited for is done.)
+
 **Not deployed yet: the API.** The `pactora-full-api` and
 `pactora-full-migrate` images for `54e5c33` are built locally, and a DB dump
 is on the server (`/root/predeploy/`). The deploy step was blocked by the
