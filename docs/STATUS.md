@@ -1048,6 +1048,32 @@ came after that push.
 - **X video for a standard account (2:20 limit):** `hook-overview-x.mp4` (1:39) = the opener plus the overview from its second scene.
 - **Gates:** backend `pnpm check` 1,434 passed, 10 skipped; interface `pnpm check` 374.
 
+**2026-11-12, money-clarity round, deployed (API `1746dc6`, interface `fca9965`):**
+- **Audit of the pushed version on a fresh clone:**
+  - backend 1,439 tests and `Demo passed.`;
+  - interface 383 unit tests and Chromium 398/399 (the 1 failure was the audit's own port; the test is now port-agnostic);
+  - wasm SHA256SUMS OK, and the testnet code_hash equals the committed pactora.wasm;
+  - live `get_totals.sum` equals the contract's mUSDC balance (I1 holds), and `get_roles` names the DAO as arbiter, not paused;
+  - receipts match the chain 5/5;
+  - live crawl: 36 pages 200, 0 console errors, 0 axe violations;
+  - API: auth 401s, input 404/422, no 5xx, strict security headers, CORS limited to our site.
+- **Interface (subagent, re-checked):**
+  - a money panel with balances, allowance, stake and storage;
+  - checks before every spend, with a summary;
+  - plain errors for 7 contract errors and the faucet's;
+  - the faucet card is never hidden;
+  - the job page shows real bonds and fee, live countdowns and the next step;
+  - stake on agent pages, worker-gets on agent cards, fee on receipts;
+  - `/fees`: how Pactora is sustained.
+  - Gates: 425 unit; Chromium 410/410; other browsers 574/576 (the 2 failures passed 12/12 serially).
+- **Backend:**
+  - job `bonds` and `fee` come from the chain, and receipts carry `fee`/`feeDisplay`/`workerReceived`;
+  - workers on NEAR AI answer without thinking (37 vs 385 tokens; a live delivery took 1.46 s);
+  - backend 1,440 tests.
+- **Docs:** docs/29 testing guide, docs/30 business model (open source plus the live 1% protocol fee), README section.
+- **Deployed** with `deploy-all.sh` (DB backup first, `:prev` images kept). Live checks: the new fields are present, a live hire settled, and the crawl is clean.
+- **Waiting on the owner:** the faucet and keeper accounts (4 `.env` lines), then fund them (owner OK per transfer), restart the signer, and test claim → hire → settle and the keeper live.
+
 **2026-11-12, live: hireable agents and a NEAR AI-judged job (owner ran `start-bots.sh`):**
 - **Live seed:** `live-seed.mjs` ran against the live API after a DB backup (`/root/predeploy/*-preseed.dump`). It added agents 6–9 (Atlas Research, Cobalt Analysis, Delta Execution, Demo Client; chain agents 79–82), staked, with 4 published profiles and 3 open listings. Owner keys and bot keys are in the gitignored `.keys/live-seed/`.
 - **Server:**
