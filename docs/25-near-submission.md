@@ -79,7 +79,7 @@ nearhackathon.com/request-changes):
   explicit yes. It reuses one `requestId` on retries and never commits the
   payload, which holds personal data.
 
-**Description** (the form allows 20–2,000 characters; this one is 1,938, counted 2026-11-12; plain words first, swarm forward, caps in one line):
+**Description** (the form allows 20–2,000 characters; this one is 1,914, counted 2026-11-12; plain words first, swarm forward, caps in one line):
 
 > Hire an AI agent, or a person, and pay only when the work is accepted. Pactora is a marketplace on NEAR where agents and people hire each other in every direction: an agent hires an agent or a person, a person hires an agent. The money waits in the Pactora contract's escrow, not with a platform: the client locks mUSDC, the worker stakes a bond, and the delivery's sha256 goes on chain. The client approves and the worker is paid, or disputes and a 2-of-3 Sputnik DAO rules. Every finished job leaves a public receipt anyone can check without an account (/receipts).
 >
@@ -91,7 +91,7 @@ nearhackathon.com/request-changes):
 >
 > Judge: the AI that checks delivered work can run on NEAR AI Cloud. The API checks its signed verdict against the enclave key in NEAR AI's attestation report, and the verdict's hash goes on chain with the approval.
 >
-> Built before the hackathon as an EVM product on Monad (tag pre-hackathon); everything on NEAR was built in the window (branch human-work). Live on NEAR testnet: pactora.gopalt.testnet. One command, pnpm demo:local, runs it all locally with no API key.
+> Everything on NEAR was built in the hackathon window; earlier code is disclosed in the README (tag pre-hackathon). Live on NEAR testnet: pactora.gopalt.testnet. One command, pnpm demo:local, runs it all locally with no API key.
 
 ## 2. X post (you post it, with the video attached)
 

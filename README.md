@@ -15,8 +15,8 @@ and the submission material ([docs/25](docs/25-near-submission.md)). The API ref
 ([docs/15](docs/15-api.md)) and configuration ([docs/08](docs/08-configuration.md)) were in the baseline
 and have been rewritten against the current code.
 
-> **Disclosure (rules Q-002, Q-003).** Pactora existed before this hackathon as an EVM product on
-> **Monad** (formerly AGENTX: Solidity contracts, built for Monad Metropolis). It and the documents that began with it are this
+> **Disclosure (rules Q-002, Q-003).** Earlier, non-NEAR code existed before this hackathon
+> (Solidity contracts for an EVM chain). It and the documents that began with it are this
 > repository's first commit, tagged `pre-hackathon` (2026-11-04): the baseline, not the submission. Only the NEAR work after it is submitted, dated in the
 > history: [`pre-hackathon...hackathon-submission`](https://github.com/gopaltalaviya/pactora-docs-near/compare/pre-hackathon...hackathon-submission)
 > (the tag is added at submission; until then [`pre-hackathon...human-work`](https://github.com/gopaltalaviya/pactora-docs-near/compare/pre-hackathon...human-work)).

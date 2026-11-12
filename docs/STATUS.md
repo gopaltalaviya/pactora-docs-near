@@ -696,8 +696,8 @@ Gate for the wording pass, 2026-11-10 evening:
 
 **2026-11-11: hackathon rules re-read (HACKATHON.md) and applied.**
 - **Q-002:** the `pre-hackathon` baseline is the Solidity/Foundry product on
-  **Monad** (formerly AGENTX, built for Monad Metropolis; `monad/` in this
-  workspace). All four README disclosures now name it, without links (the
+  an EVM chain, kept outside these repos. All four README disclosures describe
+  it without naming it, and without links (the
   owner's choice). The docs/25 description says so too: 1,994 of 2,000
   characters.
 - **Tracks (owner):** `agents`, `security`, `swarms` (`social` dropped 2026-11-11, owner).
