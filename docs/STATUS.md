@@ -1037,6 +1037,17 @@ came after that push.
 - **Interface:** `pnpm check` 374 unit; e2e Chromium 390/390; home, smoke, swarm, receipts, a11y and job-page 78/78 in Firefox (run serially), WebKit, iPhone and Android.
 - **Secret scan:** clean. Only the `TEST-ONLY` placeholders hit, and the real key is in no committable file.
 
+**2026-11-12, after a second independent review of the judge check:**
+- The attestation now carries the exact request and response bytes. They are stored and never returned.
+- The API checks that they hash to the signed text (whose model prefix must be this model), and recomputes `verdictHash` from the signed response.
+- Reuse is keyed on `signedText`, not the unsigned `responseId`.
+- A judge sent without the bytes is not stored. The report cache is bounded.
+- Four tests were written red first, on 02a9bf6.
+- A real NEAR AI attestation was recaptured with its bytes, and its verdict hash recomputes from the response.
+- **Audit fixes:** docs/25 says the judge "can run" and is "checked against the enclave key in NEAR AI's attestation report" (the TDX quote is not verified; the backend README says so). The description is 1,938 characters. The home roadmap item and docs/28 count are fixed.
+- **X video for a standard account (2:20 limit):** `hook-overview-x.mp4` (1:39) = the opener plus the overview from its second scene.
+- **Gates:** backend `pnpm check` 1,434 passed, 10 skipped; interface `pnpm check` 374.
+
 **Not deployed yet: the API.** The `pactora-full-api` and
 `pactora-full-migrate` images for `54e5c33` are built locally, and a DB dump
 is on the server (`/root/predeploy/`). The deploy step was blocked by the

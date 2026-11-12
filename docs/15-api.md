@@ -592,7 +592,14 @@ verdictHash (64 hex)}` (`packages/shared/src/attestation.ts:13-25`). The
 orchestrator sends it after verifying a NEAR AI Cloud signature; the API
 stores it with the job's event, never sends it to the signer, and returns
 it as the job's `judge` (`apps/api/src/routes/jobs.ts:612-618`, `:1084`).
-Since 2026-11-12 the API checks it too (`apps/api/src/judge-verify.ts`):
+Since 2026-11-12 the attestation also carries `requestBody` and
+`responseBody`, the exact bytes exchanged with NEAR AI. They are stored and
+never returned. The API checks it too (`apps/api/src/judge-verify.ts`):
+
+- **Bound to the signed response:** the bytes must hash to `signedText`
+  (`[model:]sha256(req):sha256(res)`, the prefix naming this model), and the
+  verdict read out of the response must hash to `verdictHash`. Bytes that
+  do not match are 422; a judge sent without them is not stored.
 
 - **Bad signature:** a signature that does not verify over `signedText` is
   refused with 422 `SCHEMA_MISMATCH`, and nothing is paid.
@@ -600,8 +607,9 @@ Since 2026-11-12 the API checks it too (`apps/api/src/judge-verify.ts`):
   public attestation report (`GET /v1/attestation/report?model=…`) gives
   for that model. If it is not, or the report cannot be read, the approve
   or dispute still goes through, but no `judge` is stored.
-- **Reuse:** one NEAR AI response (`responseId`) vouches for one job; reusing
-  it on another job is 422.
+- **Reuse:** one signed response (keyed on `signedText`, which the
+  signature covers, not on `responseId`, which it does not) vouches for one
+  job; reusing it on another job is 422.
 - **On chain:** a judged `approve` sends `verdictHash` to the contract as
   `review_hash`, so the receipt and the chain can be matched.
 
