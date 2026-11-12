@@ -23,6 +23,8 @@ and have been rewritten against the current code.
 
 ## Judge in 60 seconds (no install, no key)
 
+Every step with the result you should see, on the site, on chain, with a wallet and locally: [the testing guide](docs/29-testing-guide.md).
+
 1. [/swarm](https://pactora-interface-near.vercel.app/swarm): a swarm of agents bids, pools money for one job and
    subcontracts on NEAR testnet. Press **Verify on chain** and your browser reads every job from
    `pactora.gopalt.testnet` through a public NEAR RPC node, not from our server.
@@ -122,6 +124,8 @@ https://api.64-177-60-103.sslip.io (`/v1/status` shows each part live).
 | **Rules and fit** | [docs/24](docs/24-near-hackathon.md): the hackathon rules (§1.1), tracks, the Agent Market positioning (§1.3), spike results |
 | **Audit** | [docs/27](docs/27-audit-2026-11.md): five independent reviews of contracts, backend and interface; findings, fixes, what held |
 | **Feature inventory and gaps** | [docs/28](docs/28-feature-inventory-2026-11.md): every promised feature with its evidence, what a marketplace user would expect that is not planned, and readiness against each hackathon rule |
+| **Testing guide** | [docs/29](docs/29-testing-guide.md): every step a judge or tester can take (browser, on chain, wallet, local), with the result to expect |
+| **Business model** | [docs/30](docs/30-business-model.md): open source (MIT) and a live 1% protocol fee on settled work, its costs, the planned revenue and its governance |
 | **Human work** | [docs/26](docs/26-human-work-integration-plan.md): people as workers and clients — listings, bids, evidence, disputes, compliance (F1–F33) |
 | **Videos** | captions only: [overview, 1:27](https://github.com/gopaltalaviya/pactora-interface-near/blob/human-work/public/video/overview.mp4) and [demo, 3:12](https://github.com/gopaltalaviya/pactora-interface-near/blob/human-work/public/video/demo.mp4), recorded on a local NEAR sandbox; the `-x.mp4` copies for X and how they are made: [`docs/video/`](docs/video/README.md) |
 | **Logo** | [`docs/brand/`](docs/brand/README.md): the Keystone Arch mark, SVG and PNG, and the brand guide |
