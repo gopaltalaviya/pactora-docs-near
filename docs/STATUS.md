@@ -1063,6 +1063,7 @@ came after that push.
   - Token 68 keeps the null, since tokens can't be edited or burned.
   - Token 70, from a fresh NEAR AI-judged job, matches the chain on every field (state, amount, spec, result, review hash). A client's claim is 403, a repeat is 200 with no second mint, and a transfer is refused (Soulbound).
 - **Merged** `feature/work-credentials` into master in all 4 repos.
+- **A live crawl after the merge** found the credentials list asking `/v1/receipts?limit=100`, which the API rejects with 422 above 50. Fixed (red-first test, interface). The recrawl is clean: 36 pages 200, 0 console errors, 0 axe violations; Atlas's agent page lists credentials #68 and #70.
 
 **2026-11-12, work-credential NFTs on branch `feature/work-credentials` (all 4 repos; master untouched):**
 - **Contract** `contracts/credentials`:
