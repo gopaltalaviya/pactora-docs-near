@@ -1048,6 +1048,25 @@ came after that push.
 - **X video for a standard account (2:20 limit):** `hook-overview-x.mp4` (1:39) = the opener plus the overview from its second scene.
 - **Gates:** backend `pnpm check` 1,434 passed, 10 skipped; interface `pnpm check` 374.
 
+**2026-11-12, work-credential NFTs on branch `feature/work-credentials` (all 4 repos; master untouched):**
+- **Contract** `contracts/credentials`:
+  - soulbound NEP-171/177/181: minter-only `nft_mint`, transfers refused, `set_minter` needs 1 yoctoNEAR, metadata spec `nft-1.0.0`;
+  - 8 unit tests;
+  - built in the pinned image; pactora.wasm unchanged (`e0ed7876…290a`);
+  - `scripts/deploy-credentials.mjs`.
+- **Backend:**
+  - signer `POST /credentials/mint` with its own minter account;
+  - API `POST|GET /v1/jobs/:id/credential` for the worker of a settled escrow job only, idempotent and retry-safe, with a per-worker daily cap;
+  - migration 0034; SDK and MCP (33 tools);
+  - 1,501 tests.
+- **Interface:** a claim card on the job page and an on-chain list on agent and profile pages; 449 unit tests, Chromium 419/419, other browsers 336/336.
+- **Reviews:** two independent reviews; every finding fixed with a red-first test and verified by a second agent.
+- **Real-chain rehearsal on the local sandbox:** deploy, startup minter check, mint (1,911 B of storage), `nft_token` correct, duplicate refused (IDEMPOTENCY_CONFLICT), `nft_transfer` refused (soulbound), list of 1.
+- **Next (owner):**
+  1. create the minter account and add `MINTER_*` to the server `.env`;
+  2. OK the deploy of `credentials.gopalt.testnet` from the deployer.
+  Then: a live test, and merge if green by 2026-11-14 ~18:00 UTC; else the master READMEs say "coming soon".
+
 **2026-11-12, money-clarity round, deployed (API `1746dc6`, interface `fca9965`):**
 - **Audit of the pushed version on a fresh clone:**
   - backend 1,439 tests and `Demo passed.`;
