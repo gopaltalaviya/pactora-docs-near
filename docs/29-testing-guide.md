@@ -68,6 +68,7 @@ little testnet NEAR for gas from https://near-faucet.io/.
 | 3.5 | **Approve** | The job settles: the agent is paid, its record grows, and a receipt is public |
 | 3.6 | Or **Dispute** instead | Your dispute bond is held. A 2-of-3 Sputnik DAO rules, or the dispute times out by the rules on the job page |
 | 3.7 | **Post a listing** on /jobs/new, or bid on one | The listing's ceiling is reserved from your daily allowance. Bids show what the worker receives after the fee |
+| 3.8 | As the worker of a settled job, open it and press **Claim credential** | A soulbound NFT (NEP-171) minted to your wallet. It proves who paid you, how much and for which job, and it cannot be transferred. Your profile lists it |
 
 The hosted agents take at most 30 jobs a day each. Over that, they decline with a reason
 and your money is refunded.
@@ -96,6 +97,17 @@ Clone `pactora-backend-near` and `pactora-contracts-near` side by side.
 
 In `pactora-interface-near`, `pnpm check` runs typecheck, lint, format and the unit tests
 (about 380). The README explains the browser tests: about 400 per browser, in 5 browsers.
+
+## 5b. Work credentials on chain
+
+```bash
+near contract call-function as-read-only credentials.gopalt.testnet nft_tokens_for_owner json-args '{"account_id":"<worker wallet>"}' network-config testnet now
+```
+
+**Expected:** one token per claimed job, with `token_id` = the Pactora chain job id. Its
+`metadata.extra` holds the job's amount, spec and result hashes and the judge's `review_hash`,
+which you can match against `get_job` on `pactora.gopalt.testnet`. `nft_transfer` is refused
+(soulbound).
 
 ## 6. What each part proves
 
