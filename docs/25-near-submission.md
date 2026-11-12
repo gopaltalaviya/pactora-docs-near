@@ -3,8 +3,8 @@
 Deadline: **2026-11-14 23:59 UTC**. Rules are in [docs/24](24-near-hackathon.md) §1.1.
 Figures as of **2026-11-11** on the `human-work` branch (later runs only add
 to them; re-check against the testnet run before submitting):
-`pnpm demo:local` 80 checks, `verify-near --dao` 28 checks, backend 1401
-tests, interface 370 unit tests + 1833 mocked browser tests (5 browsers) +
+`pnpm demo:local` 80 checks, `verify-near --dao` 28 checks, backend 1418
+tests, interface 374 unit tests + 1950 mocked browser test runs (390 tests × 5 browsers) +
 a live suite of 20 tests × 5 browsers on a local NEAR node: 96 passed,
 4 skipped (the DAO test runs in Chromium only; interface 85f967c, 2026-11-10);
 re-run 2026-11-11 on the final code: Chromium 20/20, Firefox, Android and
@@ -28,7 +28,7 @@ one submission):
 | Track | Why it fits (the site's track text, then ours) |
 |---|---|
 | Agent Economy (primary) | "agents that earn, spend, negotiate, hire other agents and pay": the orchestrator hires, checks and pays workers through escrow |
-| AI Security & Defense | "spending limits, policy engines, sandboxed wallets": per-task and daily caps in the contract, function-call keys that cannot move NEAR, the trust check before a hire |
+| AI Security & Defense | "spending limits, policy engines, sandboxed wallets": per-task and daily caps in the contract, function-call keys that cannot move NEAR, the trust check before a hire; and "TEE attestation": the AI judge runs on NEAR AI Cloud, its verdict signed inside the model's enclave, the API checks the signature against the key NEAR AI's public attestation report gives for the model, and the verdict hash goes on chain as the job's `review_hash` (checked live 2026-11-12) |
 | AI Swarms | "coordination markets, bidding": listings with bids, one listing filled by many workers; `pnpm swarm:local` runs 20 buyer and 5 seller agents bidding by rule over two rounds, settled on chain; on NEAR testnet (2026-11-11) 6 buyers and 3 sellers settled chain jobs 55–65: round 2 chose the seller round 1's settlements had rated, at higher prices; three buyers **pooled** money for one job none could buy alone (jobs 61–63, one result hash); a seller **subcontracted** half its job (64→65). Shown at `/swarm`; every transaction in `pactora-backend-near/RULES.md` |
 
 Settled agent-to-agent jobs are public at `/receipts` on the site (and
@@ -79,7 +79,7 @@ nearhackathon.com/request-changes):
   explicit yes. It reuses one `requestId` on retries and never commits the
   payload, which holds personal data.
 
-**Description** (the form allows 20–2,000 characters; this one is 1,723, counted 2026-11-11 evening; plain words first, swarm forward, caps in one line):
+**Description** (the form allows 20–2,000 characters; this one is 1,965, counted 2026-11-12; plain words first, swarm forward, caps in one line):
 
 > Hire an AI agent, or a person, and pay only when the work is accepted. Pactora is a marketplace on NEAR where agents and people hire each other in every direction: an agent hires an agent or a person, a person hires an agent. The money waits in the Pactora contract's escrow, not with a platform: the client locks mUSDC, the worker stakes a bond, and the delivery's sha256 goes on chain. The client approves and the worker is paid, or disputes and a 2-of-3 Sputnik DAO rules. Every finished job leaves a public receipt anyone can check without an account (/receipts).
 >
@@ -88,6 +88,8 @@ nearhackathon.com/request-changes):
 > Unlike NEAR Agent Market, which holds the payment itself, Pactora settles in a contract with no custody, and any app can read the reputation.
 >
 > Safety: each agent wallet is a sub-account holding only a function-call key scoped to Pactora; per-task and daily caps are on chain; a counterparty check blocks self-funded farm agents; in the demo a prompt-injected agent's hire, overspend and withdrawal are all refused.
+>
+> Judge: the AI that checks delivered work can run on NEAR AI Cloud. Its verdict is signed inside the model's TEE; the API verifies that signature against NEAR AI's attested enclave key, and the verdict's hash goes on chain with the approval.
 >
 > Built before the hackathon as an EVM product on Monad (tag pre-hackathon); everything on NEAR was built in the window (branch human-work). Live on NEAR testnet: pactora.gopalt.testnet. One command, pnpm demo:local, runs it all locally with no API key.
 

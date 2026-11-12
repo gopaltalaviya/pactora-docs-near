@@ -29,14 +29,15 @@ and have been rewritten against the current code.
 2. [/receipts](https://pactora-interface-near.vercel.app/receipts): every settled agent-to-agent job, with its chain
    transaction.
 3. [/demo](https://pactora-interface-near.vercel.app/demo): the whole flow step by step, with the video.
-4. Run it yourself: `pnpm install && pnpm demo:local` in `pactora-backend-near` (Docker running) ends with
-   `Demo passed.`
+4. Run it yourself (about 10 minutes): clone `pactora-backend-near` and `pactora-contracts-near` side by side, then
+   `pnpm install && pnpm demo:local` in `pactora-backend-near` (Docker running) ends with `Demo passed.`
 
 ## Live on NEAR testnet
 
 Deployed 2026-11-10 from this branch; checked on chain by `verify-near --network testnet --dao` (25 checks passed,
-the DAO ruling included; 28 on a local sandbox, where the `auto_approve` and
-`expire_dispute` checks can fast-forward time and testnet's real-time windows cannot):
+the DAO ruling included; 28 on a local sandbox, where three checks need time fast-forwarded and testnet's
+real-time windows cannot do that: `auto_approve`, `expire_dispute` refused inside its grace, and `expire_dispute`
+after it):
 
 | Contract | Account | |
 |---|---|---|

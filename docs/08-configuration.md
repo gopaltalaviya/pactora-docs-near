@@ -336,7 +336,7 @@ COMPLIANCE_REVIEWERS=               # NEAR accounts, comma-separated; parsed ONC
 TELEGRAM_BOT_USERNAME=              # the bot's @username (ends in "bot"); unset → Telegram linking 503
 EMAIL_CHANNEL=0                     # 1 when apps/channels has an email provider
 JUDGE_PROVIDER=chain                # chain | near-ai
-NEAR_AI_MODEL=                      # default zai-org/GLM-5.1-FP8
+NEAR_AI_MODEL=                      # default Qwen/Qwen3.6-35B-A3B-FP8
 NEAR_AI_BASE_URL=                   # default https://cloud-api.near.ai/v1 (https required)
 
 # ── signer ───────────────────────────────────────────────────────────────
@@ -443,7 +443,7 @@ X402_SCHEMES=pactora-directpay      # comma list; add pactora-escrow for the ref
 | `CHANNELS_SITE_URL` · `CHANNELS_HEALTH_PORT` · `CHANNELS_INTERVAL_MS` | channels: where links in messages point (default `http://localhost:3000`; `docker-compose.full.yml` defaults it to `https://pactoragents.com`), an optional `/health` port, and how often notifications and the outbox are processed (2000) |
 | `JUDGE_PROVIDER` | api and the orchestrator (2026-11-09): `chain` (default: the orchestrator's own brain judges, as before) or `near-ai`, a judge on NEAR AI Cloud. Under `AGENT_MODE=cached` (the default) no judge is built and nothing reaches the network |
 | `NEAR_AI_API_KEY` | required with `JUDGE_PROVIDER=near-ai`, in every mode; the api **refuses to start** without it. Never logged: it sits in a private field and any echo of it in an error is replaced with `[redacted]` |
-| `NEAR_AI_MODEL` · `NEAR_AI_BASE_URL` | optional: the model (default `zai-org/GLM-5.1-FP8`) and the OpenAI-compatible base URL (default `https://cloud-api.near.ai/v1`, must be https). The recorded test fixtures follow the documented shape and are **not captured from a live call** until the owner OKs one |
+| `NEAR_AI_MODEL` · `NEAR_AI_BASE_URL` | optional: the model (default `Qwen/Qwen3.6-35B-A3B-FP8`) and the OpenAI-compatible base URL (default `https://cloud-api.near.ai/v1`, must be https). The recorded test fixtures follow the documented shape and are **not captured from a live call** until the owner OKs one |
 | `JUDGE_REQUIRE_ATTESTATION` | api (`packages/shared/src/judge-env.ts`): with `JUDGE_PROVIDER=near-ai`, refuse a NEAR AI verdict whose response signature is missing or does not verify. On unless set to `0`/`false` (only for development against a provider without the signature endpoint); any other value than `0`, `1`, `true`, `false` is refused at start |
 | `SESSION_KEY_SWEEP_MS` · `LISTING_EXPIRY_SWEEP_MS` | api background sweeps, in ms; `0` turns each off. How often accounts with live sessions have their full-access keys re-read (default 300000, 5 min), and how often open listings past their deadline are announced as expired (default 60000) |
 | `RETENTION_EVIDENCE_DAYS` · `RETENTION_CHAT_DAYS` · `RETENTION_DRAFTS_DAYS` · `RETENTION_JOB_EVENTS_DAYS` · `RETENTION_AGENT_EVENTS_READ_DAYS` | api, retention purge (docs/26 F27, `apps/api/src/retention.ts`), in days (defaults): evidence bytes leave the object store 180 days after the job settled or was refunded (the sha256 stays); chat words become `[purged]` after 180; draft contents after 90 (hashes kept); a finished job's per-agent event copies after 365 (the append-only `job_events` log stays); agent events a person has read after 90. Jobs, payments, ratings, the compliance audit and anything on chain are never touched |

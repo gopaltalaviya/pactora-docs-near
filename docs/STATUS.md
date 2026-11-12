@@ -1002,6 +1002,41 @@ from GitHub passed `pnpm demo:local`: `Demo passed.`, 74 checks (no `dao.wasm`,
 which is gitignored and optional), 2026-11-12. The "Judge in 60 seconds" README sections and this note
 came after that push.
 
+**2026-11-12, after an independent pre-screen review: fixes, uncommitted.**
+- **READMEs:**
+  - swarm jobs 55–65 and all four rounds;
+  - the three testnet-skipped verify-near checks named;
+  - Judge-in-60s step 4 names the contracts clone and about 10 minutes;
+  - the function-call key wording;
+  - a glossary (I1, NEP-413/297/141, CAIP-2, x402, yocto, §8x);
+  - interface test counts (374 unit, 390 e2e, 1,950 runs);
+  - the old tagline replaced.
+- **Site:** title, manifest, /about and the OG/Twitter images now carry the new pitch.
+- **`e2e/home.spec.ts`:** it still looked for the old hero sentence, a real failure on the pushed code. It now checks that the hero names "an AI agent or a person".
+- **Tests:** the interface `pnpm check` passes. Chromium e2e: 365/390 in parallel, and every failure passes when run one at a time, except home.spec, which is fixed. home, smoke, csp and user-agents: 77/77 in each of 5 browsers.
+
+**2026-11-12, NEAR AI judge made live and checked (owner's key in the backend `.env`, $10 credit):**
+- **Default model:** `zai-org/GLM-5.1-FP8` is no longer offered (`GET /v1/models`), so the default is
+  now `Qwen/Qwen3.6-35B-A3B-FP8`.
+- **Live run:** the sandbox demo with `AGENT_MODE=live JUDGE_PROVIDER=near-ai BRAIN_CHAIN=groq
+  BRAIN_CHAIN_ORCHESTRATOR=groq` and no other keys, so only the judge spent credit, a few cents.
+  - It gave 3 verdicts, each signed by the model's attested enclave key `0xfdbd…8ddf`.
+  - The API stored the accepted one as verified.
+  - On chain, `review_hash` for sandbox job 2 equals its verdict hash.
+  - The 2 rejections could not be disputed in time: the sandbox gives a 10 s review window, too short for a replayed delivery plus a live judge call. Testnet's windows are longer.
+- **The API now checks the judge itself** (`apps/api/src/judge-verify.ts`):
+  - a bad signature is 422;
+  - a key NEAR AI does not attest for the model, or a report that cannot be read, means the approve goes through without storing a judge;
+  - one response id counts for one job;
+  - a judged approve sends `verdictHash` as `review_hash`;
+  - `GET /v1/jobs/:id` returns `judge.verified`. The job page needed it and the API never sent it, which the mocked e2e had hidden.
+  - Tests were written red first, including the real attestation as a fixture.
+- **Text:** docs/15, docs/24, the backend README, the security docs page and docs/25 (now 1,965 characters, with a Judge paragraph and the Security row) updated. The hook video's scene 1 names the NEAR AI judge.
+- **Gates:** backend `pnpm check` 1,429 passed, 10 skipped; `demo:local` passed with 80 checks; docs env check green.
+- **Video:** the opener was re-rendered, and `demo-hook-x.mp4` rebuilt (3:33, 1920×1080, 8.3 MB).
+- **Interface:** `pnpm check` 374 unit; e2e Chromium 390/390; home, smoke, swarm, receipts, a11y and job-page 78/78 in Firefox (run serially), WebKit, iPhone and Android.
+- **Secret scan:** clean. Only the `TEST-ONLY` placeholders hit, and the real key is in no committable file.
+
 **Not deployed yet: the API.** The `pactora-full-api` and
 `pactora-full-migrate` images for `54e5c33` are built locally, and a DB dump
 is on the server (`/root/predeploy/`). The deploy step was blocked by the
