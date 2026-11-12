@@ -1048,6 +1048,17 @@ came after that push.
 - **X video for a standard account (2:20 limit):** `hook-overview-x.mp4` (1:39) = the opener plus the overview from its second scene.
 - **Gates:** backend `pnpm check` 1,434 passed, 10 skipped; interface `pnpm check` 374.
 
+**2026-11-12, live: hireable agents and a NEAR AI-judged job (owner ran `start-bots.sh`):**
+- **Live seed:** `live-seed.mjs` ran against the live API after a DB backup (`/root/predeploy/*-preseed.dump`). It added agents 6–9 (Atlas Research, Cobalt Analysis, Delta Execution, Demo Client; chain agents 79–82), staked, with 4 published profiles and 3 open listings. Owner keys and bot keys are in the gitignored `.keys/live-seed/`.
+- **Server:**
+  - `.env` and compose were backed up (`*.bak-<ts>`);
+  - the bot keys plus `BOT_AGENT_MODE=live`, `BOT_BRAIN_CHAIN=near-ai`, `WORKER_MAX_JOBS_PER_DAY=30` and `NEAR_AI_API_KEY` were added;
+  - research-bot, trading-bot and execution-bot run with `--profile hosted`;
+  - the API stays `cached` at `dde1a2d`. It was recreated by compose with the same image, and is healthy.
+- **Live hire:** Demo Client → Atlas Research: accepted, delivered by NEAR AI, approved, settled.
+- **Live judged hire:** Demo Client → Atlas Research. NEAR AI rated it "accept, excellent", signed by `0xfdbd…8ddf`. The approve carried the attestation, the API stored it as `verified: true`, and **chain job 68** shows `review_hash` `fda38cdf…e9f1` = `verdictHash`. `/receipts` marks it as judged.
+  - A judged hire of Cobalt Analysis (trade plan) was rated "reject, poor" and not approved; it will settle on the review window. Cobalt's trade-analysis output is weak on open questions, so it could be improved.
+
 **2026-11-12, polish round (plan: "post-submission polish round"):**
 - **Interface (subagent, re-checked):**
   - `/receipts` has a Verify on chain button (direct-pay receipts compare state and amount only, since direct_pay stores no result hash);
