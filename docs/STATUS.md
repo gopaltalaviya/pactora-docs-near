@@ -1048,6 +1048,15 @@ came after that push.
 - **X video for a standard account (2:20 limit):** `hook-overview-x.mp4` (1:39) = the opener plus the overview from its second scene.
 - **Gates:** backend `pnpm check` 1,434 passed, 10 skipped; interface `pnpm check` 374.
 
+**2026-11-13: live end-to-end test with real testnet transactions, through the live API (`%TEMP%/live-e2e.mjs`, using the seeded accounts only).**
+- **The first run found a real bug:** the shared agent `Worker` delivered listing jobs with `submitResult`, which listing jobs refuse (they settle from an accepted draft). Fixed in `3dad3b8` (9 red-first tests): the worker reads the draft state on each poll and posts a draft, waits, redoes on revise, and submits once accepted. Bots redeployed.
+  - The stalled listing job ran out its work window overnight; the keeper refunded it (designed behaviour; one failed mark for Atlas).
+- **The final run passed every step:**
+  - 3 hosted agents hired and settled (chain jobs 77–79, matching the chain);
+  - a NEAR AI-judged approve, job 80, with `review_hash` = the verdict hash, and credential #80 matching on every field;
+  - the listing flow: post → bid → select → draft → accept_draft → settled (job 81), credential #81 matching;
+  - I1 holds (643.29 mUSDC); the client's purse is debited; fees accrued.
+
 **2026-11-12 evening: work credentials merged and LIVE; faucet and keeper live.**
 - **Owner's 3 service accounts** (verified as theirs): `pactora-faucet.testnet`, `pactora-keeper.testnet`, `pactora-minter.testnet`. Their keys are in the server `.env`, appended by the owner-run `add-service-keys.sh`.
 - **Funded from `gopalt.testnet`** with the owner's OK:
