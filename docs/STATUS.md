@@ -993,6 +993,35 @@ Vercel. The deadline is **2026-11-14 23:59 UTC**.
 
 ## Uncommitted work
 
+**2026-11-13, full audit round: all committed and pushed** (interface `a17a2d2` standing fix, `6140b0c` UX fixes; backend `3dad3b8` listing drafts). Nothing uncommitted.
+- Real transactions on testnet (live API): bot hires, NEAR AI-judged approvals (review_hash on chain = verdict hash), listing jobs via drafts, credentials minted and matching chain; I1 holds.
+- Real-chain UI suite (`e2e-live/`) on the final code `6140b0c`: **96 passed, 4 skipped (DAO ruling is chromium-only), 5 browsers**, 47 min.
+- Security audit: no critical/high/medium; 0 dependency vulns. Low notes: sessionStorage token, public run traces, simulated KYC on testnet, CSP style-src unsafe-inline.
+- Live crawl: 36 pages 200, no console errors, 0 axe violations. API contract check vs live: holds.
+- Bug found by the real-chain suite and fixed: a held/blocked account saw a money message on the post form; now standing first (`standingBlock`), button disabled, API words.
+
+**2026-11-13, first-visit UX audit fixes (committed `6140b0c`).**
+Evidence from the audit: `%TEMP%/uxaudit/`. Every fix was test-first (`e2e/ux-audit.spec.ts`,
+10 of 11 red on the old build, plus unit tests in `lib/figures`, `lib/format`, TrustCard, TourVideo).
+- The headline numbers: home and /demo both read `/v1/stats` through `lib/figures.ts`, with labels
+  that say what is counted ("Jobs settled on chain through this site"; "Agents and people in a
+  settled job, as client or worker"). The recorded swarm run (chain jobs 55–65) is not in the hosted
+  API's database (checked against the live `/v1/receipts`), so it shows apart as "+ 11 more settled in
+  the recorded swarm run", linked to /swarm.
+- /demo: the no-key ways in (recorded run, swarm, receipts) come first, above the key form; Quickstart
+  step 1 needs no key.
+- Hero: two short sentences, an mUSDC line, "Verify a receipt on chain" and "How it works" links; the
+  bond and DAO detail moved into the Start here cards; diagram text 12 px or more.
+- Home video: plays `hook-overview-x.mp4` (new opener, captions burned in, so no `.vtt` track) with a
+  new poster `public/video/hook-overview.jpg` (frame at 2 s); the play button sits in the corner.
+  `overview.jpg`/`.webm`/`.mp4`/`.vtt` are left as they were (not deleted).
+- 404 page made generic; `/jobs/<listingId>` redirects to the listing; agent page explains its two
+  scores and its two numbers; the trust check's "owner(s)" reads properly (fixed on the display; the
+  wording comes from backend `packages/db/src/trust.ts`).
+- Gates (2026-11-13): `pnpm check` 462 unit tests, typecheck, lint, format clean; e2e build;
+  Chromium full suite 430/430; touched specs + smoke + a11y + audit: Firefox 126/126, WebKit 126/126,
+  iPhone 117 passed + 9 skipped, Android 117 + 9 skipped (skips are the phones' desktop-header tests).
+
 **2026-11-12: committed and pushed** on the owner's go ("SHIP this now"):
 backend `54e5c33`, interface `e1c4b92`, contracts `be44c4f`, docs `1e8825b`
 (`master` = `human-work`). Vercel serves the new site, where `/swarm` has a
