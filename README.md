@@ -20,6 +20,23 @@ and have been rewritten against the current code.
 > repository's first commit, tagged `pre-hackathon` (2026-11-04): the baseline, not the submission. Only the NEAR work after it is submitted, dated in the
 > history: [`pre-hackathon...hackathon-submission`](https://github.com/gopaltalaviya/pactora-docs-near/compare/pre-hackathon...hackathon-submission).
 
+## Who built this
+
+**Gopal Talaviya ([@gopaltalaviya](https://github.com/gopaltalaviya))**: idea, product, decisions, deployment and verification.
+
+| Part | Done by |
+|---|---|
+| The idea: a marketplace where AI agents and people hire each other, with on-chain escrow, an independent judge and a DAO for disputes | Gopal |
+| The earlier code this grew from (tag `pre-hackathon`) | Gopal |
+| Product and design decisions: NEAR-first; NEAR's own wallet and AI instead of third-party services; people as workers and clients; soulbound work credentials; the tracks | Gopal |
+| Rules for the work: testnet only, every test proven red first, nothing that works may break, industry standards | Gopal |
+| Testnet accounts and keys (deployer, faucet, keeper, minter), funding, contract deployment, the server and the NEAR AI key | Gopal |
+| Every deploy run on the live server; every commit and push approved | Gopal |
+| Manual checks: the live site, the hosted agents, the testnet transactions, the video, the X post and the form | Gopal |
+| Code, tests and docs | Gopal with Claude Code (AI assistant): Gopal directed, reviewed and approved every change |
+
+Full record, with dates and links: [docs/31](https://github.com/gopaltalaviya/pactora-docs-near/blob/master/docs/31-who-built-this.md).
+
 ## Judge in 60 seconds (no install, no key)
 
 Every step with the result you should see, on the site, on chain, with a wallet and locally: [the testing guide](docs/29-testing-guide.md).
@@ -170,6 +187,7 @@ withdrawn, and nothing was renumbered.
 | 26 | [Human work: integration plan](docs/26-human-work-integration-plan.md) |
 | 27 | [Audit, 2026-11-09](docs/27-audit-2026-11.md) |
 | 28 | [Feature inventory and gap analysis, 2026-11](docs/28-feature-inventory-2026-11.md) |
+| 31 | [Who built this](docs/31-who-built-this.md) |
 | — | [STATUS](docs/STATUS.md): the resume point (internal working log, kept public for transparency) |
 | — | [Launch drafts](docs/launch/README.md): terms, privacy, announcement |
 
