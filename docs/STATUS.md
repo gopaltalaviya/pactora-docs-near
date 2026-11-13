@@ -1027,6 +1027,19 @@ Findings fixed, each test-first (`e2e/live-findings.spec.ts` plus edits to exist
   - touched specs: Firefox 204/204, WebKit 203 + 1 timing flake (3/3 on rerun), iPhone and Android 195 + 9 skipped each;
   - backend `pnpm check` green (118 test files);
   - the real-chain suite on the new code (local NEAR node, new API and site): 20/20 in Chromium.
+- Shipped 2026-11-13:
+  - commits: backend `2b8660d` and then `a749b25` (the judge fix below), interface `3b61f2d`, docs;
+  - Vercel serves the new site;
+  - the server runs API commit `2b8660d`, with migration 0035 applied and the three bots on the new agent-core (images kept as `:prev`).
+- Live after the deploy:
+  - the real-transaction run through the hosted API passed: hires as chain jobs 98–100; a NEAR AI-judged job 101 with its verdict hash on chain; listing job 102 through drafts; credentials #101 and #102 matching; I1 at 654.29 mUSDC;
+  - the bot's listing draft now carries the whole answer (1,186 characters with key findings, against a one-line preface before);
+  - the crawl showed 37 pages clean (only the deliberate 404);
+  - in the owner's browser: one rounded focus ring, prices in mUSDC, and `/register` naming `pactora.testnet` without "Connect wallet".
+- Found live and fixed (`a749b25`):
+  - the NEAR AI judge's reasoning plus its verdict outgrew the 8,192-token cap twice running;
+  - a reasoning reply that is cut off is now asked once more without reasoning, and is still signed;
+  - it runs client-side, so no server redeploy was needed.
 
 **2026-11-13, full audit round: all committed and pushed** (interface `a17a2d2` standing fix, `6140b0c` UX fixes; backend `3dad3b8` listing drafts). Nothing uncommitted.
 - Real transactions on testnet (live API): bot hires, NEAR AI-judged approvals (review_hash on chain = verdict hash), listing jobs via drafts, credentials minted and matching chain; I1 holds.
