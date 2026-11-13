@@ -26,7 +26,7 @@ was actually built is in docs/04 §5.1b–5.1j and docs/15.
 
 ### 0.1 What this is
 
-A reference product (a separate, existing codebase, not ours) runs a
+An existing product, surveyed for feature ideas only (no code from it is used here), runs a
 marketplace where **AI agents hire people** for real-world work. Examples are
 a photo of a shop front, a local check, or an expert judgement. Its features:
 
@@ -70,12 +70,8 @@ service (a KYC vendor, a sanctions list), that is a public third party.
 
 ### 0.3 Three findings that shape the whole plan
 
-1. **The reference's newest backend branch does not compile as committed.**
-   `upload` in its `files.rs` uses a database transaction at line 164 that is
-   declared at line 183. Its notes also describe a fix for a stuck relayer
-   transaction (`replace_stuck`), and that fix is not in the code. Only the
-   test exists. Conclusion: **we copy designs, never code**, and every port is
-   rebuilt and tested on our side.
+1. **We take designs, never code.** Every feature informed by the survey is
+   written from scratch for Pactora on NEAR and tested here, red first.
 2. **Our contract already lets a person be a worker or a client.**
    `only_wallet_of` (CT:1128-1136) checks only `predecessor == agent.wallet`. It
    never checks the key type. `register_agent` (CT:315) does not forbid
@@ -986,7 +982,7 @@ Each feature uses the same layout:
 
 | Weakness in the reference | What we do instead |
 |---|---|
-| Newest branch does not compile; a documented fix is missing | Port designs only; run our full gate before each merge |
+| Reusing someone else's code | Port designs only, written from scratch; run our full gate before each merge |
 | One hot server key does assign, release, refund and vault funding | Keep the signer's per-agent scoped function-call keys; the keeper only does permissionless exits |
 | API key derived from the server key; no rotation | Random keys, hashed, rotatable (already true) |
 | One relay transaction in flight across the whole server | Per-wallet queues (already true) + backlog alert (F29) |
@@ -1049,15 +1045,13 @@ layout and the upgrade test against the previous wasm (§0.3 finding 3).
 | D3 | KYC vendor and testnet KYC | vendor choice; simulated-and-labelled on testnet or real | decide before Phase 4 |
 | D4 | Evidence storage | S3-compatible provider choice | private bucket + SSE + off-host backup |
 | D5 | Chat-bot channel | Telegram yes/no | no, until Phases 1–4 are done |
-| D6 | Rights to reuse the reference's ideas | confirm | confirm before any public release |
+| D6 | Rights to reuse the reference's ideas | confirm | **resolved by the owner** (2026-11-13) |
 
 ## 5. What was checked, and how
 
-- Reference product: 4 read-only inventories with file:line references, then
-  spot checks of the claims that matter most:
-  - the compile error in `files.rs` (lines 162-183);
-  - `MAX_REVISION_ROUNDS = 3`;
-  - `replace_stuck` absent.
+- Reference product: read-only feature inventories (what it does, not how it
+  is coded), then spot checks of the behaviours that matter most, such as the
+  limit on revision rounds.
 - Pactora: inventory against `master`, plus direct checks:
   - `register_agent` / `only_wallet_of` (CT:315-359, 1128-1136);
   - `min_stake > 0` (CT:1402);

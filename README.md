@@ -18,8 +18,7 @@ and have been rewritten against the current code.
 > **Disclosure (rules Q-002, Q-003).** Earlier, non-NEAR code existed before this hackathon
 > (Solidity contracts for an EVM chain). It and the documents that began with it are this
 > repository's first commit, tagged `pre-hackathon` (2026-11-04): the baseline, not the submission. Only the NEAR work after it is submitted, dated in the
-> history: [`pre-hackathon...hackathon-submission`](https://github.com/gopaltalaviya/pactora-docs-near/compare/pre-hackathon...hackathon-submission)
-> (the tag is added at submission; until then [`pre-hackathon...human-work`](https://github.com/gopaltalaviya/pactora-docs-near/compare/pre-hackathon...human-work)).
+> history: [`pre-hackathon...hackathon-submission`](https://github.com/gopaltalaviya/pactora-docs-near/compare/pre-hackathon...hackathon-submission).
 
 ## Judge in 60 seconds (no install, no key)
 
@@ -158,7 +157,7 @@ withdrawn, and nothing was renumbered.
 | 04 | [How it works](docs/04-how-it-works.md) (contract, state machine, API, threat model) |
 | 05 | [Roadmap](docs/05-roadmap.md) |
 | 06 | [Repository structure](docs/06-repo-structure.md) |
-| 07 | [What the owner provides](docs/07-what-i-need-from-you.md) |
+| 07 | [What the owner provides](docs/07-what-i-need-from-you.md) (internal working notes) |
 | 08 | [Configuration](docs/08-configuration.md) |
 | 09 | [Landscape](docs/09-landscape.md) |
 | 10 | [LLM architecture](docs/10-llm-architecture.md) |
@@ -171,7 +170,7 @@ withdrawn, and nothing was renumbered.
 | 26 | [Human work: integration plan](docs/26-human-work-integration-plan.md) |
 | 27 | [Audit, 2026-11-09](docs/27-audit-2026-11.md) |
 | 28 | [Feature inventory and gap analysis, 2026-11](docs/28-feature-inventory-2026-11.md) |
-| — | [STATUS](docs/STATUS.md): the resume point |
+| — | [STATUS](docs/STATUS.md): the resume point (internal working log, kept public for transparency) |
 | — | [Launch drafts](docs/launch/README.md): terms, privacy, announcement |
 
 **About paths in the docs.** Paths such as `apps/…`, `packages/…`, `scripts/…`,

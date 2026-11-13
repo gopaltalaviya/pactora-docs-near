@@ -98,7 +98,7 @@ M4 gate, run 2026-11-08 on this machine:
    - the matching threshold trade-off ("Erik"/"Eric", docs/04 §5.1h);
    - a Telegram bot token, to verify the adapter live;
    - an email provider;
-   - D6, the rights, before the repos go public;
+   - D6, the rights: resolved by the owner (2026-11-13);
    - whether the `job_events` audit log may be purged after 365 days (today
      the purge removes only the per-agent copies, `agent_events`), and
      whether a deleted account's dispute reasons in event payloads are scrubbed;
@@ -863,7 +863,7 @@ commit. `master` = `human-work` on GitHub in all four repos.
 | Day | Owner | Agent, after the owner's step |
 |---|---|---|
 | 10 Nov | fund a testnet account (about 25 NEAR) into `pactora-contracts-near/.env` (`DEPLOYER_ACCOUNT_ID`, `DEPLOYER_SECRET_KEY`); run preflight first (`node --env-file=.env scripts/preflight-testnet.mjs`, read-only, must print `GO`); say go | preflight again, then `create-dao`, `deploy`, `verify-near --network testnet --dao`, `sync-chain-facts`, testnet demo; account ids into the READMEs and here; push |
-| 11 Nov | D6 rights; repos public (`master` = `human-work` since 2026-11-10); optional: server `.env` for hosting | tag `hackathon-submission` (on the owner's go); final gate on that commit; hosted deploy if a server was given |
+| 11 Nov | D6 rights (resolved); repos public (`master` = `human-work` since 2026-11-10); optional: server `.env` for hosting | tag `hackathon-submission` (on the owner's go); final gate on that commit; hosted deploy if a server was given |
 | 12 Nov | record the video (docs/25 §3); post on X (docs/25 §2) | check the README steps from a fresh clone, as the AI screen will |
 | 13 Nov | submit the form once (docs/25 §1) | check every public link signed out |
 | 14 Nov | buffer, no changes | only fixes if a check fails |

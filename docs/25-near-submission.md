@@ -1,6 +1,15 @@
 # 25 — NEAR Hackathon submission: form text, X post, video script
 
 Deadline: **2026-11-14 23:59 UTC**. Rules are in [docs/24](24-near-hackathon.md) §1.1.
+
+**Final figures, 2026-11-13** (the `hackathon-submission` tag): interface 462 unit tests and 430 mocked
+browser tests (Chromium; touched specs also in Firefox, WebKit, iPhone and Android); the real-chain
+browser suite 96 passed + 4 skipped across 5 browsers (the DAO ruling runs in Chromium only); contracts
+96 tests (88 pactora and mock-usdc + 8 credentials); 33 MCP tools; a live run on NEAR testnet through
+the hosted API settled chain jobs 82–86 (three hosted agents, a NEAR AI-judged approval whose verdict
+hash is the job's `review_hash`, and a listing), with credentials #85 and #86 matching the chain.
+The figures below are the earlier record.
+
 Figures as of **2026-11-11** on the `human-work` branch (later runs only add
 to them; re-check against the testnet run before submitting):
 `pnpm demo:local` 80 checks, `verify-near --dao` 28 checks, backend 1418
@@ -10,7 +19,7 @@ a live suite of 20 tests × 5 browsers on a local NEAR node: 96 passed,
 re-run 2026-11-11 on the final code: Chromium 20/20, Firefox, Android and
 WebKit 19 + 1 skipped, iPhone 14 of 20 before low memory stopped the run, contracts 88 test
 functions (57 `tests.rs` + 6 `budget.rs` + 4 `fuzz.rs` (2 property, 2 fixed) + 1
-mock-usdc + 6 sandbox + 14 adversarial), 31 MCP tools.
+mock-usdc + 6 sandbox + 14 adversarial), 31 MCP tools (33 since 2026-11-12, with the credential tools).
 
 > **Branch decision (owner, 2026-11-09):** the submission is the `human-work`
 > branch — people as workers and clients, listings and bids, evidence photos,
@@ -179,10 +188,10 @@ must carry:
 
 - [x] Run on testnet (2026-11-10/11): `pactora.gopalt.testnet`, DAO `pactora-arbiter-gopalt.sputnikv2.testnet`, `verify-near` 25/25, the testnet demo (72 checks), the testnet swarm (jobs 49–54, then 55–65 with pools and subcontracting).
 - [x] Testnet account ids in the READMEs and in docs/STATUS.md.
-- [ ] **Owner:** tag `hackathon-submission` on `human-work` in all four repos and push (`master` already equals `human-work`; push the tag only).
-- [ ] **Owner:** make all four repos **public** (D6, the rights, first: docs/26 §4).
+- [x] **Owner:** tag `hackathon-submission` on `human-work` in all four repos and push (`master` already equals `human-work`; push the tag only).
+- [x] **Owner:** make all four repos **public** (D6, the rights: resolved, docs/26 §4).
 - [x] Videos recorded (2026-11-10, local NEAR sandbox, captions only): `pactora-interface-near/public/video/`, overview 1:27 and demo 3:12; see [docs/video](video/README.md).
-- [ ] **Owner:** post on X (§2) with `demo-hook-x.mp4` (or `hook-x.mp4` / `overview-x.mp4`), tagging @NEARProtocol with #NEARHackathon.
-- [ ] **Owner:** submit the form: §1 text, mainnet payout account, `website` empty.
-- [ ] Keep any hosted demo up until 2026-11-18 at least (Q-012); local-only is acceptable with the public repo, the README and the video.
-- [ ] Re-check every figure above against the testnet run; update docs/STATUS.md and docs/28 (the feature inventory) with what was deployed.
+- [x] **Owner:** post on X (§2) with `demo-hook-x.mp4` (or `hook-x.mp4` / `overview-x.mp4`), tagging @NEARProtocol with #NEARHackathon.
+- [x] **Owner:** submit the form: §1 text, mainnet payout account, `website` empty.
+- [x] Keep any hosted demo up until 2026-11-18 at least (Q-012; hosted until at least 2026-11-25); local-only is acceptable with the public repo, the README and the video.
+- [x] Re-check every figure above against the testnet run; update docs/STATUS.md and docs/28 (the feature inventory) with what was deployed.
