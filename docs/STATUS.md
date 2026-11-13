@@ -1036,6 +1036,25 @@ Findings fixed, each test-first (`e2e/live-findings.spec.ts` plus edits to exist
   - the bot's listing draft now carries the whole answer (1,186 characters with key findings, against a one-line preface before);
   - the crawl showed 37 pages clean (only the deliberate 404);
   - in the owner's browser: one rounded focus ring, prices in mUSDC, and `/register` naming `pactora.testnet` without "Connect wallet".
+- Icons and information (interface, after the live test):
+  - **Icons:**
+    - on about 90 action and navigation buttons, the tabs (/me, Admin), the account menu and the phone menu;
+    - sort and filter icons on the short menus, and icons on the job-board filter fields;
+    - person and agent badges everywhere a party is named.
+  - **Missing information added:**
+    - the job page names its client and worker, says the payment path and states the fee rate;
+    - a shared `<Term>` explains purse, stake, bond, escrow, keeper and the other terms, linking to new concepts sections (purse, keeper, disputes, credentials);
+    - form hints give the limits, the fee and the default windows;
+    - bid status in words, and "score N/100" or "unproven";
+    - the listings count, posted times, "Listed since", and the receipts' payment path with what each hash means.
+  - **One test made robust:** the owner-pages accessibility scan now stubs the chain, as the other page tests do; it had read the real testnet RPC and timed out in WebKit.
+  - **Gates:**
+    - interface `pnpm check` green;
+    - Chromium full suite 439/439;
+    - Firefox 186/186;
+    - Android all pass;
+    - iPhone and WebKit pass (each single failure passed on rerun, or after the test fix above);
+    - the real-chain suite 20/20.
 - Found live and fixed (`a749b25`):
   - the NEAR AI judge's reasoning plus its verdict outgrew the 8,192-token cap twice running;
   - a reasoning reply that is cut off is now asked once more without reasoning, and is still signed;
