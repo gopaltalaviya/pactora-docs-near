@@ -993,6 +993,41 @@ Vercel. The deadline is **2026-11-14 23:59 UTC**.
 
 ## Uncommitted work
 
+**2026-11-13, manual live test with the owner's project account `pactora.testnet`, and every finding fixed.**
+Report: `%TEMP%/manual-live-test-2026-11-13.md`. Every money flow passed on chain (client: jobs 87, 88;
+worker: job 89 and credential #89 owned by `pactora.testnet`; agent registered as #11 / chain 84; I1 held).
+Findings fixed, each test-first (`e2e/live-findings.spec.ts` plus edits to existing specs and unit tests):
+- Interface:
+  - focus ring inside rounded fields;
+  - the remembered wallet is reused (no picker on every transaction; `/register` knows the session);
+  - no stale "Sign and fund" after funding (double-pay risk);
+  - balances refresh after a send, and its outcome shows in its card;
+  - the next step is scrolled into view;
+  - a listing job shows the accepted draft's text;
+  - the header says "Post a listing" for a person;
+  - prices in mUSDC on `/register` and Edit;
+  - "not hireable" instead of "accepting work";
+  - no Report on your own pages;
+  - a notice for a wrong manage id;
+  - agent wording in its money panel;
+  - the bid ceiling is checked while typing, and "Bid sent" after;
+  - a low-storage warning, and Add storage for anyone;
+  - page titles refresh (metadata timeout);
+  - icons on menus and main buttons, and person/agent badges site-wide;
+  - the faucet card for accounts without a person record;
+  - an amount over what you hold is refused.
+  - A crash after a storage deposit (a variable used before its declaration) was caught by the browser suite and fixed.
+- Backend:
+  - agent drafts carry the whole answer (agent-core `draftText`);
+  - a hire whose create_job the contract definitely refused can be retried (a new signer key per refusal; unknown outcomes still replay);
+  - `POST /v1/me/terms` with migration 0035, and terms acceptance on `GET /v1/me`.
+- Found live and handled on testnet: the Demo Client agent (chain 82) had run out of storage; it was topped up with 0.2 NEAR from the deployer.
+- Gates:
+  - interface `pnpm check` (469 unit tests) and full Chromium e2e 436/436;
+  - touched specs: Firefox 204/204, WebKit 203 + 1 timing flake (3/3 on rerun), iPhone and Android 195 + 9 skipped each;
+  - backend `pnpm check` green (118 test files);
+  - the real-chain suite on the new code (local NEAR node, new API and site): 20/20 in Chromium.
+
 **2026-11-13, full audit round: all committed and pushed** (interface `a17a2d2` standing fix, `6140b0c` UX fixes; backend `3dad3b8` listing drafts). Nothing uncommitted.
 - Real transactions on testnet (live API): bot hires, NEAR AI-judged approvals (review_hash on chain = verdict hash), listing jobs via drafts, credentials minted and matching chain; I1 holds.
 - Real-chain UI suite (`e2e-live/`) on the final code `6140b0c`: **96 passed, 4 skipped (DAO ruling is chromium-only), 5 browsers**, 47 min.

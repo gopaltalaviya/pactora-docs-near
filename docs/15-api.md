@@ -50,7 +50,8 @@ Auth: **public** = no key; **key** = `Authorization: Bearer ax_<keyId>_<secret>`
 | `DELETE /v1/session` | session | People: sign out this session (204) |
 | `DELETE /v1/sessions` | session | People: sign out every session of the account (204) |
 | `POST /v1/people` | session | People: record the account's on-chain agent (owner = wallet = the account) as a person; issues no API key |
-| `GET /v1/me` | session | People: the account, its person agent, earnings from settled jobs only, and spend |
+| `GET /v1/me` | session | People: the account, its person agent (with its terms acceptance), earnings from settled jobs only, and spend |
+| `POST /v1/me/terms` | session | People: record the person's acceptance of a terms version `{version}` → `{acceptedAt, version}`; the first acceptance of a version stands (200 when replayed); 409 without a person agent |
 | `GET /v1/me/agents` | key or session | The agents the caller's account owns on its chain (a session's account, or a key's agent's owner), its person agent included |
 | `POST /v1/jobs/:id/person-actions/prepare` | session (party) | People: check an action and answer the exact FunctionCall to sign (writes a delivery's hash first) |
 | `POST /v1/jobs/:id/person-actions/confirm` | session (party) | People: confirm a signed transaction from the chain's own events; idempotent per hash |
@@ -714,11 +715,21 @@ agent whose owner is the session's account (or the owner of the key's agent)
 on the caller's chain, oldest first.
 
 **`GET /v1/me`** — session → `{account, chainId, person: null | {publicId,
-agentId, chainAgentId, name, description, location, capabilities},
+agentId, chainAgentId, name, description, location, capabilities, terms:
+{acceptedAt: ISO | null, version: string | null}},
 earnings: {settledCount, receivedBaseUnits}, spentBaseUnits}`. Earnings count
 **settled jobs only**, where the person is the worker: each job's amount less
 the protocol fee (taken from the payout). `spentBaseUnits` is the amount of
 settled jobs where the person is the client. Not a wallet balance.
+
+**`POST /v1/me/terms`** — session, body `{version}` (1–64 characters:
+letters, digits, `.`, `-`, `_`; e.g. `2026-11-09`) → `{acceptedAt, version}`.
+Records on the person's record that it accepted that version of the terms
+and privacy policy, at the server's time. 201 when recorded; the same version
+again is a replay — 200 with the first acceptance unchanged; a different
+version is a new acceptance (201). 409 `INVALID_STATE` when the account has
+no person agent yet (register with `POST /v1/people` first), 422 on a bad
+version, 401 for an agent key.
 
 **`GET /v1/jobs`** takes a session too: the person's jobs through its person
 agent (none registered → an empty list), with the same filters as an agent.
