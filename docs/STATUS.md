@@ -993,6 +993,23 @@ Vercel. The deadline is **2026-11-14 23:59 UTC**.
 
 ## Uncommitted work
 
+**2026-11-13 night: Telegram live, core features, roadmap road, video autoplay. Committed and pushed 2026-11-14.**
+- **Telegram is live** (owner's bot, `@PactoraJobsBot`):
+  - the server `.env` has `TELEGRAM_BOT_TOKEN` (copied by `%TEMP%/set-telegram-env.sh` from the local backend `.env` over ssh stdin, never printed; backup `/root/pactora/.env.bak-before-telegram`), `TELEGRAM_BOT_USERNAME`, and `CHANNELS_SITE_URL` (the compose default is a placeholder domain);
+  - the `channels` service was shipped (image from backend `a749b25`) and started by `%TEMP%/deploy-telegram.sh`, and the API was restarted: both healthy, `telegram: true`;
+  - verified live with `pactora.testnet` ("Pactora Team"): linking with a code and a number, `/status` (34 events, links open), `/jobs` (3 listings, links open);
+  - **not yet verified:** an update pushed by itself (the owner's listing-and-bid test). Docs claim only the three verified steps.
+  - It sends updates and links only; running an account from chat is on the roadmap (Later).
+- **Interface:**
+  - "Every core feature, live." under the hero: 10 tiles, each linked to the live page that shows it;
+  - the roadmap drawn as a road (Now, Next, Later), each point an icon, a title and one line; Telegram alerts under Now;
+  - `TelegramPreview`: an example chat (made-up data, the bot's own wording, checked by a unit test against `channels.ts`) on `/docs/people#channels`, with the link steps; "See an example chat" on the Settings card; `TELEGRAM_BOT` in `lib/site.ts`;
+  - the videos play by themselves once half in view, muted and looping, after the page has loaded; reduced motion keeps the poster; a video icon before both video titles;
+  - docs lists: a list marked `list-none` keeps its own markers (the numbered steps had shown "1." beside their circles).
+- **Docs and READMEs:** a Roadmap section in all four READMEs; `docs/05` §2 marked submitted and §5 rewritten (Now, Next with what each needs, Later); Telegram marked live in `docs/04`, `docs/05`, `docs/07`; the backend's `telegram.ts` comment.
+- **Gates (before the commit):** interface `pnpm check` green; mock build; Chromium full suite 443/443; touched specs on Firefox, WebKit, iPhone and Android 518 passed, the 6 iPhone page checks that failed under two parallel workers (a WebKit canvas warning under memory pressure) passed 45/45 alone; pre-push scan: no secrets or personal data; the "Work credential NFTs" tile's agent (Atlas, chain 79) holds 10 credentials on chain.
+- Committed and pushed 2026-11-14 on the owner's go; the tag move and the final live audit follow.
+
 **2026-11-13, manual live test with the owner's project account `pactora.testnet`, and every finding fixed.**
 Report: `%TEMP%/manual-live-test-2026-11-13.md`. Every money flow passed on chain (client: jobs 87, 88;
 worker: job 89 and credential #89 owned by `pactora.testnet`; agent registered as #11 / chain 84; I1 held).

@@ -37,6 +37,24 @@ and have been rewritten against the current code.
 
 Full record, with dates and links: [docs/31](https://github.com/gopaltalaviya/pactora-docs-near/blob/master/docs/31-who-built-this.md).
 
+## Roadmap
+
+- **Now, live on NEAR testnet:** escrow, worker bonds, spending caps and
+  reputation in one contract; disputes ruled by a DAO council; three agents on
+  NEAR AI Cloud and an attested AI judge; agent swarms; soulbound work
+  credentials; Telegram job alerts from
+  [@PactoraJobsBot](https://t.me/PactoraJobsBot).
+- **Next, right after judging:** email alerts live (built; they need an
+  email provider); contract 1.2.0
+  (deadline extensions, worker-side disputes, more tokens); ownership handed
+  to the DAO; the AI judge's full TEE quote checked; an external audit, then
+  NEAR mainnet.
+- **Later:** run your account from Telegram, with every money step approved
+  in your NEAR wallet; optimistic verification with staked challengers; the
+  work credential as an open reputation standard other NEAR apps can read.
+
+The full list, with what each item needs: [docs/05-roadmap.md](docs/05-roadmap.md).
+
 ## Judge in 60 seconds (no install, no key)
 
 Every step with the result you should see, on the site, on chain, with a wallet and locally: [the testing guide](docs/29-testing-guide.md).

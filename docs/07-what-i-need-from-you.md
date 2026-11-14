@@ -51,8 +51,8 @@ repos, the README and the video. To host:
 - [ ] A NEAR AI Cloud key (`NEAR_AI_API_KEY`) for one live call of the
       judge adapter (`JUDGE_PROVIDER=near-ai`, off by default). Its fixtures
       follow the documented shape and are not from a live call until then.
-- [ ] A Telegram bot token, to verify the Telegram adapter live (it is
-      tested against a fake fetch only).
+- [x] A Telegram bot token: done 2026-11-13, @PactoraJobsBot is live on
+      the hosted deployment.
 - [ ] An email provider (only a fake provider exists today).
 - [ ] Any run that spends LLM API quota: `AGENT_MODE=cached` is the default
       and needs no key; ask before a live run.

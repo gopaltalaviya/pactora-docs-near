@@ -1078,10 +1078,12 @@ docs/26 F11, F12. A new service, `apps/channels`. Routes: docs/15.
   - 400 and 403 (for example, the bot blocked by the person) fail at once.
 - **The bot token is in every Bot API URL**, so it is redacted from every
   error and stored reason.
-- **Not verified live:** the Telegram adapter is written from the published
-  Bot API and tested against a fake `fetch`. A real bot needs the owner's
-  token. Email has only a fake provider, refused in production, because no
-  provider is chosen.
+- **Live since 2026-11-13:** the bot is
+  [@PactoraJobsBot](https://t.me/PactoraJobsBot) on the hosted testnet
+  deployment. Verified live with the owner's account: linking with a code and
+  a number, `/status` and `/jobs`. It sends
+  updates and links only; it never signs or spends. Email has only a fake
+  provider, refused in production, because no provider is chosen.
 
 ### 5.2 Jobs
 

@@ -52,12 +52,12 @@ STATUS for the commits and gates):
 | M6 | profiles, the people directory, two-way reviews | ✅ |
 | M7 | identity checks, sanctions screening, standing, retention | ✅ (KYC provider simulated until the owner picks a vendor) |
 | M8 | admin console and the DAO dispute desk | ✅ |
-| M9 | Telegram and email | ✅ (adapters built; a bot token and an email provider are the owner's) |
+| M9 | Telegram and email | ✅ Telegram live since 2026-11-13 ([@PactoraJobsBot](https://t.me/PactoraJobsBot)); email waits for a provider |
 | M10 | docs and the final gate | ✅ |
 
-**Left before submission** (owner): the testnet deploy (contracts README
-"Testnet"), then `sync-chain-facts` and `DEMO_NETWORK=testnet pnpm demo`;
-the tag, public repos, video, X post and form.
+**Submitted 2026-11-12.** Since then the contract runs on NEAR testnet
+(`pactora.gopalt.testnet`), the site and API are hosted, the repos are public
+and tagged `hackathon-submission`, and the video and form are in.
 
 ---
 
@@ -92,44 +92,50 @@ the tag, public repos, video, X post and form.
 
 ---
 
-## 5. Beyond the hackathon
+## 5. Roadmap: what comes next
 
-From [docs/28 §13](28-feature-inventory-2026-11.md), ranked by value to a
-marketplace user. The contract is frozen at 1.1.0 for the submission, so the
-items that need a contract change wait for one batched release (1.2.0).
+The same list is on the home page (the "Roadmap" section). Each item says
+what it needs. The contract is frozen at 1.1.0 for judging, so everything
+that changes it waits for one batched release, 1.2.0.
 
-**Needs a contract release (1.2.0):**
+### Now: live on NEAR testnet
 
-- **Deadline extension**: both parties agree to push `work_deadline`, so a
-  late worker can ask for time instead of losing its bond.
-- **Worker-side dispute**: today only the client can `dispute`.
-- **Hard compliance hold**: a held party cannot be paid even by
-  `auto_approve` (today's hold is enforced by the signer and keeper, and is
-  bypassable by calling the contract directly).
-- **Reputation decay** on chain (the records are lifetime sums today); an
-  off-chain time-weighted view is cheaper and can come first.
-- Storage refund on `cancel`; more than one payment token.
+- One Rust contract (1.1.0): escrow, worker bonds, on-chain spending caps
+  and reputation.
+- Disputes ruled 2 of 3 by a Sputnik DAO council.
+- Three hosted agents on NEAR AI Cloud; the AI judge's signed verdict is
+  checked against NEAR AI's attested key, and its hash goes on chain.
+- Agent swarms: bidding by rule, pooled buying, subcontracting.
+- A soulbound NEP-171 work credential for every settled job
+  (`credentials.gopalt.testnet`).
+- People: listings, bids, drafts, profiles and two-way reviews.
+- Telegram job alerts: [@PactoraJobsBot](https://t.me/PactoraJobsBot) sends
+  each job update to a linked chat and answers `/status` and `/jobs`; anything
+  that signs is a link to the site (live since 2026-11-13).
+- SDK, MCP, x402 and a worker runtime for builders.
 
-**Backend and interface only:**
+### Next: right after judging
 
-- milestones (one goal → several escrowed jobs on one timeline);
-- pre-hire questions on a listing;
-- receipts export (CSV/PDF per job);
-- web push and email digests; saved searches (alerts for matching listings exist, on the profile);
-- a 0–100 score per week for the history charts; light mode; i18n;
-- a separate landing page for people (the FAQ and a home-page section exist). Built 2026-11-09: the compliance audit-log export.
-
-**Further out:**
-
-| Theme | What |
+| Item | What it needs |
 |---|---|
-| Trust | optimistic verification with a challenge window and staked challengers — the MVP verifies schema conformance, not truth; ownership of the contract handed to the DAO and the deployer's key removed |
-| Scale | per-epoch netting so N subtasks settle in one call |
-| Open network | capability taxonomy, streaming and subscription pricing (permissionless onboarding and the public SDK exist) |
-| Payouts | NEAR Intents at payout, so workers can be paid in other tokens (mainnet only) |
-| Mainnet | a mainnet network entry and parameters, an external audit, then a deploy through the same scripts (none of this is written yet) |
+| Email alerts live | Built (`apps/channels`); an email provider and its key |
+| Contract 1.2.0: deadline extensions both sides agree to; disputes the worker can open; a hard compliance hold that even `auto_approve` respects; storage refund on `cancel`; more than one payment token | Contract work and its sandbox tests, then a migration of the deployed contract |
+| Contract ownership handed to the DAO council; the deployer's key removed | A DAO proposal to take ownership, then deleting the full-access key |
+| The full TEE quote checked for the AI judge (Intel TDX and NVIDIA reports), not only its signing key | A quote verifier in the judge adapter; today the response signature is checked against the attested key |
+| Milestones (one goal, several escrowed jobs on one timeline); questions before hiring; receipt export (CSV/PDF); push alerts and saved searches | Backend and interface only |
+| An external audit, then NEAR mainnet: same code, new configuration | An auditor; a mainnet network entry and parameters (every script refuses mainnet today) |
 
-The single most valuable follow-up is **verification**. Everything in this
-design rests on it, and the MVP verifies schema conformance rather than
-truth. Solving that honestly — optimistic, staked, challengeable — is what
-turns a hackathon project into infrastructure.
+### Later: where it leads
+
+| Item | Why |
+|---|---|
+| **Run your account from Telegram**: post, bid, hire and approve in chat, each money step approved in the person's NEAR wallet (a link or a Telegram mini app); the bot never holds a key | Meets people where they already talk, without giving a bot custody |
+| Optimistic verification: a challenge window and staked challengers | The MVP checks a delivery's format, not its truth; this is the single most valuable follow-up |
+| The work credential as an open reputation standard other NEAR apps read and write | Reputation earned on Pactora becomes portable |
+| Sybil resistance: identity attestations and stake-weighted scores | Makes a ring of owners reviewing each other far more expensive |
+| Batched settlement (per-epoch netting) | N small agent jobs settle in one call |
+| Payouts through NEAR Intents | Workers are paid in the token they want (mainnet only) |
+| A capability taxonomy; streaming and subscription pricing | An open network of agents, beyond one-off jobs |
+
+Smaller items, any time: a 0–100 score per week for the history charts;
+light mode; translations; a separate landing page for people.
